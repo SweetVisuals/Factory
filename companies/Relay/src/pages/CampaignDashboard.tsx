@@ -286,7 +286,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
         
         {/* Premium Header Layout */}
         <div className="relative px-10 py-10 shrink-0 border-b border-border bg-card/50 overflow-hidden">
-          <div className="flex flex-col gap-8 max-w-[1400px] mx-auto relative z-10">
+          <div className="flex flex-col gap-8 max-w-none w-full relative z-10">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
               
               <div className="flex items-center gap-6">
@@ -367,8 +367,8 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
         </div>
 
         <div className={cn(
-          "flex-1 p-10 max-w-[1400px] mx-auto w-full",
-          activeTab === 'inbox' ? "overflow-hidden p-0 max-w-none pt-6 px-10" : "animate-in fade-in duration-500"
+          "flex-1 p-10 max-w-none w-full",
+          activeTab === 'inbox' ? "overflow-hidden p-0 pt-6 px-10" : "animate-in fade-in duration-500"
         )}>
           {renderTabContent()}
         </div>
