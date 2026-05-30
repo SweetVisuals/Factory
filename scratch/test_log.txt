@@ -1,0 +1,6 @@
+◇ injected env (5) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+=== FIRST RUN ===
+[AI-Client] Loaded 6 OpenRouter keys from C:\Users\Shadow\Desktop\Openclaw Factory\companies\Relay\openrouter-api-keys
+[DEBUG] keyCooldowns size: 0 keys in Map: []
+[AI-Client] Attempting primary model: openrouter/owl-alpha via OpenRouter...
+[AI-Client] Trying Key 1/6 (sk-or-v1-8fd...1799185a) for openrouter/owl-alpha (with 30s timeout)...

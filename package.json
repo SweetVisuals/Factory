@@ -1,0 +1,20 @@
+{
+  "name": "openclaw-factory",
+  "version": "1.0.0",
+  "scripts": {
+    "dev:factory": "cd frontend && npm run dev",
+    "dev:agents": "cd backend && node agent_engine.js",
+    "dev:relay-fe": "cd companies/Relay && npx vite",
+    "dev:relay-be": "cd companies/Relay && node server/index.mjs",
+    "dev:hermes": "cd companies/Relay && node server/hermes_orchestrator.mjs",
+    "dev": "concurrently \"npm run dev:factory\" \"npm run dev:agents\" \"npm run dev:relay-fe\" \"npm run dev:relay-be\" \"npm run dev:hermes\"",
+    "start": "npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "dotenv": "^17.4.2"
+  }
+}

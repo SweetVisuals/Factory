@@ -1,0 +1,1 @@
+fix(scraper): implement page down key fallback for headless google maps scrolling which broke and capped at 3 leads

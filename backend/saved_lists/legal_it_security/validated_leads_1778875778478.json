@@ -1,0 +1,18 @@
+[
+  {
+    "email": "jdoe@lawfirm.com",
+    "fullName": "John Doe",
+    "company": "Smith & Associates",
+    "position": "CISO",
+    "companySize": 150,
+    "location": "New York, NY"
+  },
+  {
+    "email": "asmith@biglaw.com",
+    "fullName": "Alice Smith",
+    "company": "BigLaw LLP",
+    "position": "IT Director",
+    "companySize": 200,
+    "location": "Chicago, IL"
+  }
+]

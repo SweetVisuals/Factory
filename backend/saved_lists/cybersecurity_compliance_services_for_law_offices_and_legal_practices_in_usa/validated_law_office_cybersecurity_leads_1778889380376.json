@@ -1,0 +1,138 @@
+[
+  {
+    "id": "5a04e737",
+    "company": "L Law Firm PLLC",
+    "email": "info@llawfirm.law",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "be75f37e",
+    "company": "USA Immigration Lawyers PLLC",
+    "email": "info@usa-immigration-law.com",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "b70dd287",
+    "company": "Hornsby Law Group",
+    "email": "thehornsbylawfirm@yahoo.com",
+    "niche": "Law Office",
+    "location": "USA",
+    "validation_status": "valid"
+  },
+  {
+    "id": "7456383b",
+    "company": "Atheria Law PC",
+    "email": "privacy_inquiry@atherialaw.com",
+    "niche": "Law Office",
+    "location": "USA",
+    "validation_status": "valid"
+  },
+  {
+    "id": "5a86f90d",
+    "company": "Law Offices of Craig Delsack, LLC",
+    "email": "customerrelations@nycbar.org",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "85a57a32",
+    "company": "Jones Law Firm, P.C.",
+    "email": "info@joneslawnyc.com",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "8e9977f5",
+    "company": "GOLDMAN LAW GROUP",
+    "email": "wsg@goldmanlawgroup.com",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "9eec067e",
+    "company": "USA Law Group LLC.",
+    "email": "usalawgroupllc@gmail.com",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "4d464ec7",
+    "company": "Thomas Law Firm PLLC",
+    "email": "jessica@thomaslawimhere.com",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "e03bfbe5",
+    "company": "Strategic Legal Practices, APC",
+    "email": "recruiting@slpattorney.com",
+    "niche": "Law Office",
+    "location": "USA",
+    "validation_status": "valid"
+  },
+  {
+    "id": "cc6c4252",
+    "company": "Daniel H. Weberman, Attorney at Law",
+    "email": "daniel@dhweberman.com",
+    "niche": "Law Office",
+    "location": "USA",
+    "validation_status": "valid"
+  },
+  {
+    "id": "95e5a184",
+    "company": "Immigration Law USA Solutions",
+    "email": "patricia@i-usa-s.com",
+    "niche": "Law Office",
+    "location": "USA",
+    "validation_status": "valid"
+  },
+  {
+    "id": "c7298347",
+    "company": "Immigration Lawyers USA",
+    "email": "office@shautsova.com",
+    "niche": "Law Office",
+    "location": "USA",
+    "validation_status": "valid"
+  },
+  {
+    "id": "866c4be1",
+    "company": "Arnall Golden Gregory",
+    "email": "sean.fogarty@agg.com",
+    "niche": "Law Office",
+    "location": "USA",
+    "validation_status": "valid"
+  },
+  {
+    "id": "c88206e0",
+    "company": "US Legal Group, APC",
+    "email": "mike@uslglaw.com",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "f96c140f",
+    "company": "Latham & Watkins Los Angeles — GSO",
+    "email": "amanda.stipe@lw.com",
+    "niche": "Law Office",
+    "location": "United States",
+    "validation_status": "valid"
+  },
+  {
+    "id": "7ce01c9d",
+    "company": "The CyberLaw Firm",
+    "email": "info@thecyberlawteam.com",
+    "niche": "Law Office",
+    "location": "USA",
+    "validation_status": "valid"
+  }
+]

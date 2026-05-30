@@ -1,0 +1,344 @@
+[
+  {
+    "id": "7e63bafb-35ed-44ae-abd7-410efb2c1d05",
+    "company": "Cyber Resolve",
+    "email": "akelly@cyberresolve.net",
+    "website": "https://cyberresolve.net/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "8c3a2b50-e649-4c91-8309-8fa7e4205dcd",
+    "company": "Pro-Active Cyber Security - Protect Your Business | Cyber Dacians",
+    "email": "contact@proactsystems.com",
+    "website": "https://cyberdacians.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "15119772-65e4-4a8c-8bb9-da3ff96ada94",
+    "company": "Cybersecurity Consultants",
+    "email": "info@strongholdcybersecurity.com",
+    "website": "https://www.pandcglobal.com/consulting-services/law-firms/it-transformation/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "e83ad81e-779e-4edd-8d68-fb6809bd77e7",
+    "company": "Cybersecurity law Report",
+    "email": "ionanalytics-inbound@iongroup.com",
+    "website": "http://cslawreport.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "f0d102c2-8668-4f54-aa0d-172dab6a85fe",
+    "company": "Cybersecurity Legal Consulting",
+    "email": "sales@wcatech.com",
+    "website": "http://www.cybersecuritylc.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "f3148590-e0da-4a27-91a9-2145708b9981",
+    "company": "Cybersecurity Legal Consulting",
+    "email": "yannellap@ballardspahr.com",
+    "website": "http://www.cybersecuritylc.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "3f2e5872-0ea0-4b62-9dc9-9b28b09e5dc6",
+    "company": "Pro-Active Cyber Security - Protect Your Business | Cyber Dacians",
+    "email": "contact@cyberdacians.com",
+    "website": "https://cyberdacians.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "cdc25bb2-8ce4-4cbd-917a-0724d37da6ec",
+    "company": "Cybersecurity Legal Consulting",
+    "email": "incident.response@cooley.com",
+    "website": "http://www.cybersecuritylc.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "464b50ec-d9ce-4c01-bb61-c7c3f208d81b",
+    "company": "Cyber Security and Safety",
+    "email": "info@n8its.com",
+    "website": "https://www.n8its.com/services/cybersecurity-compliance/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "2ec6e8b2-79e8-4dde-bc2f-e2913034d392",
+    "company": "Cyber Resolve",
+    "email": "Sukalp.Bhople@cyber-resolve.com",
+    "website": "https://cyberresolve.net/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "443f6ef6-63e4-4b6f-a8f7-a58cb047ec34",
+    "company": "Cybersafe Solutions",
+    "email": "FirstInitialLastName@cybersafesolutions.com",
+    "website": "http://www.cybersafesolutions.com/",
+    "location": "USA",
+    "quality": "flagged_placeholder_email",
+    "validation_status": "valid"
+  },
+  {
+    "id": "e03bfbe5-274d-4e94-a519-fb40a1e23b8e",
+    "company": "Strategic Legal Practices, APC",
+    "email": "recruiting@slpattorney.com",
+    "website": "https://www.slpattorney.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "b533047a-86c9-46d2-952a-9fa3e4f553cd",
+    "company": "Partners in Regulatory Compliance - NYC Cybersecurity Company",
+    "email": "info@piregcompliance.com",
+    "website": "https://www.piregcompliance.com/",
+    "location": "USA",
+    "quality": "flagged_dns_warning",
+    "validation_status": "warning"
+  },
+  {
+    "id": "5adf1b51-d583-4a75-adc3-d6f18d67655c",
+    "company": "Cybersecurity Legal Consulting",
+    "email": "kristy.brown@alston.com",
+    "website": "http://www.cybersecuritylc.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "e78ba5ac-8937-47fa-84ee-3789ef02a5dd",
+    "company": "Cyber Security Services",
+    "email": "sales@cybersecurityservices.com",
+    "website": "https://www.cybersecurityservices.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "7d55be05-72d9-45ed-ae69-74c993c09bab",
+    "company": "Cyber Security and Safety",
+    "email": "abuse@constantcontact.com",
+    "website": "https://www.n8its.com/services/cybersecurity-compliance/",
+    "location": "USA",
+    "quality": "flagged_non_business_email",
+    "validation_status": "valid"
+  },
+  {
+    "id": "18b70a08-82e4-406a-bdeb-5324e244de0a",
+    "company": "Cybersecurity Consulting",
+    "email": "charles.ngwa@lcicgllc.com",
+    "website": "https://lcicgllc.com/contact-us",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "10020805-a411-4fa7-8bec-748ab2b5ef7e",
+    "company": "CySec - Cybersecurity with IQ GmbH",
+    "email": "info@cysec-institut.de",
+    "website": "https://cysec-institut.de/",
+    "location": "USA",
+    "quality": "flagged_location_mismatch",
+    "validation_status": "valid"
+  },
+  {
+    "id": "733e9063-6e54-4218-ac9a-36c925d41e49",
+    "company": "CyberSecOp - Cyber Security Operations Consulting",
+    "email": "sales@cybersecop.com",
+    "website": "http://www.cybersecop.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "90937dbb-8207-4c96-b9d3-455674114b59",
+    "company": "Scarlett Cybersecurity Services",
+    "email": "info@scarlettcybersecurity.com",
+    "website": "https://www.scarlettcybersecurity.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "b4750325-336c-4ba0-89be-66f21446173c",
+    "company": "Partners in Regulatory Compliance - NYC Cybersecurity Company",
+    "email": "nydfs@public.govdelivery.com",
+    "website": "https://www.piregcompliance.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "58f9ac87-b8b7-47ef-b97b-273292bb0bb8",
+    "company": "Cybersecurity Legal Consulting",
+    "email": "vivian@vobiamaluesq.com",
+    "website": "http://www.cybersecuritylc.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "edde1fd3-bfdc-4df3-96d0-6ea92bd681ad",
+    "company": "Cyber Security Consulting Ops",
+    "email": "info@csco-it.com",
+    "website": "https://www.cybersecurityconsultingops.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "d14311fb-75cf-4fd7-93d7-f1ca5c11cdba",
+    "company": "Max Cybersecurity LLC",
+    "email": "info@maxot.ai",
+    "website": "https://www.maxcybersecurity.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "ac2e1e05-9b3a-485e-8d81-5e7ed00d764f",
+    "company": "Partners in Regulatory Compliance - NYC Cybersecurity Company",
+    "email": "microenterprise@volsprobono.org",
+    "website": "https://www.piregcompliance.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "2d4fa53d-852e-4145-9dc9-3cbcf51aa7e2",
+    "company": "Legal Evidence Corp",
+    "email": "cpiu@ttlawcourts.org",
+    "website": "https://www.legalevidencecorp.com/locations/pa/pittsburgh",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "467998ea-e94c-4bda-bb08-99997ecf2fe6",
+    "company": "Cybersecurity Legal Consulting",
+    "email": "assistance@mullen.law",
+    "website": "http://www.cybersecuritylc.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "198b80bd-c908-46a5-85f0-11401e79a4ee",
+    "company": "Cyber Advisors",
+    "email": "info@cyberadvisors.ai",
+    "website": "https://cyberadvisors.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "6f043a81-e033-49fc-bf55-280ea2114c34",
+    "company": "Cybersecurity Consultants",
+    "email": "support@sbscyber.com",
+    "website": "https://sbscyber.com/services/virtual-ciso",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "15111d4e-5104-44cb-9403-52387d49223a",
+    "company": "Legal Evidence Corp",
+    "email": "pacer@psc.uscourts.gov",
+    "website": "https://www.legalevidencecorp.com/locations/pa/pittsburgh",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "63bfe124-2644-4d79-8d89-cd7f5c318386",
+    "company": "Cyber Guardian Consulting Group, LLC.",
+    "email": "hello@cgcg.biz",
+    "website": "http://cgcg.biz/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "a8f25f70-ffb2-4d06-8205-ec481f3502f7",
+    "company": "IT.Security | Cyber-Sicherheit für Unternehmen",
+    "email": "info@cyberleaks.de",
+    "website": "http://www.cyberleaks.de/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "60188e25-4a72-41b1-92e2-565c51eaf7f0",
+    "company": "Cybersecurity Consultants",
+    "email": "cburton@wsgr.com",
+    "website": "https://www.wsgr.com/en/services/practice-areas/regulatory/data-privacy-and-cybersecurity.html",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "68644a79-2ddf-46bc-a618-5f3610d6e1c8",
+    "company": "Strategic Legal Practices, APC",
+    "email": "tom@playbookpartners.com",
+    "website": "https://www.slpattorney.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "7ce01c9d-14a0-4907-bf7b-ecabcc6a01fc",
+    "company": "The CyberLaw Firm",
+    "email": "info@thecyberlawteam.com",
+    "website": "http://www.thecyberlawteam.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "4d27afa8-1a32-4e01-98d4-222919f97c2d",
+    "company": "Cybersafe Solutions",
+    "email": "firstname.lastname@cybersafesolutions.com",
+    "website": "http://www.cybersafesolutions.com/",
+    "location": "USA",
+    "quality": "flagged_placeholder_email",
+    "validation_status": "valid"
+  },
+  {
+    "id": "3f8280e6-413a-44c3-a977-d75de12b1683",
+    "company": "Max Cybersecurity LLC",
+    "email": "info@maxcybersecurity.com",
+    "website": "https://www.maxcybersecurity.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  },
+  {
+    "id": "af59f9d6-526a-4b00-b444-76001c8f9bb4",
+    "company": "Cybersecurity Legal Consulting",
+    "email": "jcoughlin@mullen.law",
+    "website": "http://www.cybersecuritylc.com/",
+    "location": "USA",
+    "quality": "good",
+    "validation_status": "valid"
+  }
+]

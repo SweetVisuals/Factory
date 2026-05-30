@@ -1,0 +1,16 @@
+node_modules/
+.env
+.wwebjs_auth/
+.wwebjs_cache/
+*.log
+backend/node_modules/
+backend/.env
+backend/.wwebjs_auth/
+backend/.wwebjs_cache/
+frontend/node_modules/
+.DS_Store
+
+
+tmp/
+.git-portable/
+mingit.zip

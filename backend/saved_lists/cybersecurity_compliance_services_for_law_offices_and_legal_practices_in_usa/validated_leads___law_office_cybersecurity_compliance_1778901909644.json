@@ -1,0 +1,326 @@
+[
+  {
+    "id": "7e63bafb-35ed-44ae-abd7-410efb2c1d05",
+    "email": "akelly@cyberresolve.net",
+    "company": "Cyber Resolve",
+    "confidence": 0.95
+  },
+  {
+    "id": "5a04e737-63bb-4c0e-8d26-174a91c6a6da",
+    "email": "info@llawfirm.law",
+    "company": "L Law Firm PLLC",
+    "confidence": 0.95
+  },
+  {
+    "id": "be75f37e-e31d-4eea-ae8f-24a57c1ddb85",
+    "email": "info@usa-immigration-law.com",
+    "company": "USA Immigration Lawyers PLLC",
+    "confidence": 0.9
+  },
+  {
+    "id": "b70dd287-4241-4094-954a-ed929019952d",
+    "email": "thehornsbylawfirm@yahoo.com",
+    "company": "Hornsby Law Group",
+    "confidence": 0.95
+  },
+  {
+    "id": "7456383b-7381-4565-8534-61028d8e7525",
+    "email": "privacy_inquiry@atherialaw.com",
+    "company": "Atheria Law PC",
+    "confidence": 0.95
+  },
+  {
+    "id": "5a86f90d-3f5d-49d3-9a23-128326e4bae1",
+    "email": "customerrelations@nycbar.org",
+    "company": "Law Offices of Craig Delsack, LLC",
+    "confidence": 0.9
+  },
+  {
+    "id": "15119772-65e4-4a8c-8bb9-da3ff96ada94",
+    "email": "info@strongholdcybersecurity.com",
+    "company": "Cybersecurity Consultants - Stronghold",
+    "confidence": 0.95
+  },
+  {
+    "id": "85a57a32-8c4a-4395-b885-f36840cccc92",
+    "email": "info@joneslawnyc.com",
+    "company": "Jones Law Firm, P.C.",
+    "confidence": 0.95
+  },
+  {
+    "id": "e83ad81e-779e-4edd-8d68-fb6809bd77e7",
+    "email": "ionanalytics-inbound@iongroup.com",
+    "company": "Cybersecurity law Report",
+    "confidence": 0.9
+  },
+  {
+    "id": "8e9977f5-0ed6-4fd7-9a8a-855f0e20a5c7",
+    "email": "wsg@goldmanlawgroup.com",
+    "company": "GOLDMAN LAW GROUP",
+    "confidence": 0.95
+  },
+  {
+    "id": "9eec067e-5c6e-4e1a-baee-806b8060cfac",
+    "email": "usalawgroupllc@gmail.com",
+    "company": "USA Law Group LLC.",
+    "confidence": 0.95
+  },
+  {
+    "id": "f0d102c2-8668-4f54-aa0d-172dab6a85fe",
+    "email": "sales@wcatech.com",
+    "company": "Cybersecurity Legal Consulting - WCATech",
+    "confidence": 0.95
+  },
+  {
+    "id": "f3148590-e0da-4a27-91a9-2145708b9981",
+    "email": "yannellap@ballardspahr.com",
+    "company": "Cybersecurity Legal Consulting - Ballard Spahr",
+    "confidence": 0.95
+  },
+  {
+    "id": "3f2e5872-0ea0-4b62-9dc9-9b28b09e5dc6",
+    "email": "contact@cyberdacians.com",
+    "company": "Cyber Dacians",
+    "confidence": 0.85
+  },
+  {
+    "id": "cdc25bb2-8ce4-4cbd-917a-0724d37da6ec",
+    "email": "incident.response@cooley.com",
+    "company": "Cooley LLP - Cyber Legal",
+    "confidence": 0.95
+  },
+  {
+    "id": "4d464ec7-bfbf-4f01-8a31-a50b2f47af21",
+    "email": "jessica@thomaslawimhere.com",
+    "company": "Thomas Law Firm PLLC",
+    "confidence": 0.95
+  },
+  {
+    "id": "584c394c-d324-4080-8751-d7e837ffe462",
+    "email": "eblawyer@aol.com",
+    "company": "David Allen Miller Law, PLLC",
+    "confidence": 0.95
+  },
+  {
+    "id": "464b50ec-d9ce-4c01-bb61-c7c3f208d81b",
+    "email": "info@n8its.com",
+    "company": "N8 ITS - Cyber Security Compliance",
+    "confidence": 0.95
+  },
+  {
+    "id": "2ec6e8b2-79e8-4dde-bc2f-e2913034d392",
+    "email": "Sukalp.Bhople@cyber-resolve.com",
+    "company": "Cyber Resolve (2nd contact)",
+    "confidence": 0.95
+  },
+  {
+    "id": "443f6ef6-63e4-4b6f-a8f7-a58cb047ec34",
+    "email": "FirstInitialLastName@cybersafesolutions.com",
+    "company": "Cybersafe Solutions",
+    "confidence": 0.9
+  },
+  {
+    "id": "e03bfbe5-274d-4e94-a519-fb40a1e23b8e",
+    "email": "recruiting@slpattorney.com",
+    "company": "Strategic Legal Practices, APC",
+    "confidence": 0.95
+  },
+  {
+    "id": "b533047a-86c9-46d2-952a-9fa3e4f553cd",
+    "email": "info@piregcompliance.com",
+    "company": "Partners in Regulatory Compliance",
+    "confidence": 0.7
+  },
+  {
+    "id": "5adf1b51-d583-4a75-adc3-d6f18d67655c",
+    "email": "kristy.brown@alston.com",
+    "company": "Alston & Bird - Cyber Legal",
+    "confidence": 0.95
+  },
+  {
+    "id": "7d55be05-72d9-45ed-ae69-74c993c09bab",
+    "email": "abuse@constantcontact.com",
+    "company": "N8 ITS - Constant Contact email",
+    "confidence": 0.8
+  },
+  {
+    "id": "18b70a08-82e4-406a-bdeb-5324e244de0a",
+    "email": "charles.ngwa@lcicgllc.com",
+    "company": "LCICG LLC - Cybersecurity Consulting",
+    "confidence": 0.95
+  },
+  {
+    "id": "e78ba5ac-8937-47fa-84ee-3789ef02a5dd",
+    "email": "sales@cybersecurityservices.com",
+    "company": "CybersecurityServices.com",
+    "confidence": 0.95
+  },
+  {
+    "id": "cc6c4252-a21c-4478-b81f-a1f8a337a99b",
+    "email": "daniel@dhweberman.com",
+    "company": "Daniel H. Weberman, Attorney at Law",
+    "confidence": 0.95
+  },
+  {
+    "id": "10020805-a411-4fa7-8bec-748ab2b5ef7e",
+    "email": "info@cysec-institut.de",
+    "company": "CySec Institut GmbH",
+    "confidence": 0.7
+  },
+  {
+    "id": "733e9063-6e54-4218-ac9a-36c925d41e49",
+    "email": "sales@cybersecop.com",
+    "company": "CyberSecOp Consulting",
+    "confidence": 0.95
+  },
+  {
+    "id": "90937dbb-8207-4c96-b9d3-455674114b59",
+    "email": "info@scarlettcybersecurity.com",
+    "company": "Scarlett Cybersecurity Services",
+    "confidence": 0.95
+  },
+  {
+    "id": "b4750325-336c-4ba0-89be-66f21446173c",
+    "email": "nydfs@public.govdelivery.com",
+    "company": "Partners in Regulatory Compliance (2nd contact)",
+    "confidence": 0.75
+  },
+  {
+    "id": "58f9ac87-b8b7-47ef-b97b-273292bb0bb8",
+    "email": "vivian@vobiamaluesq.com",
+    "company": "Vobiamalu ESQ / Cyber Legal",
+    "confidence": 0.95
+  },
+  {
+    "id": "edde1fd3-bfdc-4df3-96d0-6ea92bd681ad",
+    "email": "info@csco-it.com",
+    "company": "Cyber Security Consulting Ops",
+    "confidence": 0.95
+  },
+  {
+    "id": "d14311fb-75cf-4fd7-93d7-f1ca5c11cdba",
+    "email": "info@maxot.ai",
+    "company": "Max Cybersecurity LLC (MaxOT)",
+    "confidence": 0.95
+  },
+  {
+    "id": "ac2e1e05-9b3a-485e-8d81-5e7ed00d764f",
+    "email": "microenterprise@volsprobono.org",
+    "company": "Partners in Regulatory Compliance (3rd contact)",
+    "confidence": 0.75
+  },
+  {
+    "id": "2d4fa53d-852e-4145-9dc9-3cbcf51aa7e2",
+    "email": "cpiu@ttlawcourts.org",
+    "company": "Legal Evidence Corp",
+    "confidence": 0.9
+  },
+  {
+    "id": "467998ea-e94c-4bda-bb08-99997ecf2fe6",
+    "email": "assistance@mullen.law",
+    "company": "Mullen Law - Cyber Legal",
+    "confidence": 0.95
+  },
+  {
+    "id": "95e5a184-bc21-44e9-b39e-800773f58dbb",
+    "email": "patricia@i-usa-s.com",
+    "company": "Immigration Law USA Solutions",
+    "confidence": 0.85
+  },
+  {
+    "id": "198b80bd-c908-46a5-85f0-11401e79a4ee",
+    "email": "info@cyberadvisors.ai",
+    "company": "Cyber Advisors",
+    "confidence": 0.95
+  },
+  {
+    "id": "8c3a2b50-e649-4c91-8309-8fa7e4205dcd",
+    "email": "contact@proactsystems.com",
+    "company": "Cyber Dacians (Pro-Act Systems)",
+    "confidence": 0.85
+  },
+  {
+    "id": "6f043a81-e033-49fc-bf55-280ea2114c34",
+    "email": "support@sbscyber.com",
+    "company": "SBS Cyber - Cybersecurity Consultants",
+    "confidence": 0.95
+  },
+  {
+    "id": "c7298347-8bc6-40d7-ad82-216719ab1f63",
+    "email": "office@shautsova.com",
+    "company": "Immigration Lawyers USA",
+    "confidence": 0.85
+  },
+  {
+    "id": "15111d4e-5104-44cb-9403-52387d49223a",
+    "email": "pacer@psc.uscourts.gov",
+    "company": "Legal Evidence Corp (2nd contact)",
+    "confidence": 0.85
+  },
+  {
+    "id": "866c4be1-2a70-43c1-ac9c-f271c62f375c",
+    "email": "sean.fogarty@agg.com",
+    "company": "Arnall Golden Gregory",
+    "confidence": 0.95
+  },
+  {
+    "id": "63bfe124-2644-4d79-8d89-cd7f5c318386",
+    "email": "hello@cgcg.biz",
+    "company": "Cyber Guardian Consulting Group",
+    "confidence": 0.95
+  },
+  {
+    "id": "c88206e0-1e1d-404e-b3fb-c0ef0a649dba",
+    "email": "mike@uslglaw.com",
+    "company": "US Legal Group, APC",
+    "confidence": 0.95
+  },
+  {
+    "id": "a8f25f70-ffb2-4d06-8205-ec481f3502f7",
+    "email": "info@cyberleaks.de",
+    "company": "Cyberleaks.de IT Security",
+    "confidence": 0.7
+  },
+  {
+    "id": "f96c140f-5f18-43c6-a4a7-2611513b62a5",
+    "email": "amanda.stipe@lw.com",
+    "company": "Latham & Watkins - GSO",
+    "confidence": 0.95
+  },
+  {
+    "id": "60188e25-4a72-41b1-92e2-565c51eaf7f0",
+    "email": "cburton@wsgr.com",
+    "company": "Wilson Sonsini - Cyber Legal",
+    "confidence": 0.95
+  },
+  {
+    "id": "68644a79-2ddf-46bc-a618-5f3610d6e1c8",
+    "email": "tom@playbookpartners.com",
+    "company": "Strategic Legal Practices - Playbook Partner",
+    "confidence": 0.8
+  },
+  {
+    "id": "7ce01c9d-14a0-4907-bf7b-ecabcc6a01fc",
+    "email": "info@thecyberlawteam.com",
+    "company": "The CyberLaw Firm",
+    "confidence": 0.95
+  },
+  {
+    "id": "4d27afa8-1a32-4e01-98d4-222919f97c2d",
+    "email": "firstname.lastname@cybersafesolutions.com",
+    "company": "Cybersafe Solutions (2nd contact)",
+    "confidence": 0.85
+  },
+  {
+    "id": "3f8280e6-413a-44c3-a977-d75de12b1683",
+    "email": "info@maxcybersecurity.com",
+    "company": "Max Cybersecurity LLC",
+    "confidence": 0.95
+  },
+  {
+    "id": "af59f9d6-526a-4b00-b444-76001c8f9bb4",
+    "email": "jcoughlin@mullen.law",
+    "company": "Mullen Law - Cyber Legal (2nd contact)",
+    "confidence": 0.95
+  }
+]

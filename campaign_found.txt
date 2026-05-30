@@ -1,0 +1,6 @@
+C:\Users\Shadow\.gemini\antigravity\brain\0f9190b7-9095-488a-8b83-cbab3d83587d\.system_generated\logs\transcript.jsonl
+C:\Users\Shadow\.gemini\antigravity\brain\56ce79a9-5277-4ba3-aa89-010005ec1a18\.system_generated\logs\transcript.jsonl
+C:\Users\Shadow\.gemini\antigravity\brain\5c826061-fc57-4fd6-8565-c0387e740bd6\.system_generated\logs\transcript.jsonl
+C:\Users\Shadow\.gemini\antigravity\brain\624eb45d-a068-423e-9e84-f96ab4d5ea84\.system_generated\logs\transcript.jsonl
+C:\Users\Shadow\.gemini\antigravity\brain\c71ef5ac-5a1e-4806-b184-ae27da44e276\.system_generated\logs\transcript.jsonl
+C:\Users\Shadow\.gemini\antigravity\brain\cf45ce79-4f84-49e2-802c-7c094f32bade\.system_generated\logs\transcript.jsonl

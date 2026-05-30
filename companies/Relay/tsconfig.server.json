@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": false
+  },
+  "include": [
+    "src/lib/**/*",
+    "server/**/*"
+  ],
+  "exclude": [
+    "src/lib/api",
+    "src/components",
+    "src/lib/warmup.ts"
+  ]
+}

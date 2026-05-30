@@ -1,0 +1,134 @@
+[
+  {
+    "name": "Smith & Associates",
+    "email": "contact@smithlaw.com",
+    "phone": "+1234567890",
+    "website": "smithlaw.com"
+  },
+  {
+    "name": "Johnson Legal Group",
+    "email": "info@johnsonlegalgroup.com",
+    "phone": "+1234567891",
+    "website": "johnsonlegalgroup.com"
+  },
+  {
+    "name": "Davis, PLLC",
+    "email": "partner@davisfirm.com",
+    "phone": "+1234567892",
+    "website": "davisfirm.com"
+  },
+  {
+    "name": "Williams Law Office",
+    "email": "admin@williamslaw.com",
+    "phone": "+1234567893",
+    "website": "williamslaw.com"
+  },
+  {
+    "name": "Miller & Associates, PC",
+    "email": "contact@millerlegal.com",
+    "phone": "+1234567894",
+    "website": "millerlegal.com"
+  },
+  {
+    "name": "Brown Law Group",
+    "email": "info@brownlawgroup.com",
+    "phone": "+1234567895",
+    "website": "brownlawgroup.com"
+  },
+  {
+    "name": "Garcia & Partners",
+    "email": "garcia@garciapartners.com",
+    "phone": "+1234567896",
+    "website": "garciapartners.com"
+  },
+  {
+    "name": "Martinez Law Firm",
+    "email": "martinez@martinezlaw.com",
+    "phone": "+1234567897",
+    "website": "martinezlaw.com"
+  },
+  {
+    "name": "Anderson Legal Services",
+    "email": "anderson@andersonlegal.com",
+    "phone": "+1234567898",
+    "website": "andersonlegal.com"
+  },
+  {
+    "name": "Thomas & Thomas",
+    "email": "thomas@thomaslaw.com",
+    "phone": "+1234567899",
+    "website": "thomaslaw.com"
+  },
+  {
+    "name": "Jackson Law Office",
+    "email": "jackson@jacksonlaw.com",
+    "phone": "+1234567800",
+    "website": "jacksonlaw.com"
+  },
+  {
+    "name": "White & Associates",
+    "email": "white@whitelegal.com",
+    "phone": "+1234567801",
+    "website": "whitelegal.com"
+  },
+  {
+    "name": "Harris & Harris, LLP",
+    "email": "harris@harrisllp.com",
+    "phone": "+1234567802",
+    "website": "harrisllp.com"
+  },
+  {
+    "name": "Martin Legal Group",
+    "email": "martin@martinlegal.com",
+    "phone": "+1234567803",
+    "website": "martinlegal.com"
+  },
+  {
+    "name": "Thompson Law",
+    "email": "info@thompsonlaw.com",
+    "phone": "+1234567804",
+    "website": "thompsonlaw.com"
+  },
+  {
+    "name": "Garcia & Garcia",
+    "email": "garcia@garcia-law.com",
+    "phone": "+1234567805",
+    "website": "garcia-law.com"
+  },
+  {
+    "name": "Robinson Law",
+    "email": "robinson@robinsonlaw.com",
+    "phone": "+1234567806",
+    "website": "robinsonlaw.com"
+  },
+  {
+    "name": "Clark Law Firm",
+    "email": "clark@clarklaw.com",
+    "phone": "+1234567807",
+    "website": "clarklaw.com"
+  },
+  {
+    "name": "Lewis & Lewis",
+    "email": "lewis@lewislegal.com",
+    "phone": "+1234567808",
+    "website": "lewislegal.com"
+  },
+  {
+    "name": "Lee & Associates",
+    "email": "lee@leelegal.com",
+    "phone": "+1234567809",
+    "website": "leelegal.com"
+  },
+  {
+    "name": "Walker Law Offices",
+    "email": "walker@walkerlaw.com",
+    "phone": "+1234567810",
+    "website": "walkerlaw.com"
+  },
+  {
+    "name": "Hall & Hall",
+    "email": "hall@halllegal.com",
+    "phone": "+1234567811",
+    "website": "halllegal.com"
+  }
+]

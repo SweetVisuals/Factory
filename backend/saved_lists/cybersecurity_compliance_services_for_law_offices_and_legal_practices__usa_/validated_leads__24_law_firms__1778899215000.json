@@ -1,0 +1,333 @@
+[
+  {
+    "id": "5a04e737-63bb-4c0e-8d26-174a91c6a6da",
+    "company": "L Law Firm PLLC",
+    "website": "https://llawfirm.law/",
+    "email": "info@llawfirm.law",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 95
+  },
+  {
+    "id": "be75f37e-e31d-4eea-ae8f-24a57c1ddb85",
+    "company": "USA Immigration Lawyers PLLC",
+    "website": "http://www.usa-immigration-law.com/",
+    "email": "info@usa-immigration-law.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "GSuite",
+      "MyCase"
+    ],
+    "decisionMaker": "Managing Partner",
+    "confidence": 92
+  },
+  {
+    "id": "b70dd287-4241-4094-954a-ed929019952d",
+    "company": "Hornsby Law Group",
+    "website": "https://www.hornsbylaw.com/",
+    "email": "thehornsbylawfirm@yahoo.com",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "Office365"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 88
+  },
+  {
+    "id": "7456383b-7381-4565-8534-61028d8e7525",
+    "company": "Atheria Law PC",
+    "website": "https://atherialaw.com/",
+    "email": "privacy_inquiry@atherialaw.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "IT Director",
+    "confidence": 90
+  },
+  {
+    "id": "5a86f90d-3f5d-49d3-9a23-128326e4bae1",
+    "company": "Law Offices of Craig Delsack, LLC",
+    "website": "http://www.nyccounsel.com/",
+    "email": "customerrelations@nycbar.org",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "GSuite"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 70
+  },
+  {
+    "id": "85a57a32-8c4a-4395-b885-f36840cccc92",
+    "company": "Jones Law Firm, P.C.",
+    "website": "http://www.joneslawnyc.com/",
+    "email": "info@joneslawnyc.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "Managing Partner",
+    "confidence": 93
+  },
+  {
+    "id": "8e9977f5-0ed6-4fd7-9a8a-855f0e20a5c7",
+    "company": "GOLDMAN LAW GROUP",
+    "website": "https://www.goldmanlawgroup.com/",
+    "email": "wsg@goldmanlawgroup.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "Office365"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 92
+  },
+  {
+    "id": "9eec067e-5c6e-4e1a-baee-806b8060cfac",
+    "company": "USA Law Group LLC.",
+    "website": "https://usalawgroupllc.com/",
+    "email": "usalawgroupllc@gmail.com",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "GSuite"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 85
+  },
+  {
+    "id": "4d464ec7-bfbf-4f01-8a31-a50b2f47af21",
+    "company": "Thomas Law Firm PLLC",
+    "website": "https://thomaslawfirm.co/",
+    "email": "jessica@thomaslawimhere.com",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "Office365"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 89
+  },
+  {
+    "id": "584c394c-d324-4080-8751-d7e837ffe462",
+    "company": "David Allen Miller Law, PLLC",
+    "website": "https://damlawfirm.com/",
+    "email": "eblawyer@aol.com",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "Office365"
+    ],
+    "decisionMaker": "Owner",
+    "confidence": 87
+  },
+  {
+    "id": "e03bfbe5-274d-4e94-a519-fb40a1e23b8e",
+    "company": "Strategic Legal Practices, APC",
+    "website": "https://www.slpattorney.com/",
+    "email": "recruiting@slpattorney.com",
+    "phone": "",
+    "companySize": "50-200",
+    "techStack": [
+      "Office365",
+      "Clio",
+      "MyCase"
+    ],
+    "decisionMaker": "IT Director",
+    "confidence": 94
+  },
+  {
+    "id": "480659ac-838f-4e91-b5f7-7fef73d97697",
+    "company": "Greenstein & Pittari, LLP",
+    "website": "https://www.nyclawfirm.com/",
+    "email": "info@nyclawfirm.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 80
+  },
+  {
+    "id": "f84c2d4b-3a79-49db-ac3a-9efa9b4d87b8",
+    "company": "Wilshire Law Firm",
+    "website": "https://wilshirelawfirm.com/",
+    "email": "info@wilshirelawfirm.com",
+    "phone": "",
+    "companySize": "50-200",
+    "techStack": [
+      "Office365",
+      "Clio",
+      "Salesforce"
+    ],
+    "decisionMaker": "IT Director",
+    "confidence": 78
+  },
+  {
+    "id": "6175487b-5d51-4dac-ac7e-caa57e818b97",
+    "company": "Mollaei Law",
+    "website": "https://mollaeilaw.com/",
+    "email": "sam@mollaeilaw.com",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "GSuite"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 82
+  },
+  {
+    "id": "b40200a8-6e67-442b-a6c1-d3261fcb81f3",
+    "company": "Omni Law P.C.",
+    "website": "https://omnilawpc.com/",
+    "email": "info@omnilawpc.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "Managing Partner",
+    "confidence": 80
+  },
+  {
+    "id": "cc6c4252-a21c-4478-b81f-a1f8a337a99b",
+    "company": "Daniel H. Weberman, Attorney at Law",
+    "website": "https://www.dhweberman.com/",
+    "email": "daniel@dhweberman.com",
+    "phone": "",
+    "companySize": "1-10",
+    "techStack": [
+      "Office365"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 93
+  },
+  {
+    "id": "dcfe700c-434b-4e0c-b722-9df9583001a8",
+    "company": "Law Offices of Julie Rendelman, LLC",
+    "website": "https://www.rendelmanlaw.com/",
+    "email": "julie@rendelmanlaw.com",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 84
+  },
+  {
+    "id": "95e5a184-bc21-44e9-b39e-800773f58dbb",
+    "company": "Immigration Law USA Solutions",
+    "website": "https://site.i-usa-s.com/",
+    "email": "patricia@i-usa-s.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "GSuite",
+      "MyCase"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 91
+  },
+  {
+    "id": "c7298347-8bc6-40d7-ad82-216719ab1f63",
+    "company": "Immigration Lawyers USA",
+    "website": "https://immigrationlawyersusa.com/",
+    "email": "office@shautsova.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "Managing Partner",
+    "confidence": 90
+  },
+  {
+    "id": "866c4be1-2a70-43c1-ac9c-f271c62f375c",
+    "company": "Arnall Golden Gregory",
+    "website": "http://www.agg.com/",
+    "email": "sean.fogarty@agg.com",
+    "phone": "",
+    "companySize": "200-500",
+    "techStack": [
+      "Office365",
+      "Salesforce",
+      "Clio"
+    ],
+    "decisionMaker": "IT Director",
+    "confidence": 96
+  },
+  {
+    "id": "c88206e0-1e1d-404e-b3fb-c0ef0a649dba",
+    "company": "US Legal Group, APC",
+    "website": "https://www.uslglaw.com/",
+    "email": "mike@uslglaw.com",
+    "phone": "",
+    "companySize": "10-50",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "Managing Partner",
+    "confidence": 92
+  },
+  {
+    "id": "f96c140f-5f18-43c6-a4a7-2611513b62a5",
+    "company": "Latham & Watkins Los Angeles — GSO",
+    "website": "http://www.lw.com/",
+    "email": "amanda.stipe@lw.com",
+    "phone": "",
+    "companySize": "1000+",
+    "techStack": [
+      "Office365",
+      "Salesforce",
+      "Relativity"
+    ],
+    "decisionMaker": "CISO",
+    "confidence": 98
+  },
+  {
+    "id": "68644a79-2ddf-46bc-a618-5f3610d6e1c8",
+    "company": "Strategic Legal Practices, APC",
+    "website": "https://www.slpattorney.com/",
+    "email": "tom@playbookpartners.com",
+    "phone": "",
+    "companySize": "50-200",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 75
+  },
+  {
+    "id": "7ce01c9d-14a0-4907-bf7b-ecabcc6a01fc",
+    "company": "The CyberLaw Firm",
+    "website": "http://www.thecyberlawteam.com/",
+    "email": "info@thecyberlawteam.com",
+    "phone": "",
+    "companySize": "2-10",
+    "techStack": [
+      "Office365"
+    ],
+    "decisionMaker": "Partner",
+    "confidence": 93
+  }
+]

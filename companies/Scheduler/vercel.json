@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/postiz-proxy",
+            "destination": "/api/postiz-proxy.js"
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Example Law Firm 1",
+    "email": "partner@lawfirm1.com",
+    "phone": "+1 212 555 0100",
+    "companySize": "10-50",
+    "techStack": [
+      "Office365",
+      "Clio"
+    ],
+    "decisionMaker": "IT Director"
+  },
+  {
+    "name": "Example Law Practice 2",
+    "email": "info@lawpractice2.com",
+    "phone": "+1 310 555 0200",
+    "companySize": "2-10",
+    "techStack": [
+      "GSuite",
+      "MyCase"
+    ],
+    "decisionMaker": "Partner"
+  }
+]

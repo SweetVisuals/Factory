@@ -1,0 +1,74 @@
+[
+  {
+    "id": "8c3a2b50-e649-4c91-8309-8fa7e4205dcd",
+    "company": "Ballard Spahr",
+    "website": "https://www.ballardspahr.com/",
+    "location": "USA",
+    "email": "yannellap@ballardspahr.com",
+    "validation_status": "valid"
+  },
+  {
+    "id": "cdc25bb2-8ce4-4cbd-917a-0724d37da6ec",
+    "company": "Cooley LLP",
+    "website": "https://www.cooley.com/",
+    "location": "USA",
+    "email": "incident.response@cooley.com",
+    "validation_status": "valid"
+  },
+  {
+    "id": "e03bfbe5-274d-4e94-a519-fb40a1b23e8e",
+    "company": "Strategic Legal Practices, APC",
+    "website": "https://www.slpattorney.com/",
+    "location": "USA",
+    "email": "recruiting@slpattorney.com",
+    "validation_status": "valid"
+  },
+  {
+    "id": "5adf1b51-d583-4a75-adc3-d6f18d67655c",
+    "company": "Alston & Bird",
+    "website": "https://www.alston.com/",
+    "location": "USA",
+    "email": "kristy.brown@alston.com",
+    "validation_status": "valid"
+  },
+  {
+    "id": "58f9ac87-b8b7-47ef-b97b-273292bb0bb8",
+    "company": "Vobiamalu",
+    "website": "http://www.vobiamaluesq.com/",
+    "location": "USA",
+    "email": "vivian@vobiamaluesq.com",
+    "validation_status": "valid"
+  },
+  {
+    "id": "467998ea-e94c-4bda-bb08-99997ecf2fe6",
+    "company": "Mullen Law",
+    "website": "https://www.mullen.law/",
+    "location": "USA",
+    "email": "assistance@mullen.law",
+    "validation_status": "valid"
+  },
+  {
+    "id": "60188e25-4a72-41b1-92e2-565c51eaf7f0",
+    "company": "Wilson Sonsini",
+    "website": "https://www.wsgr.com/",
+    "location": "USA",
+    "email": "cburton@wsgr.com",
+    "validation_status": "valid"
+  },
+  {
+    "id": "7ce01c9d-14a0-4907-bf7b-ecabcc6a01fc",
+    "company": "The CyberLaw Firm",
+    "website": "http://www.thecyberlawteam.com/",
+    "location": "USA",
+    "email": "info@thecyberlawteam.com",
+    "validation_status": "valid"
+  },
+  {
+    "id": "af59f9d6-526a-4b00-b444-76001c8f9bb4",
+    "company": "Mullen Law",
+    "website": "https://www.mullen.law/",
+    "location": "USA",
+    "email": "jcoughlin@mullen.law",
+    "validation_status": "valid"
+  }
+]

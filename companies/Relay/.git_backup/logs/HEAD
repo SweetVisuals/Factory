@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 a225d80d34885ef4605804b0ef7ed343dd677310 SweetVisuals <acedkmgmt@gmail.com> 1770672637 -0800	commit (initial): first commit
+a225d80d34885ef4605804b0ef7ed343dd677310 0000000000000000000000000000000000000000 SweetVisuals <acedkmgmt@gmail.com> 1770672663 -0800	Branch: renamed refs/heads/master to refs/heads/main
+0000000000000000000000000000000000000000 a225d80d34885ef4605804b0ef7ed343dd677310 SweetVisuals <acedkmgmt@gmail.com> 1770672663 -0800	Branch: renamed refs/heads/master to refs/heads/main
+a225d80d34885ef4605804b0ef7ed343dd677310 390c8c4e6f13a120fa54a5adbf6515eac636861b SweetVisuals <acedkmgmt@gmail.com> 1770674115 -0800	commit: Fix Vercel build errors: tsconfig exclusions, extensions and types
+390c8c4e6f13a120fa54a5adbf6515eac636861b 164f30cd7e58a83a567609d05e20c8ce6eaf597a SweetVisuals <acedkmgmt@gmail.com> 1770677043 -0800	commit: Refactor API client to use VITE_API_URL and add cPanel deployment docs
+164f30cd7e58a83a567609d05e20c8ce6eaf597a dc0ff74e61d98db42a302168c9abec2720e6d230 SweetVisuals <acedkmgmt@gmail.com> 1770683427 -0800	commit: fix: lead scraper api url
+dc0ff74e61d98db42a302168c9abec2720e6d230 7584ba10d15681ff8f478a93e33efbaffbbc1c29 SweetVisuals <acedkmgmt@gmail.com> 1770684159 -0800	commit: fix: hardcode api url fallback
+7584ba10d15681ff8f478a93e33efbaffbbc1c29 4f9343b79df06e485198e199cc665f2e093f8320 SweetVisuals <acedkmgmt@gmail.com> 1771558355 -0800	commit: fix(scraper): update scraper background processing and frontend polling
+4f9343b79df06e485198e199cc665f2e093f8320 ce978c69cea4f5b1fdd0f985e91f1210503e5f13 SweetVisuals <acedkmgmt@gmail.com> 1771558404 -0800	commit: fix(scraper): include email validation helper
+ce978c69cea4f5b1fdd0f985e91f1210503e5f13 64b836bb823dbf4d8b22b89a70f6c7eed68a6863 SweetVisuals <acedkmgmt@gmail.com> 1771559550 -0800	commit: fix(scraper): patch batch loop ReferenceError and fallback object assignment bugs
+64b836bb823dbf4d8b22b89a70f6c7eed68a6863 bcd2e23bc64086235f1e2cff943627d2a58d73c0 SweetVisuals <acedkmgmt@gmail.com> 1771559952 -0800	commit: feat(scraper): add puppeteer stealth plugin to bypass Google Maps IP bans and consent screens causing 0 results
+bcd2e23bc64086235f1e2cff943627d2a58d73c0 c2a7248de634545ca34f242a1cb091709f672ced SweetVisuals <acedkmgmt@gmail.com> 1771689002 -0800	commit: fix(scraper): implement page down key fallback for headless google maps scrolling which broke and capped at 3 leads

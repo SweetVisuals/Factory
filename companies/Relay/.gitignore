@@ -1,0 +1,10 @@
+
+node_modules/
+dist/
+.env
+*.log
+.wwebjs_auth/
+.wwebjs_cache/
+openrouter-api-keys
+runaway.ai api key*
+

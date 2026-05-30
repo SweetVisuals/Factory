@@ -1,0 +1,128 @@
+[
+  {
+    "id": "5a04e737-63bb-4c0e-8d26-174a91c6a6da",
+    "company": "L Law Firm PLLC",
+    "website": "https://llawfirm.law/",
+    "location": "United States",
+    "email": "info@llawfirm.law"
+  },
+  {
+    "id": "be75f37e-e31d-4eea-ae8f-24a57c1ddb85",
+    "company": "USA Immigration Lawyers PLLC",
+    "website": "http://www.usa-immigration-law.com/",
+    "location": "United States",
+    "email": "info@usa-immigration-law.com"
+  },
+  {
+    "id": "b70dd287-4241-4094-954a-ed929019952d",
+    "company": "Hornsby Law Group",
+    "website": "https://www.hornsbylaw.com/",
+    "location": "USA",
+    "email": "thehornsbylawfirm@yahoo.com"
+  },
+  {
+    "id": "7456383b-7381-4565-8534-61028d8e7525",
+    "company": "Atheria Law PC",
+    "website": "https://atherialaw.com/",
+    "location": "USA",
+    "email": "privacy_inquiry@atherialaw.com"
+  },
+  {
+    "id": "5a86f90d-3f5d-49d3-9a23-128326e4bae1",
+    "company": "Law Offices of Craig Delsack, LLC",
+    "website": "http://www.nyccounsel.com/",
+    "location": "United States",
+    "email": "customerrelations@nycbar.org"
+  },
+  {
+    "id": "8e9977f5-0ed6-4fd7-9a8a-855f0e20a5c7",
+    "company": "GOLDMAN LAW GROUP",
+    "website": "https://www.goldmanlawgroup.com/",
+    "location": "United States",
+    "email": "wsg@goldmanlawgroup.com"
+  },
+  {
+    "id": "9eec067e-5c6e-4e1a-baee-806b8060cfac",
+    "company": "USA Law Group LLC.",
+    "website": "https://usalawgroupllc.com/",
+    "location": "United States",
+    "email": "usalawgroupllc@gmail.com"
+  },
+  {
+    "id": "584c394c-d324-4080-8751-d7e837ffe462",
+    "company": "David Allen Miller Law, PLLC",
+    "website": "https://damlawfirm.com/",
+    "location": "United States",
+    "email": "eblawyer@aol.com"
+  },
+  {
+    "id": "4d464ec7-bfbf-4f01-8a31-a50b2f47af21",
+    "company": "Thomas Law Firm PLLC",
+    "website": "https://thomaslawfirm.co/",
+    "location": "United States",
+    "email": "jessica@thomaslawimhere.com"
+  },
+  {
+    "id": "e03bfbe5-274d-4e94-a519-fb40a1e23b8e",
+    "company": "Strategic Legal Practices, APC",
+    "website": "https://www.slpattorney.com/",
+    "location": "USA",
+    "email": "recruiting@slpattorney.com"
+  },
+  {
+    "id": "cc6c4252-a21c-4478-b81f-a1f8a337a99b",
+    "company": "Daniel H. Weberman, Attorney at Law",
+    "website": "https://www.dhweberman.com/",
+    "location": "USA",
+    "email": "daniel@dhweberman.com"
+  },
+  {
+    "id": "7b3cbbe0-75d3-4516-954b-a8775dc0db71",
+    "company": "Anderson & Associates Law, P.C.",
+    "website": "http://www.aalawpc.com/",
+    "location": "United States",
+    "email": "info@andersonandassociatesllp.com"
+  },
+  {
+    "id": "85a57a32-8c4a-4395-b885-f36840cccc92",
+    "company": "Jones Law Firm, P.C.",
+    "website": "http://www.joneslawnyc.com/",
+    "location": "United States",
+    "email": "info@joneslawnyc.com"
+  },
+  {
+    "id": "480659ac-838f-4e91-b5f7-7fef73d97697",
+    "company": "Greenstein & Pittari, LLP",
+    "website": "https://www.nyclawfirm.com/",
+    "location": "New York",
+    "email": "info@nyclawfirm.com"
+  },
+  {
+    "id": "f84c2d4b-3a79-49db-ac3a-9efa9b4d87b8",
+    "company": "Wilshire Law Firm",
+    "website": "https://wilshirelawfirm.com/",
+    "location": "Los Angeles",
+    "email": "info@wilshirelawfirm.com"
+  },
+  {
+    "id": "dcfe700c-434b-4e0c-b722-9df9583001a8",
+    "company": "Law Offices of Julie Rendelman, LLC",
+    "website": "https://www.rendelmanlaw.com/",
+    "location": "New York",
+    "email": "julie@rendelmanlaw.com"
+  },
+  {
+    "id": "b40200a8-6e67-442b-a6c1-d3261fcb81f3",
+    "company": "Omni Law P.C.",
+    "website": "https://omnilawpc.com/",
+    "location": "United States",
+    "email": "info@omnilawpc.com"
+  },
+  {
+    "id": "d126460d-40ec-4c98-b0f1-ad7b5911c314",
+    "company": "Schmidt National Law Group",
+    "website": "https://www.nationalinjuryadvocates.com/",
+    "location": "United States",
+    "email": "help@nationalinjuryadvocates.com"
+  }
+]
