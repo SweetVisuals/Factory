@@ -293,8 +293,8 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
     return (
         <div className="h-full flex overflow-hidden relative bg-transparent">
             {/* Folders & Accounts Sidebar */}
-            <div className="w-72 bg-card/40 border-r border-white/5 flex flex-col shrink-0 backdrop-blur-md">
-                <div className="p-8 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="w-64 bg-card/40 border-r border-white/5 flex flex-col shrink-0 backdrop-blur-md">
+                <div className="p-6 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
                     {/* Folders */}
                     <div className="space-y-4">
                         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2">Folders</h3>
@@ -308,7 +308,7 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
                                     key={mode.id}
                                     onClick={() => { setViewMode(mode.id as any); setSelectedStep(null); setSelectedEmailIds(new Set()); setSelectedEmail(null); }}
                                     className={cn(
-                                        "w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-semibold transition-all",
+                                        "w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-semibold transition-all min-w-0",
                                         viewMode === mode.id
                                             ? "bg-primary text-primary-foreground shadow-md"
                                             : "text-foreground/70 hover:bg-muted/60 hover:text-foreground"
@@ -333,27 +333,27 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
                     <div className="space-y-4 pt-6 border-t border-border">
                         <div className="flex items-center justify-between px-2">
                             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sending Accounts</h3>
-                            <Activity size={14} className="text-primary/70 animate-pulse" />
+                            <Activity size={14} className="text-primary/70 animate-pulse shrink-0" />
                         </div>
                         <div className="space-y-1.5">
                             <button
                                 onClick={() => { setSelectedAccountId('all'); setSelectedStep(null); setSelectedEmailIds(new Set()); setSelectedEmail(null); }}
                                 className={cn(
-                                    "w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-semibold transition-all",
+                                    "w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-semibold transition-all min-w-0",
                                     selectedAccountId === 'all'
                                         ? "bg-muted/80 text-foreground"
                                         : "text-foreground/70 hover:bg-muted/40 hover:text-foreground"
                                 )}
                             >
-                                <Radio size={18} className={selectedAccountId === 'all' ? "text-primary" : "text-muted-foreground"} />
-                                <span className="truncate">All Accounts</span>
+                                <Radio size={18} className={cn("shrink-0", selectedAccountId === 'all' ? "text-primary" : "text-muted-foreground")} />
+                                <span className="truncate flex-1 text-left">All Accounts</span>
                             </button>
                             {accounts.map(account => (
                                 <button
                                     key={account.id}
                                     onClick={() => { setSelectedAccountId(account.id); setSelectedStep(null); setSelectedEmailIds(new Set()); setSelectedEmail(null); }}
                                     className={cn(
-                                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left",
+                                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left min-w-0",
                                         selectedAccountId === account.id
                                             ? "bg-muted/80 text-foreground"
                                             : "text-foreground/70 hover:bg-muted/40 hover:text-foreground"
@@ -365,7 +365,7 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
                                     )}>
                                         {account.email.charAt(0).toUpperCase()}
                                     </div>
-                                    <span className="truncate flex-1">{account.email}</span>
+                                    <span className="truncate flex-1 text-left">{account.email}</span>
                                 </button>
                             ))}
                         </div>
@@ -374,7 +374,7 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
             </div>
 
             {/* Middle Column: Email List */}
-            <div className="w-[450px] flex flex-col shrink-0 border-r border-white/5 bg-background/20 backdrop-blur-sm">
+            <div className="w-90 flex flex-col shrink-0 border-r border-white/5 bg-background/20 backdrop-blur-sm">
                 <div className="p-6 border-b border-white/5 bg-card/20 flex flex-col gap-4">
                     <div className="flex items-center gap-3">
                         <div className="relative flex-1 group min-w-0">

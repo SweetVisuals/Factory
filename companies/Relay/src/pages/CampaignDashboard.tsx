@@ -6,7 +6,7 @@ import Layout from '../components/layout/Layout';
 import PageHeader from '../components/layout/PageHeader';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { AlertCircle, Zap, LayoutDashboard, Users, GitMerge, Calendar, Mail, Inbox, BarChart3, Settings2, Target, ChevronDown, ChevronRight, Database, Sparkles, Folder, Activity, MessageSquare } from 'lucide-react';
+import { AlertCircle, Zap, LayoutDashboard, Users, GitMerge, Calendar, Mail, Inbox, BarChart3, Settings2, Target, ChevronDown, ChevronRight, Database, Sparkles, Folder, Activity, MessageSquare, ArrowLeft } from 'lucide-react';
 import CampaignStats from '../components/campaign/CampaignStats';
 import CampaignTabs from '../components/campaign/CampaignTabs';
 import LeadsTable from '../components/campaign/LeadsTable';
@@ -144,10 +144,9 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Stats Row */}
             <CampaignStats campaignId={campaign.id} />
-
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
               {/* Left Column: Flow & Telemetry */}
-              <div className="xl:col-span-4 bg-card rounded-3xl p-8 shadow-sm">
+              <div className="xl:col-span-4 bg-card rounded-3xl p-8 shadow-sm border border-border/50">
                 <div className="mb-6 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Operations Monitor</h3>
                   <Activity size={16} className="text-muted-foreground" />
@@ -156,11 +155,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
               </div>
 
               {/* Right Column: Negotiation Hub */}
-              <div className="xl:col-span-8 bg-card rounded-3xl p-8 shadow-sm">
-                <div className="mb-6 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Active Deal Flow</h3>
-                  <Target size={16} className="text-muted-foreground" />
-                </div>
+              <div className="xl:col-span-8 flex flex-col h-[calc(100vh-14rem)] min-h-[600px]">
                 <ClosingTab campaignId={campaign.id} />
               </div>
             </div>
@@ -297,9 +292,10 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
               <div className="flex items-center gap-6">
                 <button 
                   onClick={() => navigate('/campaigns')}
-                  className="w-12 h-12 rounded-xl bg-muted/50 border border-border flex items-center justify-center hover:bg-muted transition-all duration-300 shadow-sm"
+                  className="w-12 h-12 rounded-xl bg-muted/40 border border-border flex items-center justify-center hover:bg-muted hover:text-primary hover:border-primary/30 transition-all duration-300 shadow-sm shrink-0"
+                  title="Back to Campaigns"
                 >
-                  <BackButton to="/campaigns" text="" />
+                  <ArrowLeft size={20} className="text-muted-foreground transition-colors" />
                 </button>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-4">
@@ -323,44 +319,21 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 bg-card/40 p-2 rounded-2xl border border-white/5 shadow-sm backdrop-blur-md">
-                <div className="flex items-center gap-6 px-4">
+              <div className="flex items-center gap-6 bg-card border border-border p-3 px-6 rounded-2xl shadow-sm backdrop-blur-md">
+                <div className="flex items-center gap-6">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prospects</span>
-                    <span className="text-lg font-black text-foreground">{campaign.prospects}</span>
+                    <span className="text-xl font-black text-foreground">{campaign.prospects}</span>
                   </div>
+                  <div className="h-8 w-px bg-border" />
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Sent</span>
-                    <span className="text-lg font-black text-foreground">{campaign.sent || '0'}</span>
+                    <span className="text-xl font-black text-foreground">{campaign.sent || '0'}</span>
                   </div>
+                  <div className="h-8 w-px bg-border" />
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Replies</span>
-                    <span className="text-lg font-black text-foreground">{campaign.replies || '0'}</span>
-                  </div>
-                </div>
-
-                <div className="h-10 w-px bg-border mx-2" />
-
-                <div className="flex items-center gap-3 px-2">
-                  <input 
-                    type="text"
-                    placeholder="AI Directive..."
-                    className="bg-transparent border-none outline-none text-sm font-medium text-foreground w-48 placeholder:text-muted-foreground"
-                    onKeyDown={async (e) => {
-                      if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
-                        const msg = (e.target as HTMLInputElement).value;
-                        (e.target as HTMLInputElement).value = '';
-                        const fullMessage = `[CAMPAIGN: ${campaign.name}] ${msg}`;
-                        await openclawSupabase.from('chat_logs').insert([{ agent_name: 'CEO', message: fullMessage }]);
-                        await openclawSupabase.from('tasks').insert([{ description: `Directive for ${campaign.name}: ${msg}`, status: 'pending', assigned_to: 'Boss' }]);
-                      }
-                    }}
-                  />
-                  <div className="p-2.5 rounded-xl bg-primary text-primary-foreground group relative cursor-help shadow-sm">
-                    <Zap size={16} className="animate-pulse" />
-                    <div className="absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity bg-card border border-border px-4 py-3 rounded-xl z-50 whitespace-nowrap shadow-xl">
-                      <span className="text-xs font-bold text-foreground">Next Send Cycle: <span className="text-primary">{senderCountdown} min</span></span>
-                    </div>
+                    <span className="text-xl font-black text-primary">{campaign.replies || '0'}</span>
                   </div>
                 </div>
               </div>

@@ -244,7 +244,7 @@ const Inbox = () => {
         <div className="flex flex-1 overflow-hidden bg-card border border-border shadow-md rounded-3xl">
 
           {/* Sidebar */}
-          <div className="w-72 border-r border-border flex flex-col bg-card/50">
+          <div className="w-64 border-r border-border flex flex-col bg-card/50">
             <div className="p-6 flex items-center justify-between border-b border-border/50 bg-background/50">
               <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <Mail className="text-primary" size={20} /> Inbox
@@ -282,13 +282,13 @@ const Inbox = () => {
 
                   return (
                     <div key={businessName} className="flex flex-col gap-0.5">
-                      <div className="flex items-center">
-                        <button onClick={() => setExpandedBusinesses(p => { const n = new Set(p); n.has(businessName) ? n.delete(businessName) : n.add(businessName); return n; })} className="p-1 text-muted-foreground hover:text-foreground"><ChevronRight size={14} className={cn("transition-transform", isBizExpanded && "rotate-90")} /></button>
+                      <div className="flex items-center min-w-0">
+                        <button onClick={() => setExpandedBusinesses(p => { const n = new Set(p); n.has(businessName) ? n.delete(businessName) : n.add(businessName); return n; })} className="p-1 text-muted-foreground hover:text-foreground shrink-0"><ChevronRight size={14} className={cn("transition-transform", isBizExpanded && "rotate-90")} /></button>
                         <button
                           onClick={() => { setFilter({ type: 'business', businessName }); setSelectedEmailIds(new Set()); setSelectedEmail(null); }}
-                          className={cn("flex-1 flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-bold transition-all", isBizSelected ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
+                          className={cn("flex-1 flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-bold transition-all min-w-0", isBizSelected ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
                         >
-                          <Briefcase size={14} /> <span className="truncate">{businessName}</span> <span className="ml-auto text-[10px] opacity-60">{bizTotal}</span>
+                          <Briefcase size={14} className="shrink-0" /> <span className="truncate flex-1 text-left">{businessName}</span> <span className="ml-auto text-[10px] opacity-60 shrink-0">{bizTotal}</span>
                         </button>
                       </div>
 
@@ -302,13 +302,13 @@ const Inbox = () => {
 
                             return (
                               <div key={campaignId} className="flex flex-col gap-0.5">
-                                <div className="flex items-center">
-                                  <button onClick={() => setExpandedCampaigns(p => { const k = `${businessName}-${campaignId}`; const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n; })} className="p-1 text-muted-foreground hover:text-foreground"><ChevronRight size={12} className={cn("transition-transform", isCampExpanded && "rotate-90")} /></button>
+                                <div className="flex items-center min-w-0">
+                                  <button onClick={() => setExpandedCampaigns(p => { const k = `${businessName}-${campaignId}`; const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n; })} className="p-1 text-muted-foreground hover:text-foreground shrink-0"><ChevronRight size={12} className={cn("transition-transform", isCampExpanded && "rotate-90")} /></button>
                                   <button
                                     onClick={() => { setFilter({ type: 'campaign', businessName, campaignId }); setSelectedEmailIds(new Set()); setSelectedEmail(null); }}
-                                    className={cn("flex-1 flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-bold transition-all", isCampSelected ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
+                                    className={cn("flex-1 flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-bold transition-all min-w-0", isCampSelected ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
                                   >
-                                    <Folder size={12} /> <span className="truncate">{campaign ? campaign.name : 'Unknown'}</span> <span className="ml-auto text-[9px] opacity-60">{campTotal}</span>
+                                    <Folder size={12} className="shrink-0" /> <span className="truncate flex-1 text-left">{campaign ? campaign.name : 'Unknown'}</span> <span className="ml-auto text-[9px] opacity-60 shrink-0">{campTotal}</span>
                                   </button>
                                 </div>
                                 
@@ -320,10 +320,10 @@ const Inbox = () => {
                                         <button
                                           key={step}
                                           onClick={() => { setFilter({ type: 'step', businessName, campaignId, step }); setSelectedEmailIds(new Set()); setSelectedEmail(null); }}
-                                          className={cn("flex items-center gap-2 w-full px-2 py-1 rounded-lg text-[11px] font-bold transition-all", isStepSelected ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
+                                          className={cn("flex items-center gap-2 w-full px-2 py-1 rounded-lg text-[11px] font-bold transition-all min-w-0", isStepSelected ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
                                         >
-                                          <div className={cn("w-1.5 h-1.5 rounded-full", isStepSelected ? "bg-primary" : "bg-muted-foreground")} />
-                                          <span className="truncate">{step}</span> <span className="ml-auto text-[9px] opacity-60">{count}</span>
+                                          <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isStepSelected ? "bg-primary" : "bg-muted-foreground")} />
+                                          <span className="truncate flex-1 text-left">{step}</span> <span className="ml-auto text-[9px] opacity-60 shrink-0">{count}</span>
                                         </button>
                                       );
                                     })}
@@ -342,7 +342,7 @@ const Inbox = () => {
           </div>
 
           {/* Email List Column */}
-          <div className="w-[400px] border-r border-border flex flex-col bg-card relative z-10 shadow-xl shadow-black/5">
+          <div className="w-90 border-r border-border flex flex-col bg-card relative z-10 shadow-xl shadow-black/5">
             <div className="p-4 border-b border-border/50 bg-background/50">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
