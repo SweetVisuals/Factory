@@ -95,18 +95,30 @@ export async function runProcessCampaign() {
       const J = $.get(e.campaign_id) || [],
         v = J.findIndex((t) => t.id === e.id);
       if (v > 0) {
-        const t = J[v - 1],
-          { data: a, error: C } = await n
+        const t = J[v - 1];
+        // FIX: Use a proper completion check — count leads still pending for the previous step.
+        // The RPC now excludes all terminal statuses (sent, failed, bounced, replied, unsubscribed),
+        // so if it returns 0 results, the previous step is truly complete.
+        let prevStepPending = true;
+        try {
+          const { data: a, error: C } = await n
             .rpc("get_pending_campaign_leads", {
               campaign_id_param: e.campaign_id,
               schedule_id_param: t.id,
             })
             .limit(1);
-        if (C) {
-          console.error("Error checking dependency", C);
+          if (C) {
+            // FIX: On error, BLOCK this step (don't skip to next schedule).
+            // Previously `continue` would bypass the dependency guard entirely.
+            console.error(`Error checking dependency for step ${v + 1}, BLOCKING:`, C);
+            continue;
+          }
+          prevStepPending = a && a.length > 0;
+        } catch (depErr) {
+          console.error(`Exception checking dependency for step ${v + 1}, BLOCKING:`, depErr);
           continue;
         }
-        if (a && a.length > 0) {
+        if (prevStepPending) {
           console.log(
             `Skipping step ${v + 1} (schedule ${e.id}): Previous step is not yet complete.`,
           );
@@ -142,7 +154,7 @@ export async function runProcessCampaign() {
           `Step ${v + 1} (schedule ${e.id}): Previous step complete. Proceeding.`,
         );
       }
-      const K = Math.max(5, e.interval_minutes || 15),
+      const K = Math.max(1, e.interval_minutes || 2),
         { data: Y } = await n
           .from("campaign_progress")
           .select("sent_at")
@@ -177,7 +189,7 @@ export async function runProcessCampaign() {
           campaign_id_param: e.campaign_id,
           schedule_id_param: e.id,
         })
-        .limit(u.length * 5);
+        .limit(u.length * (e.emails_per_account || 40));
       if (W) {
         console.error("Error fetching pending leads", W);
         continue;
@@ -758,12 +770,13 @@ ${ie}`.trimEnd();
         }
         const B = a.email.toLowerCase();
         if (B) {
+          // Track limits per individual email account (40 emails per account)
           const { data: s } = await n.rpc("increment_domain_email_count", {
-            p_domain: B,
-            p_max_limit: 50,
+            p_domain: B, // B is now the full email address, tracking per account
+            p_max_limit: 40,
           });
           if (!s) {
-            console.log(`Account limit reached for ${B}.`);
+            console.log(`Account limit reached for ${B}. Skipping account.`);
             continue;
           }
         }
@@ -834,20 +847,34 @@ ${ie}`.trimEnd();
             fe++,
             z.push({ email: t.email, status: "sent", from: a.email }));
         } catch (s) {
-          (console.error("\u274C Send Failed:", s?.message || s),
+          // FIX: Classify SMTP errors — 5xx codes are permanent bounces, everything else is retryable
+          const errMsg = s?.message || String(s);
+          const errCode = s?.responseCode || 0;
+          const isPermanentBounce = errCode >= 500 || /5\d{2}|rejected|does not exist|mailbox not found|user unknown|no such user|invalid recipient/i.test(errMsg);
+          
+          if (isPermanentBounce) {
+            console.error(`\u274C Send bounced (code ${errCode}):`, errMsg);
             await n
-              .from("campaign_progress")
-              .upsert(
-                {
-                  campaign_id: e.campaign_id,
-                  schedule_id: e.id,
-                  lead_id: t.id,
-                  email_account_id: a.id,
-                  status: "failed",
-                  updated_at: new Date().toISOString(),
-                },
-                { onConflict: "campaign_id,schedule_id,lead_id" },
-              ));
+                .from("campaign_progress")
+                .upsert(
+                  {
+                    campaign_id: e.campaign_id,
+                    schedule_id: e.id,
+                    lead_id: t.id,
+                    email_account_id: a.id,
+                    status: "bounced",
+                    updated_at: new Date().toISOString(),
+                  },
+                  { onConflict: "campaign_id,schedule_id,lead_id" },
+                );
+            // If permanent bounce, also update the lead status so they're excluded from all future campaigns
+            await n.from("leads").update({ status: "bounced" }).eq("id", t.id);
+          } else {
+            console.error(`\u274C Send temporary failure/rate limit (code ${errCode}):`, errMsg);
+            console.log("Not marking as failed. Keeping lead as pending to retry on next run.");
+            // Do not insert 'failed' status to campaign_progress. 
+            // This pauses the emails for this lead, preventing step 2 from triggering prematurely.
+          }
         }
       }
       if (f && f.length > 0) {
