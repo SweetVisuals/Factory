@@ -184,11 +184,20 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
     }
   };
 
+  const filteredLeads = leads.filter((lead) =>
+    Object.values(lead).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentLeads = filteredLeads.slice(startIndex, endIndex);
+
   const handleSelectAll = () => {
-    if (selectedLeads.size === currentLeads.length) {
+    if (selectedLeads.size === filteredLeads.length) {
       setSelectedLeads(new Set());
     } else {
-      setSelectedLeads(new Set(currentLeads.map(l => l.id)));
+      setSelectedLeads(new Set(filteredLeads.map(l => l.id)));
     }
   };
 
@@ -276,14 +285,7 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
     toast({ title: 'Export Complete', description: `${dataToExport.length} prospects exported to CSV.` });
   };
 
-  const filteredLeads = leads.filter((lead) =>
-    Object.values(lead).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase()))
-  );
 
-  const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentLeads = filteredLeads.slice(startIndex, endIndex);
 
   if (isLoading) {
     return (
@@ -364,7 +366,7 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
               <tr className="bg-muted/20 border-b border-border">
                 <th className="pl-10 pr-6 py-5 text-left w-20">
                   <CustomCheckbox
-                    checked={currentLeads.length > 0 && selectedLeads.size === currentLeads.length}
+                    checked={filteredLeads.length > 0 && selectedLeads.size === filteredLeads.length}
                     onChange={handleSelectAll}
                   />
                 </th>
