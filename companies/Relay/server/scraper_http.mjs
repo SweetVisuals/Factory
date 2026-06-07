@@ -196,7 +196,6 @@ function parseDuckDuckGoLite(html, limit, log, onResult) {
     return leads;
 }
 
-// Main Scrape Function that mimics the one in index.mjs
 export async function scrapeLeadsNoPuppeteer(query, limit = 20, log = console.log, onResult = null) {
     log(`[HTTP Scraper] Starting scrape for "${query}" without Puppeteer`);
     
@@ -205,30 +204,36 @@ export async function scrapeLeadsNoPuppeteer(query, limit = 20, log = console.lo
     
     // Step 2: For each result, try to find contact info by visiting the website
     const leads = [];
-    for (const result of results) {
-        if (result.website) {
-            const webData = await scrapeWebsiteHttp(result.website, log);
-            
-            // Keep all leads if they have a website (Graceful Degradation / Fallback)
-            if (webData.email || result.website) {
-                const finalLead = {
-                    ...result,
-                    email: webData.email || '',
-                    phone: webData.phone || '',
-                    company: webData.company || result.company || result.title,
-                    pain_points: webData.pain_points || [],
-                    summary: webData.pain_points && webData.pain_points.length > 0
-                        ? `## ⚡ Quick Summary\nThis business was identified as having potential digital improvements: ${webData.pain_points.join(', ')}.\n\n## 🔬 Deep Research\n- Website: ${result.website}\n- Identified Pain Points: ${webData.pain_points.join(', ')}`
-                        : `## ⚡ Quick Summary\nScraped business website (fallback lead without direct contact email).\n\n## 🔬 Deep Research\n- Website: ${result.website}`
-                };
+    const BATCH_SIZE = 5; // Process 5 websites concurrently
+    
+    for (let i = 0; i < results.length; i += BATCH_SIZE) {
+        const batch = results.slice(i, i + BATCH_SIZE);
+        
+        await Promise.all(batch.map(async (result) => {
+            if (result.website) {
+                const webData = await scrapeWebsiteHttp(result.website, log);
                 
-                leads.push(finalLead);
-                
-                if (onResult) {
-                    onResult(finalLead).catch(err => log(`Error in onResult callback: ${err.message}`));
+                // Keep all leads if they have a website (Graceful Degradation / Fallback)
+                if (webData.email || result.website) {
+                    const finalLead = {
+                        ...result,
+                        email: webData.email || '',
+                        phone: webData.phone || '',
+                        company: webData.company || result.company || result.title,
+                        pain_points: webData.pain_points || [],
+                        summary: webData.pain_points && webData.pain_points.length > 0
+                            ? `## ⚡ Quick Summary\nThis business was identified as having potential digital improvements: ${webData.pain_points.join(', ')}.\n\n## 🔬 Deep Research\n- Website: ${result.website}\n- Identified Pain Points: ${webData.pain_points.join(', ')}`
+                            : `## ⚡ Quick Summary\nScraped business website (fallback lead without direct contact email).\n\n## 🔬 Deep Research\n- Website: ${result.website}`
+                    };
+                    
+                    leads.push(finalLead);
+                    
+                    if (onResult) {
+                        onResult(finalLead).catch(err => log(`Error in onResult callback: ${err.message}`));
+                    }
                 }
             }
-        }
+        }));
     }
     
     return leads;

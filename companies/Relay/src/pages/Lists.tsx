@@ -25,7 +25,7 @@ import {
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
 import { Archive, Database, Download, CloudLine } from 'lucide-react';
-import LeadScraperForm from '../components/lead-scraper/LeadScraperForm';
+import TargetWizard from '../components/lead-scraper/TargetWizard';
 import LeadScraperResults from '../components/lead-scraper/LeadScraperResults';
 import { api } from '../lib/api/api';
 
@@ -1277,7 +1277,7 @@ const Lists = () => {
 
                                 <div className="flex-1 overflow-y-auto px-10 pb-10 space-y-8 scrollbar-none">
                                     <div className="bg-card p-8">
-                                        <LeadScraperForm onSearch={handleSearch} />
+                                        <TargetWizard onSearch={handleSearch} />
                                     </div>
 
                                     {/* Main Content Area */}

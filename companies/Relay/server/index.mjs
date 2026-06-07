@@ -1572,12 +1572,15 @@ app.post('/api/scrape-leads', async (req, res) => {
         log(`Starting scrape for ${business || keywords || 'unspecified niche'}...`);
         if (notesContext) log(`Custom Notes Focus: ${notesContext}`);
 
-        const MAX_CONCURRENT = 5; // Do 5 concurrent browsers
+        const MAX_CONCURRENT = parseInt(process.env.MAX_CONCURRENT_SCRAPES) || 5; // Do 5 concurrent browsers
         const queue = [...scrapeLocations];
         const activePromises = new Set();
         let isCanceled = false;
 
-        log(`Starting concurrent processing across ${queue.length} locations with up to ${MAX_CONCURRENT} active browsers...`);
+        let workerIndex = 0;
+        const workerUrls = process.env.RENDER_WORKER_URLS ? process.env.RENDER_WORKER_URLS.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+        log(`Starting concurrent processing across ${queue.length} locations with up to ${MAX_CONCURRENT} active browsers/workers...`);
 
         // Translate abstract niche to concrete Google Maps-searchable terms
         let translatedQueries = await translateToMapQueries(business || keywords, location, log);
@@ -1610,7 +1613,55 @@ app.post('/api/scrape-leads', async (req, res) => {
 
             const initialLeadCount = userResults.get(userId)?.length || 0;
 
-            // --- PRIMARY SELECTED PLATFORMS ---
+            // --- WORKER DELEGATION ---
+            if (workerUrls.length > 0) {
+              const workerUrl = workerUrls[workerIndex % workerUrls.length];
+              workerIndex++;
+              log(`[Master] Delegating ${currentLoc} to worker: ${workerUrl}`);
+              
+              // Figure out main platform to request
+              let platformReq = 'general';
+              if (platforms.google) platformReq = 'google';
+              else if (platforms.companieshouse) platformReq = 'companieshouse';
+              else if (platforms.bing) platformReq = 'bing';
+              else if (platforms.yell) platformReq = 'yell';
+              
+              const payload = {
+                query: business || keywords,
+                location: currentLoc,
+                limit: Math.max(5, limit - (userResults.get(userId)?.length || 0)),
+                platform: platformReq,
+                notesContext,
+                deepResearch
+              };
+              
+              try {
+                const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/scrape-task`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data.success && data.leads) {
+                    log(`[Master] Worker returned ${data.leads.length} leads for ${currentLoc}. Processing them locally...`);
+                    for (const lead of data.leads) {
+                        await onResult(lead);
+                    }
+                  }
+                } else {
+                  log(`[Master] Worker ${workerUrl} returned error status: ${res.status}`);
+                }
+              } catch (workerErr) {
+                 log(`[Master] Worker delegation failed: ${workerErr.message}`);
+              }
+              
+              await markCityScraped(userId, business, countryCode, currentLoc);
+              return; // We skip local processing entirely if we delegated it!
+            }
+
+            // --- PRIMARY SELECTED PLATFORMS (Local Processing) ---
 
             if (platforms.google || platforms.all) {
               for (const searchTerm of translatedQueries) {

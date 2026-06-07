@@ -161,12 +161,26 @@ async function setupBrowser(log, options = {}) {
         }
     }
 
+    if (process.env.HTTP_PROXY) {
+        chromeArgs.push(`--proxy-server=${process.env.HTTP_PROXY}`);
+        if (log) log(`Using Proxy Server: ${process.env.HTTP_PROXY}`);
+    }
+
     try {
-        const p = await import('puppeteer');
-        puppeteer = p.default || p;
+        const pExtra = await import('puppeteer-extra');
+        puppeteer = pExtra.default || pExtra;
+        try {
+            const StealthPlugin = await import('puppeteer-extra-plugin-stealth');
+            puppeteer.use((StealthPlugin.default || StealthPlugin)());
+        } catch (stealthErr) {}
     } catch (e) {
-        if (log) log('Failed to load puppeteer. Ensure it is installed.');
-        throw new Error('Puppeteer dependency missing');
+        try {
+            const p = await import('puppeteer');
+            puppeteer = p.default || p;
+        } catch (e2) {
+            if (log) log('Failed to load puppeteer. Ensure it is installed.');
+            throw new Error('Puppeteer dependency missing');
+        }
     }
 
     if (process.env.BROWSER_WS_ENDPOINT) {
