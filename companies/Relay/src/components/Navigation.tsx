@@ -14,6 +14,8 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   const [isPaused, setIsPaused] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [balance, setBalance] = useState<number>(10);
+  const STARTING_BALANCE = 10;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -21,12 +23,24 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
     const fetchStatus = async () => {
       const { data } = await supabase.from('agent_memory').select('value').eq('key_name', 'factory_status').maybeSingle();
       if (data?.value) setIsPaused(data.value.status === 'paused');
+      
+      const { data: balData } = await supabase.from('agent_memory').select('value').eq('key_name', 'api_credits').maybeSingle();
+      if (balData?.value?.balance !== undefined) {
+        setBalance(balData.value.balance);
+      } else {
+        await supabase.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance: 10 } }, { onConflict: 'key_name' });
+      }
     };
     fetchStatus();
 
     const channel = supabase.channel('factory-status-nav')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_memory', filter: 'key_name=eq.factory_status' }, (payload) => {
         setIsPaused((payload.new as any).value.status === 'paused');
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_memory', filter: 'key_name=eq.api_credits' }, (payload) => {
+        if ((payload.new as any).value?.balance !== undefined) {
+          setBalance((payload.new as any).value.balance);
+        }
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_leads' }, async (payload) => {
         // Fetch lead and campaign details
@@ -105,10 +119,10 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
               <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[9px] font-bold text-foreground/50">
                   <span>Balance</span>
-                  <span className="text-white/90 font-mono">$42.5</span>
+                  <span className="text-white/90 font-mono">${balance.toFixed(4)}</span>
                 </div>
                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-purple-500/50 to-purple-400 w-[45%] shadow-[0_0_2px_rgba(168,85,247,0.5)]" />
+                  <div className="h-full bg-gradient-to-r from-purple-500/50 to-purple-400 shadow-[0_0_2px_rgba(168,85,247,0.5)] transition-all duration-500" style={{ width: `${Math.max(0, (balance / STARTING_BALANCE) * 100)}%` }} />
                 </div>
               </div>
             </div>

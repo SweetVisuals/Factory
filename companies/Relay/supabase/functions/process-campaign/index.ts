@@ -1,20 +1,17 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import nodemailer from 'npm:nodemailer@6.9.13';
 
-function isAccountAllowedForBusiness(email: string, businessSlug: string): boolean {
+function isAccountAllowedForBusiness(email: string, businessId: string): boolean {
   const emailLower = email.toLowerCase();
-  const slugLower = (businessSlug || '').toLowerCase();
   
-  if (slugLower === 'mrmedic') {
-    return emailLower.endsWith('@mrmedicevents.co.uk') || emailLower.endsWith('@mrmedicevents.org') || emailLower.endsWith('@mrmedicevens.org');
+  if (businessId === '0269fe06-4607-4c58-9263-12a3930a1dc3') {
+    return emailLower.includes('mrmedic');
   }
-  if (slugLower === 'relay') {
-    return emailLower.endsWith('@relaysolutions.net');
+  if (businessId === '102a3bca-7b0a-4cee-bd33-fefd7b4450b4') {
+    return emailLower.includes('relaysolutions');
   }
   
-  // Fallback domain match logic
-  const domain = emailLower.split('@')[1] || '';
-  return domain.includes(slugLower) || slugLower.includes(domain.split('.')[0]);
+  return true; // Fallback for other businesses or if not specified
 }
 
 // Config
@@ -58,6 +55,23 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ message: 'Engine paused' }), { headers: { 'Content-Type': 'application/json' } });
     }
 
+    // --- LOCK MECHANISM TO PREVENT RACE CONDITIONS ---
+    const { data: lockData } = await supabaseAdmin.from('agent_memory').select('value').eq('key_name', 'process_campaign_lock').maybeSingle();
+    if (lockData && lockData.value?.locked_at) {
+        const lockTime = new Date(lockData.value.locked_at).getTime();
+        if (Date.now() - lockTime < 3 * 60 * 1000) { // 3 minutes timeout
+            console.log("process-campaign is already running. Exiting to prevent duplicates.");
+            return new Response(JSON.stringify({ message: 'Already running' }), { headers: { 'Content-Type': 'application/json' } });
+        }
+    }
+    // Set lock
+    await supabaseAdmin.from('agent_memory').upsert({ key_name: 'process_campaign_lock', value: { locked_at: new Date().toISOString() } }, { onConflict: 'key_name' });
+
+    // Release lock helper
+    const releaseLock = async () => {
+        await supabaseAdmin.from('agent_memory').upsert({ key_name: 'process_campaign_lock', value: { locked_at: null } }, { onConflict: 'key_name' });
+    };
+
     // UK Time Gatekeeper
     const ukTimeOptions = { timeZone: 'Europe/London', hour12: false, hour: '2-digit', minute: '2-digit' } as const;
     const ukTimeStr = new Intl.DateTimeFormat('en-GB', ukTimeOptions).format(new Date());
@@ -70,6 +84,7 @@ Deno.serve(async (req) => {
 
     if (ukMinutes < startMinutes || ukMinutes > endMinutes) {
         console.log(`Current UK Time is ${ukTimeStr}. Outside sending window (00:00 - 23:59). Standing by.`);
+        await releaseLock();
         return new Response(JSON.stringify({ message: `Outside sending window (UK Time: ${ukTimeStr})` }), { headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -97,10 +112,11 @@ Deno.serve(async (req) => {
     }
 
     if (!activeSchedules || activeSchedules.length === 0) {
+        await releaseLock();
         return new Response(JSON.stringify({ message: 'No active schedules' }), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Filter activeSchedules to check business status and prevent MrMedic emails
+    // Filter activeSchedules to check business status
     const filteredSchedules = (activeSchedules || []).filter((schedule: any) => {
         const campaign = schedule.campaigns;
         const business = campaign?.businesses;
@@ -113,6 +129,7 @@ Deno.serve(async (req) => {
     });
 
     if (filteredSchedules.length === 0) {
+        await releaseLock();
         return new Response(JSON.stringify({ message: 'No active schedules (all filtered or inactive)' }), { headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -145,53 +162,6 @@ Deno.serve(async (req) => {
         const stepIndex = campaignSchedules.findIndex((s: any) => s.id === schedule.id);
 
         if (stepIndex > 0) {
-            const prevSchedule = campaignSchedules[stepIndex - 1];
-
-            // If the PREVIOUS schedule still has pending leads, this step shouldn't proceed
-            const { data: pendingForPrev, error: prevErr } = await supabaseAdmin
-                .rpc('get_pending_campaign_leads', {
-                    campaign_id_param: schedule.campaign_id,
-                    schedule_id_param: prevSchedule.id
-                })
-                .limit(1);
-
-            if (prevErr) {
-                console.error("Error checking dependency", prevErr);
-                continue; // Skip safely
-            }
-
-            if (pendingForPrev && pendingForPrev.length > 0) {
-                console.log(`Skipping step ${stepIndex + 1} (schedule ${schedule.id}): Previous step is not yet complete.`);
-
-                // Strict 24-hour gap between steps
-                const gapMs = 24 * 60 * 60 * 1000;
-                let minStartMs = new Date(prevSchedule.start_date).getTime() + gapMs;
-                
-                if (minStartMs < now.getTime() + gapMs) {
-                    minStartMs = now.getTime() + gapMs;
-                }
-
-                if (new Date(schedule.start_date).getTime() < minStartMs) {
-                    const newStart = new Date(minStartMs);
-                    const durationMs = new Date(schedule.end_date).getTime() - new Date(schedule.start_date).getTime();
-                    const newEnd = new Date(minStartMs + durationMs);
-
-                    await supabaseAdmin.from('scheduled_emails').update({
-                        start_date: newStart.toISOString(),
-                        scheduled_for: newStart.toISOString(),
-                        end_date: newEnd.toISOString()
-                    }).eq('id', schedule.id);
-
-                    schedule.start_date = newStart.toISOString();
-                    schedule.scheduled_for = newStart.toISOString();
-                    schedule.end_date = newEnd.toISOString();
-
-                    console.log(`Self-healed step ${stepIndex + 1}: pushed start date to ${newStart.toISOString()} to maintain gap.`);
-                }
-                continue;
-            }
-            console.log(`Step ${stepIndex + 1} (schedule ${schedule.id}): Previous step complete. Proceeding.`);
-            
             if (schedule.campaigns.current_step !== stepIndex + 1) {
                 await supabaseAdmin.from('campaigns').update({ current_step: stepIndex + 1 }).eq('id', schedule.campaign_id);
                 schedule.campaigns.current_step = stepIndex + 1;
@@ -217,15 +187,15 @@ Deno.serve(async (req) => {
 
         if (!rawScheduleAccounts || rawScheduleAccounts.length === 0) continue;
 
-        const businessSlug = schedule.campaigns?.businesses?.slug || '';
+        const businessId = schedule.campaigns?.business_id || '';
         const scheduleAccounts = (rawScheduleAccounts || []).filter((sa: any) => {
             const acc = sa.email_accounts;
             if (!acc) return false;
-            return isAccountAllowedForBusiness(acc.email, businessSlug);
+            return isAccountAllowedForBusiness(acc.email, businessId);
         });
 
         if (scheduleAccounts.length === 0) {
-             console.log(`Schedule ${schedule.id}: No active email accounts allowed for business ${businessSlug}.`);
+             console.log(`Schedule ${schedule.id}: No active email accounts allowed for business ID ${businessId}.`);
              continue;
         }
 
@@ -250,6 +220,21 @@ Deno.serve(async (req) => {
         const leadEmails = pendingLeads.map((l: any) => l.email).filter(Boolean);
         let crossCampaignSentEmails: Set<string> = new Set();
         let inboxSentEmails: Set<string> = new Set();
+        
+        let prevLeadProgress = new Map();
+        if (stepIndex > 0) {
+             const prevSchedule = campaignSchedules[stepIndex - 1];
+             const { data: prevData } = await supabaseAdmin
+                 .from('campaign_progress')
+                 .select('lead_id, status, sent_at')
+                 .eq('schedule_id', prevSchedule.id)
+                 .in('lead_id', pendingLeads.map((l: any) => l.id));
+             if (prevData) {
+                 for (const pd of prevData) {
+                     prevLeadProgress.set(pd.lead_id, pd);
+                 }
+             }
+        }
         
         if (leadEmails.length > 0) {
             const { data: alreadySent } = await supabaseAdmin
@@ -305,6 +290,32 @@ Deno.serve(async (req) => {
                  continue;
              }
 
+             // --- PER-LEAD STEP DEPENDENCY ENFORCEMENT ---
+             if (stepIndex > 0) {
+                 const pd = prevLeadProgress.get(lead.id);
+                 if (!pd) {
+                     // Still waiting for Step 1
+                     continue; 
+                 } else if (pd.status !== 'sent') {
+                     // Step 1 failed or bounced or replied
+                     await supabaseAdmin.from('campaign_progress').upsert({
+                        campaign_id: schedule.campaign_id, schedule_id: schedule.id,
+                        lead_id: lead.id, email_account_id: scheduleAccounts[0].email_accounts.id,
+                        status: 'failed', updated_at: new Date().toISOString()
+                     }, { onConflict: 'campaign_id,schedule_id,lead_id' });
+                     continue;
+                 }
+                 if (pd.sent_at) {
+                     // Check time gap: at least 48 hours between steps
+                     const sentTime = new Date(pd.sent_at).getTime();
+                     const minWaitMs = 2 * 24 * 60 * 60 * 1000; 
+                     if (Date.now() - sentTime < minWaitMs) {
+                         // Skipping lead to enforce wait time, do not mark as failed
+                         continue;
+                     }
+                 }
+             }
+
              // ═══ CROSS-CAMPAIGN DUPLICATE CHECK ═══
              if (crossCampaignSentEmails.has(lead.email.toLowerCase()) || inboxSentEmails.has(lead.email.toLowerCase())) {
                  console.log(`[DEDUP] Skipping lead ${lead.email}: Already targeted by another campaign or in inbox history.`);
@@ -342,11 +353,11 @@ Deno.serve(async (req) => {
                         .select('*')
                         .eq('id', lead.assigned_email_account_id)
                         .single();
-                     if (directAcc && isAccountAllowedForBusiness(directAcc.email, businessSlug)) {
+                     if (directAcc && isAccountAllowedForBusiness(directAcc.email, businessId)) {
                          account = directAcc;
                          console.log(`Lead ${lead.email} using consistently assigned account ${account.email} even if not explicitly in schedule.`);
                      } else {
-                         console.warn(`Consistently assigned account for lead ${lead.email} is NOT allowed for business ${businessSlug}. Reassigning...`);
+                         console.warn(`Consistently assigned account for lead ${lead.email} is NOT allowed for business ID ${businessId}. Reassigning...`);
                      }
                  }
              }
@@ -591,6 +602,7 @@ Deno.serve(async (req) => {
                                    context: { status: aiResp.status, error: errText, campaign_id: schedule.campaign_id }
                                });
 
+                               await releaseLock();
                                return new Response(JSON.stringify({ 
                                    success: false, 
                                    error: 'Engine paused due to insufficient AI credits' 
@@ -603,6 +615,31 @@ Deno.serve(async (req) => {
                            }
                        } else {
                            const aiData = await aiResp.json();
+                           
+                           if (aiData.usage && !disableDeepseek) {
+                               const promptCost = (aiData.usage.prompt_tokens || 0) * 0.14 / 1000000;
+                               const completionCost = (aiData.usage.completion_tokens || 0) * 0.28 / 1000000;
+                               const totalCost = promptCost + completionCost;
+                               
+                               try {
+                                   const { data: memData } = await supabaseAdmin.from('agent_memory').select('value').eq('key_name', 'api_credits').maybeSingle();
+                                   let balance = 10;
+                                   if (memData?.value?.balance !== undefined) {
+                                       balance = memData.value.balance;
+                                   }
+                                   balance -= totalCost;
+                                   if (balance < 0) balance = 0;
+                                   await supabaseAdmin.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance } }, { onConflict: 'key_name' });
+                                   
+                                   if (balance <= 0) {
+                                       console.log("DeepSeek credit depletion detected! (Balance: 0)");
+                                       await supabaseAdmin.from('agent_memory').upsert({ key_name: 'factory_status', value: { status: 'paused', reason: 'insufficient_credits' } }, { onConflict: 'key_name' });
+                                   }
+                               } catch (err) {
+                                   console.error("Error deducting credits:", err);
+                               }
+                           }
+
                            if (aiData.choices && aiData.choices[0]) {
                                const rawContent = aiData.choices[0].message.content.trim();
                                try {
@@ -662,8 +699,9 @@ Deno.serve(async (req) => {
                  senderFirstName = senderFirstName.charAt(0).toUpperCase() + senderFirstName.slice(1);
              }
 
+             const businessName = schedule.campaigns?.businesses?.name || '';
              const senderPhone = schedule.campaigns.contact_number || account.phone_number || '';
-             const senderCompany = schedule.campaigns.company_name || account.company || '';
+             const senderCompany = schedule.campaigns.company_name || businessName || account.company || '';
              const senderName = account.name || senderFirstName;
              const senderEmail = account.email;
 
@@ -738,7 +776,7 @@ Deno.serve(async (req) => {
                finalBody = finalBody.replace(/^there\s*[,:-]*\s*/i, 'Hi there,\n\n');
                if (safeFirstName && safeFirstName.toLowerCase() !== 'there') {
                    const safeReg = safeFirstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                   const nameRegex = new RegExp(`^${safeReg}\\s*[,:-]*\\s*`, 'i');
+                   const nameRegex = new RegExp(`^${safeReg}\\s*[,:-]*\s*`, 'i');
                    finalBody = finalBody.replace(nameRegex, `Hi ${safeFirstName},\n\n`);
                }
                
@@ -868,11 +906,11 @@ Deno.serve(async (req) => {
         }
     }
 
-    return new Response(JSON.stringify({ success: true, processed: results }), {
-      headers: { "Content-Type": "application/json" },
-    });
-
-  } catch (err) {
-     return new Response(String(err?.message ?? err), { status: 500 });
+    await releaseLock();
+    return new Response(JSON.stringify({ success: true, processed: results }), { headers: { 'Content-Type': 'application/json' } });
+  } catch (error) {
+    const supabaseAdminForCatch = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    await supabaseAdminForCatch.from('agent_memory').upsert({ key_name: 'process_campaign_lock', value: { locked_at: null } }, { onConflict: 'key_name' });
+    return new Response(String(error?.message ?? error), { status: 500 });
   }
 });

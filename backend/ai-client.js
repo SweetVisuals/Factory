@@ -210,6 +210,31 @@ async function fetchAIChatCompletion(params, log = console.log) {
       if (result.ok) {
         if (data && !data.error) {
           log(`[AI-Client] Fallback DeepSeek call succeeded.`);
+          
+          if (data.usage && supabaseClient) {
+            const promptCost = (data.usage.prompt_tokens || 0) * 0.14 / 1000000;
+            const completionCost = (data.usage.completion_tokens || 0) * 0.28 / 1000000;
+            const totalCost = promptCost + completionCost;
+            
+            try {
+              const { data: memData } = await supabaseClient.from('agent_memory').select('value').eq('key_name', 'api_credits').maybeSingle();
+              let balance = 10;
+              if (memData?.value?.balance !== undefined) {
+                balance = memData.value.balance;
+              }
+              balance -= totalCost;
+              if (balance < 0) balance = 0;
+              await supabaseClient.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance } }, { onConflict: 'key_name' });
+              
+              if (balance <= 0) {
+                 log(`[AI-Client] DeepSeek credit depletion detected! (Balance: 0)`);
+                 await supabaseClient.from('agent_memory').upsert({ key_name: 'factory_status', value: { status: 'paused', reason: 'insufficient_credits' } }, { onConflict: 'key_name' });
+              }
+            } catch (err) {
+              log(`[AI-Client] Error deducting credits: ${err.message}`);
+            }
+          }
+          
           return data;
         }
       }

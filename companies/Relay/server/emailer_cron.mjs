@@ -25,11 +25,11 @@ export function startEmailerCron() {
   
   supabase = createClient(supabaseUrl, supabaseKey);
 
-  console.log('[Emailer Cron] Initialized. Running every 5 minutes.');
+  console.log('[Emailer Cron] Initialized. Running every 2 minutes.');
   
   setTimeout(() => {
     runEmailerCron();
-    // Run every 5 minutes (5 * 60 * 1000)
-    setInterval(runEmailerCron, 5 * 60 * 1000);
-  }, 30 * 1000); // 30s initial delay
+    // Run every 2 minutes (2 * 60 * 1000) — increased from 5min for higher throughput
+    setInterval(runEmailerCron, 2 * 60 * 1000);
+  }, 15 * 1000); // 15s initial delay
 }

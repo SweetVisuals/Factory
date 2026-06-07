@@ -182,7 +182,7 @@ const BusinessOverview: React.FC = () => {
       )}
 
       {/* 8 METRIC CARDS */}
-      <div style={S.cardGrid}>
+      <div className="responsive-grid-4">
         {cards.map((card, i) => (
           <div key={i} style={S.card}>
             <div style={{ ...S.cardAccent, backgroundColor: card.color }} />
@@ -194,7 +194,7 @@ const BusinessOverview: React.FC = () => {
       </div>
 
       {/* CHARTS ROW */}
-      <div style={S.chartsRow}>
+      <div className="responsive-grid-3">
         <div style={S.chartPanel}>
           <div style={S.chartTitle}>LEAD DISCOVERY (7D)</div>
           {renderChart('leads', '#3b82f6')}

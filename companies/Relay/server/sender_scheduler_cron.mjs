@@ -26,7 +26,7 @@ export function startSenderSchedulerCron() {
     }
   }
 
-  console.log('[Sender Scheduler] Initialized. Running every 5 minutes.');
+  console.log('[Sender Scheduler] Initialized. Running every 2 minutes.');
   setTimeout(runCronJob, 20000); // 20s delay on boot
-  setInterval(runCronJob, 5 * 60 * 1000); // 5 minutes
+  setInterval(runCronJob, 2 * 60 * 1000); // 2 minutes — increased from 5min for higher throughput
 }

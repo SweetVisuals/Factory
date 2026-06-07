@@ -46,8 +46,8 @@ async function runScraperScheduler() {
             continue;
         }
 
-        // Always feed leads to active campaigns
-        if (count !== null) {
+        // Only feed leads to campaigns that need more (under 100 leads)
+        if (count !== null && count < 100) {
             // Derive niche from the actual `niche` column
             let niche = c.niche;
 

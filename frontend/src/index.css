@@ -762,6 +762,11 @@ body, html {
 
 /* --- RESPONSIVE MOBILE & IPAD MODE --- */
 @media (max-width: 1024px) {
+  /* Prevent iOS zoom on focus */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
   /* Hide the factory map on mobile/iPad to save space */
   .map-layer {
     display: none !important;
@@ -847,11 +852,19 @@ body, html {
   .layout-grid, 
   .dashboard-grid, 
   .campaigns-grid, 
-  .stats-grid {
+  .stats-grid,
+  .responsive-grid-4,
+  .responsive-grid-3,
+  .responsive-grid-2 {
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
   }
 }
+
+/* Utilities for React inline-style replacement */
+.responsive-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.responsive-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.responsive-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 
 @media (max-width: 768px) {
   /* Scraper Panel / Job Queue UI Adjustments */

@@ -17,8 +17,10 @@ import BusinessOverview from './components/BusinessOverview';
 import AgentSprite from './components/AgentSprite';
 import JobQueue from './components/JobQueue';
 
+import Inbox from './components/Inbox';
+
 function App() {
-  const [activeOverlay, setActiveOverlay] = useState<'none' | 'discover' | 'dashboard' | 'profile' | 'employees' | 'queue' | 'business' | 'logs'>('none');
+  const [activeOverlay, setActiveOverlay] = useState<'none' | 'discover' | 'dashboard' | 'profile' | 'employees' | 'queue' | 'business' | 'logs' | 'inbox'>('none');
   const [activeRoom, setActiveRoom] = useState<'hq' | 'relay' | 'scheduler'>(() => {
     const path = window.location.pathname.replace('/', '');
     if (path === 'relay' || path === 'scheduler') return path;
@@ -133,7 +135,7 @@ function App() {
     }, 300);
   };
 
-  const toggleOverlay = (view: 'discover' | 'dashboard' | 'profile' | 'employees' | 'queue' | 'business' | 'logs') => {
+  const toggleOverlay = (view: 'discover' | 'dashboard' | 'profile' | 'employees' | 'queue' | 'business' | 'logs' | 'inbox') => {
     if (isMobile) {
       setActiveOverlay(view);
     } else {
@@ -325,6 +327,9 @@ function App() {
           <button className={`pixel-btn ${activeOverlay === 'business' ? 'active' : ''}`} onClick={() => toggleOverlay('business')} style={{ border: 'none', background: activeOverlay === 'business' ? 'var(--btn-active-bg)' : 'transparent', boxShadow: 'none' }}>
             Business
           </button>
+          <button className={`pixel-btn ${activeOverlay === 'inbox' ? 'active' : ''}`} onClick={() => toggleOverlay('inbox')} style={{ border: 'none', background: activeOverlay === 'inbox' ? 'var(--btn-active-bg)' : 'transparent', boxShadow: 'none' }}>
+            Inbox
+          </button>
         </div>
         {activeOverlay === 'none' && !isMobile && (
           <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--panel-bg)', padding: '0.5rem', borderRadius: '12px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -396,6 +401,7 @@ function App() {
           {activeOverlay === 'queue' && <JobQueue />}
           {activeOverlay === 'business' && <BusinessOverview />}
           {activeOverlay === 'logs' && <ChatLog fullScreen={true} />}
+          {activeOverlay === 'inbox' && <Inbox />}
         </div>
       </div>
     </div>

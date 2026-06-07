@@ -1224,9 +1224,23 @@ CRITICAL INSTRUCTIONS:
               // AUTO-ASSIGN email accounts if missing
               if (!emailAccts || emailAccts.length === 0) {
                 console.log(`[ACTIVATE] Campaign ${payload.campaignId} has no email accounts. Attempting auto-assignment...`);
-                const { data: allAccts } = await client.from('email_accounts').select('id').eq('user_id', authData.user.id);
+                const { data: campData } = await client.from('campaigns').select('business_id').eq('id', payload.campaignId).single();
+                const business_id = campData?.business_id;
+
+                let acctQuery = client.from('email_accounts').select('id, email').eq('user_id', authData.user.id);
+                if (business_id === '0269fe06-4607-4c58-9263-12a3930a1dc3') { // MrMedic
+                  acctQuery = acctQuery.like('email', '%mrmedic%');
+                } else { // Relay Solutions
+                  acctQuery = acctQuery.like('email', '%relaysolutions%');
+                }
+                const { data: allAccts } = await acctQuery.order('email');
+
                 if (allAccts && allAccts.length > 0) {
-                   const picks = allAccts.slice(0, 8);
+                   const { data: existingAssignments } = await client.from('campaign_email_accounts').select('email_account_id');
+                   const counts = {};
+                   (existingAssignments || []).forEach(a => { counts[a.email_account_id] = (counts[a.email_account_id] || 0) + 1; });
+                   const sorted = [...allAccts].sort((a, b) => (counts[a.id] || 0) - (counts[b.id] || 0));
+                   const picks = sorted.slice(0, Math.min(8, sorted.length));
                    await client.from('campaign_email_accounts').upsert(picks.map(a => ({ campaign_id: payload.campaignId, email_account_id: a.id })));
                    const { data: refreshed } = await client.from('campaign_email_accounts').select('email_account_id').eq('campaign_id', payload.campaignId);
                    emailAccts = refreshed;
@@ -1241,7 +1255,7 @@ CRITICAL INSTRUCTIONS:
               
               for (let stepIdx = 0; stepIdx < totalSteps; stepIdx++) {
                 const template = templates[stepIdx];
-                const stepDate = new Date(now.getTime() + (stepIdx * 1 * 24 * 60 * 60 * 1000)); // 1-day intervals
+                const stepDate = new Date(now.getTime() + (stepIdx * 3 * 24 * 60 * 60 * 1000)); // 3-day intervals between steps
 
                 // Upsert to prevent duplicates (unique constraint: campaign_id + template_id)
                 const { data: scheduleData, error: schedErr } = await client.from('scheduled_emails').upsert({
