@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Compass, Target, Inbox, AtSign, UserCircle, MessageSquare, LogOut, Zap, Clock, Activity, Cpu, HardDrive, Bell, BellRing, Settings, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { openclawSupabase } from '../lib/openclaw';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
@@ -15,7 +16,10 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [balance, setBalance] = useState<number>(10);
+  const [apiLimit, setApiLimit] = useState<number>(0);
+  const [dbSpace, setDbSpace] = useState<number>(0);
   const STARTING_BALANCE = 10;
+  const MAX_API_LIMIT = 50000;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -29,6 +33,18 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
         setBalance(balData.value.balance);
       } else {
         await supabase.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance: 10 } }, { onConflict: 'key_name' });
+      }
+
+      // Fetch API limit (chat logs count)
+      const { count: apiCount } = await openclawSupabase.from('chat_logs').select('*', { count: 'exact', head: true });
+      if (apiCount !== null) {
+        setApiLimit(apiCount);
+      }
+
+      // Fetch DB space estimation (leads count proxy)
+      const { count: leadsCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+      if (leadsCount !== null) {
+        setDbSpace((leadsCount / 1000000) * 100); // Assuming 1M leads is 100%
       }
     };
     fetchStatus();
@@ -132,10 +148,10 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
               <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[9px] font-bold text-foreground/50">
                   <span>API Limit</span>
-                  <span>45%</span>
+                  <span>{((apiLimit / MAX_API_LIMIT) * 100).toFixed(1)}%</span>
                 </div>
                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 w-[45%]" />
+                  <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, (apiLimit / MAX_API_LIMIT) * 100)}%` }} />
                 </div>
               </div>
             </div>
@@ -145,10 +161,10 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
               <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[9px] font-bold text-foreground/50">
                   <span>DB Space</span>
-                  <span>12%</span>
+                  <span>{dbSpace.toFixed(1)}%</span>
                 </div>
                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-[12%]" />
+                  <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${Math.min(100, dbSpace)}%` }} />
                 </div>
               </div>
             </div>

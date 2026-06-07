@@ -3,6 +3,8 @@ import { Terminal, Send, Trash2, Maximize2, Minimize2, X, Cpu, Activity, Info } 
 import { cn } from '../lib/utils';
 import { openclawSupabase } from '../lib/openclaw';
 import { format } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatLogEntry {
   id: string;
@@ -110,8 +112,10 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
           </div>
         )}
         
-        <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-          {response}
+        <div className="text-sm text-foreground prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {response}
+          </ReactMarkdown>
         </div>
       </div>
     );
