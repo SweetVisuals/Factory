@@ -112,7 +112,7 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
           </div>
         )}
         
-        <div className="text-sm text-foreground prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50">
+        <div className="text-sm text-foreground prose prose-sm dark:prose-invert max-w-full break-words overflow-hidden prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50 prose-pre:overflow-x-auto prose-pre:max-w-full">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {response}
           </ReactMarkdown>
@@ -164,7 +164,7 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
       </div>
 
       {/* Logs Area */}
-      <div className="flex-1 overflow-y-auto bg-background scrollbar-thin">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-background scrollbar-thin">
         {logs.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
             <Terminal size={48} className="opacity-20" />
