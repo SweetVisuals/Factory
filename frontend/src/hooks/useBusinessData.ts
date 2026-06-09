@@ -31,6 +31,7 @@ export interface BusinessMetrics {
   dailyLeads: number[];
   dailyEmails: number[];
   urgentEmails: UrgentEmail[];
+  allReplies: UrgentEmail[];
   campaignsList: any[];
 }
 
@@ -42,6 +43,7 @@ export interface UrgentEmail {
   received_at: string;
   campaign_name?: string;
   review_reason?: string;
+  needs_human_review?: boolean;
 }
 
 const ALL_BUSINESS_ITEM: Business = {
@@ -164,8 +166,8 @@ export function useBusinessData() {
       dailyEmails.push(ec || 0);
     }
 
-    // Urgent emails - AI-flagged for human review (unsure how to close, respond, or flagged)
-    const { data: urgentRaw } = await supabase.from('inbox_emails').select('id, from, subject, snippet, received_at, campaign_id, review_reason').eq('needs_human_review', true).in('campaign_id', campIdsWithDummy).order('received_at', { ascending: false }).limit(15);
+    // Urgent emails - AI-flagged for human review
+    const { data: urgentRaw } = await supabase.from('inbox_emails').select('id, from, subject, snippet, received_at, campaign_id, review_reason').eq('needs_human_review', true).in('campaign_id', campIdsWithDummy).order('received_at', { ascending: false }).limit(50);
 
     const urgentEmails: UrgentEmail[] = (urgentRaw || []).map((e: any) => ({
       id: e.id, from: e.from, subject: e.subject || '(No Subject)',
@@ -174,10 +176,21 @@ export function useBusinessData() {
       review_reason: e.review_reason
     }));
 
+    // All replies
+    const { data: allRaw } = await supabase.from('inbox_emails').select('id, from, subject, snippet, received_at, campaign_id, needs_human_review').in('campaign_id', campIdsWithDummy).order('received_at', { ascending: false }).limit(200);
+
+    const allReplies: UrgentEmail[] = (allRaw || []).map((e: any) => ({
+      id: e.id, from: e.from, subject: e.subject || '(No Subject)',
+      snippet: e.snippet || '', received_at: e.received_at,
+      campaign_name: (campaigns || []).find((c: any) => c.id === e.campaign_id)?.name,
+      needs_human_review: e.needs_human_review
+    }));
+
     setMetrics({
       totalLeads, activeCampaigns, avgOpenRate, avgReplyRate,
       emailsSent24h: emailsSent24h || 0, totalSent: totalSent || 0, conversionRate,
       activeTargets: activeTargets || 0, totalProspects, dailyLeads, dailyEmails, urgentEmails,
+      allReplies,
       campaignsList: campaigns || []
     });
   };
@@ -242,5 +255,14 @@ export function useBusinessData() {
     return { success: true };
   };
 
-  return { businesses: businesses.filter(b => b.status !== 'deleted'), targets, selectedBusiness, setSelectedBusiness: handleSetSelectedBusiness, selectedTarget, setSelectedTarget, metrics, loading, uploadBusiness, addTarget, deleteTarget, deleteBusiness, refetchMetrics: () => selectedBusiness && fetchMetrics(selectedBusiness.id), toggleBusinessStatus };
+  const archiveEmails = async (emailIds: string[]) => {
+    if (!emailIds.length) return;
+    const { error } = await supabase.from('inbox_emails').update({ needs_human_review: false }).in('id', emailIds);
+    if (!error && selectedBusiness) {
+      fetchMetrics(selectedBusiness.id);
+    }
+    return { error };
+  };
+
+  return { businesses: businesses.filter(b => b.status !== 'deleted'), targets, selectedBusiness, setSelectedBusiness: handleSetSelectedBusiness, selectedTarget, setSelectedTarget, metrics, loading, uploadBusiness, addTarget, deleteTarget, deleteBusiness, archiveEmails, refetchMetrics: () => selectedBusiness && fetchMetrics(selectedBusiness.id), toggleBusinessStatus };
 }
