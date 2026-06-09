@@ -227,6 +227,7 @@ ABSOLUTE RULES (violation = failure):
 5. DO NOT INCLUDE ANY SIGN-OFF, "Best,", "Regards,", or any closing in the body. The system auto-appends the signature.
 6. Plain text only. No HTML. Normal line breaks between paragraphs.
 7. Each step MUST cover a completely unique angle — no repeated topics, features, or ideas across steps.
+8. SPECIFIC USE CASES & SOLUTIONS: Instead of talking about generic benefits (like "streamlining operations" or "increasing efficiency"), describe a highly concrete, realistic custom automation or software solution tailored specifically to the targeted niche. Show them EXACTLY what we can build for them (e.g. for a restaurant: "we can build something that automatically reduces stock count when orders are placed and automatically reverts it if an order is cancelled"; for field contractors: "real-time dispatch-to-field sync that stops invoicing delays"). Let them see the exact mechanical workflow we would automate.
 
 STEP ARCHETYPES — follow each one precisely:
 
@@ -364,6 +365,7 @@ Instructions for personalization:
 7. DO NOT touch the signature block at the end (starting from {ender}).
 8. DO NOT include any additional sign-offs (e.g., "Best").
 9. Output: JSON ("subject", "content").
+10. CUSTOM SOLUTION RULE: Tailor the product/service offer to the lead's specific industry and deduced pain points using concrete, practical examples (e.g., for a restaurant, suggest building a custom system that automatically syncs and reduces stock count when orders are placed and automatically reverts it if an order is cancelled; for an agency, suggest a secure client portal to avoid emailing files; for a contractor, suggest real-time sync between field techs and office dispatch). Show the recipient EXACTLY how our custom automation solves their manual headache in a clear, practical way.
 
 Context:
 Our Company (Sender): ${company}
@@ -1080,27 +1082,21 @@ The lead's name is "${name || 'John Doe'}" and email is "${email || 'john@exampl
 
 // Intelligent Query Translator: Convert abstract niches to Google Maps-searchable terms
 async function translateToMapQueries(business, location, log) {
-  // Skip translation for terms that are already concrete business types
-  const concreteTerms = ['hotel', 'restaurant', 'dentist', 'plumber', 'gym', 'salon', 'clinic', 'pharmacy', 'pub', 'bar', 'cafe', 'bakery', 'garage', 'solicitor', 'accountant', 'estate agent', 'florist', 'vet'];
-  const lowerBiz = (business || '').toLowerCase();
-  if (concreteTerms.some(t => lowerBiz.includes(t))) {
-    log(`[Query Translator] "${business}" is already a concrete term, skipping translation`);
-    return [business];
-  }
-
   const prompt = `Convert this business niche into 3-5 Google Maps search terms that return REAL business listings.
+We want to target local, independent, or boutique businesses that are likely to have manual process bottlenecks (like manual stock counts, manual booking scheduling, or manual invoicing).
 
 NICHE: "${business}"
 LOCATION: "${location || 'UK'}"
 
 RULES:
-- Google Maps indexes BUSINESS TYPES, not abstract concepts
-- Use terms people actually search on Google Maps
-- Good: "hotels", "conference centres", "wedding venues", "catering companies", "banquet halls"
-- Bad: "corporate events", "AI automation", "conference facility", "lead management"
-- Return ONLY a JSON array of strings, nothing else
+- Google Maps indexes BUSINESS TYPES, not abstract concepts.
+- Use terms people actually search on Google Maps.
+- Focus on independent, local, family-run, or boutique variations of the business type to avoid national chains or massive corporate franchises.
+- Good search term examples: "independent restaurant", "boutique hotel", "family run cafe", "local florist", "local plumbing contractor".
+- Bad search term examples: "restaurant chain", "AI automation", "lead generation", "hotel franchise".
+- Return ONLY a JSON array of strings, nothing else.
 
-Example: "Corporate Event Venues" → ["conference centres", "hotels with meeting rooms", "banquet halls", "exhibition centres", "event spaces"]`;
+Example: "Restaurant" → ["independent restaurant", "bistro", "family run restaurant", "local cafe"]`;
 
   try {
     const res = await fetchAIChatCompletion({

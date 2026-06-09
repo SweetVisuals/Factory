@@ -428,7 +428,8 @@ CRITICAL RULES:
 4. Maintain the core offer and call to action from the Original Template.
 5. Tone: Professional, helpful, concise, and slightly informal (like a colleague).
 6. ABSOLUTELY DO NOT include any sign-off, closing, or signature in the body. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the correct sender signature. Including one will cause a DUPLICATE and a WRONG NAME.
-7. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off or signature" }`,
+7. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off or signature" }
+8. CUSTOM SOLUTION RULE: Tailor the product/service offer to the lead's specific industry and deduced pain points using concrete, practical examples (e.g., for a restaurant, suggest building a custom system that automatically syncs and reduces stock count when orders are placed and automatically reverts it if an order is cancelled; for an agency, suggest a secure client portal to avoid emailing files; for a contractor, suggest real-time sync between field techs and office dispatch). Show the recipient EXACTLY how our custom automation solves their manual headache in a clear, practical way.`,`,
               R =
                 'Original Template Subject: "' +
                 e.templates.subject +

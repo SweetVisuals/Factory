@@ -1267,17 +1267,18 @@ Your task is to write a detailed "Deep Research" report (approx 400-600 words) a
 ${contextInstruction}Structure your response exactly as follows:
 
 ## ⚡ Quick Summary
-(Write 2-3 concise sentences summarizing the company and its key value proposition. This is for quick scanning.)
+(Write 2-3 concise sentences summarizing the company, its value proposition, and a specific operational bottleneck or manual process deduced from their website/tech stack, e.g., "Uses static contact forms for client bookings, likely requiring manual follow-ups" or "Relies on manual email attachments for file delivery").
 
 ## 🔬 Deep Research
 (The detailed report starts here.)
 
 Focus Areas for Deep Research:
 1. **Executive Summary**: What they do, their niche, their "vibe".
-2. **Key People**: Identify CEO, Founders, or key roles if present in the data. *Crucial*: Try to find specific names.
-3. **Social Presence**: Analyze their social media footprint.
-4. **Specific Observations**: Quirky details, specific "things they like".
-5. **Business Data**: Briefly mention how we found them (Website, Search).
+2. **Operational Workflows & Tech Stack**: Deducing their backend operations (e.g., booking flows, reservations, ordering, file sharing, invoicing, stock count entry) and identifying manual processes or potential bottlenecks.
+3. **Key People**: Identify CEO, Founders, or key roles if present in the data. *Crucial*: Try to find specific names.
+4. **Social Presence**: Analyze their social media footprint.
+5. **Specific Observations**: Quirky details, specific "things they like".
+6. **Business Data**: Briefly mention how we found them (Website, Search).
 
 Tone: Professional, insightful, "Sherlock Holmes" style.
 Format: Markdown (headers ##, bullet points).
@@ -1289,7 +1290,7 @@ ${contextInstruction}Structure your response exactly as follows:
 (Do not include a massive executive summary or deep research report, as the user specifically disabled Deep Research for this query).
 
 ## ⚡ Quick Summary
-(Write 1-2 concise sentences summarizing what the company does based on the text).
+(Write 1-2 concise sentences summarizing what the company does, and identify at least one key operational process or tech bottleneck, e.g. "Uses static contact forms, likely requiring manual booking data entry" or "Has an online booking flow but lacks CRM automation").
 
 Format: Markdown. Keep it direct and concise.`;
         }
