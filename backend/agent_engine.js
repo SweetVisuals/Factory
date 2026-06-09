@@ -202,7 +202,7 @@ You are an elite operative of **Openclaw Factory**, the world's most advanced au
 ### 🚨 CRITICAL RULE — ACTIVE BUSINESS CONTEXT:
 The currently ACTIVE businesses you must focus on are: **${globalBusinessContext}**.
 ${timelineContext}
-If you are generating leads, writing copy, or researching, you MUST align your targeting, locations, and value propositions exactly with these active businesses. Do NOT use defaults from disabled businesses (e.g., do not scrape the US if the active business is MrMedic, which is UK only).
+If you are generating leads, writing copy, or researching, you MUST align your targeting, locations, and value propositions exactly with these active businesses. BOTH MrMedic and Relay Solutions strictly target the United Kingdom. Do NOT scrape the US or any other countries. Focus exclusively on UK cities and towns.
 When using SCRAPE or RECRUIT_LEADS, NEVER use broad regions like 'United Kingdom', 'UK', or 'USA'. Google Maps will fail to find leads on broad country searches. You MUST use specific cities, and ideally, break down large cities into specific boroughs, towns, or districts (e.g., instead of just 'London', use 'Camden, London', 'Islington, London', 'Croydon'). This bypasses the Google Maps result limits and ensures we capture all actual businesses.
 
 ### OPERATIONAL PRINCIPLES:
@@ -605,6 +605,13 @@ Before proceeding with any pipeline step, verify these prerequisites:
             if (!scrapePayload.location) {
                throw new Error('location is REQUIRED for SCRAPE. Please provide the location parameter (e.g. "London, UK") in your JSON payload.');
             }
+            
+            // Safety Check: Prevent broad locations that cause 0 leads and infinite loops
+            const broadLocations = ["united states", "usa", "us", "united kingdom", "uk", "great britain", "gb", "america"];
+            if (broadLocations.includes(scrapePayload.location.toLowerCase().trim())) {
+               throw new Error(`CRITICAL SYSTEM ERROR: Location "${scrapePayload.location}" is too broad. Google Maps will return 0 leads for broad country searches. You MUST specify a specific city (e.g., "Austin, TX", "Manchester, UK"). Please DELEGATE to the Market Researcher or fix your payload and try again.`);
+            }
+
             if (!scrapePayload.business) {
                throw new Error('business is REQUIRED for SCRAPE. Please provide the business parameter (e.g. "rugby clubs") in your JSON payload.');
             }

@@ -15,7 +15,7 @@
 
 ### 2.1 Geographic Targeting Directives
 * **MrMedic Events campaigns**: Geographic location MUST be strictly within London and the Midlands (including London, Birmingham, Coventry, Wolverhampton, Walsall, Dudley, Sandwell, Solihull, and surrounding areas). **Under no circumstances suggest or target US locations or other UK regions for MrMedic**.
-* **Relay Solutions campaigns**: Geographic targeting MUST focus primarily on the United Kingdom, alongside a variety of other countries (e.g., Australia, Canada, USA). Do NOT hyper-focus solely on the US. Similar to MrMedic, when targeting the UK, focus on major hubs (e.g., London, Manchester, Birmingham, Edinburgh, Bristol, Leeds) and break down scraping tasks borough-by-borough or town-by-town to maximize lead density.
+* **Relay Solutions campaigns**: Geographic targeting MUST focus EXCLUSIVELY on the United Kingdom. Do NOT target the US or any other countries. Focus on major UK hubs (e.g., London, Manchester, Birmingham, Edinburgh, Bristol, Leeds) and break down scraping tasks borough-by-borough or town-by-town to maximize lead density.
 
 ### 2.2 Focus Niches: Systems & Automation
 Target industries that suffer from high administrative friction, manual bottlenecks, and missed opportunities. Standard niches include:
