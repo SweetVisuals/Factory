@@ -8,7 +8,8 @@
     "dev:relay-be": "cd companies/Relay && node server/index.mjs",
     "dev:hermes": "cd companies/Relay && node server/hermes_orchestrator.mjs",
     "dev": "concurrently \"npm run dev:factory\" \"npm run dev:agents\" \"npm run dev:relay-fe\" \"npm run dev:relay-be\" \"npm run dev:hermes\"",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "postinstall": "npm install --prefix companies/Relay --ignore-scripts"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
