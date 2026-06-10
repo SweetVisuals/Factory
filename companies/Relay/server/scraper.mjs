@@ -302,61 +302,111 @@ async function setupBrowser(log, options = {}) {
 
 export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult = null, notesContext = '', deepResearch = false, checkState = null) {
     const log = createLogger(onLog);
-    log(`Starting Fast API scraper for: ${query} (Target: ${limit})`);
+    log(`Starting Native Google Maps Scraper for: ${query} (Target: ${limit})`);
     
     let leads = [];
+    let setup;
+    let browser;
     try {
-        const apiKey = process.env.SERPER_API_KEY;
-        if (!apiKey) {
-            log('CRITICAL: SERPER_API_KEY is not set in .env! Cannot perform fast scraping.');
-            return [];
-        }
+        setup = await setupBrowser(log, { isMaps: true });
+        browser = setup.browser;
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1280, height: 800 });
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-        log(`Fetching Google Maps data from Serper API...`);
-        let response = null;
-        let retries = 0;
-        while (retries < 3) {
-            try {
-                response = await axios({
-                    method: 'post',
-                    url: 'https://google.serper.dev/places',
-                    headers: { 
-                        'X-API-KEY': apiKey, 
-                        'Content-Type': 'application/json'
-                    },
-                    data: JSON.stringify({
-                        "q": query,
-                        "num": limit
-                    })
-                });
-                break;
-            } catch (err) {
-                if (err.response && err.response.status === 429) {
-                    retries++;
-                    log(`[Serper 429 Rate Limit] Retrying in ${retries * 2} seconds...`);
-                    await new Promise(r => setTimeout(r, retries * 2000));
-                } else {
-                    throw err;
-                }
+        const url = `https://www.google.com/maps/search/${encodeURIComponent(query)}?hl=en`;
+        log(`Navigating to Google Maps: ${url}`);
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+
+        try {
+            const consentBtn = await page.$('form[action*="consent"] button');
+            if (consentBtn) {
+                await consentBtn.click();
+                await new Promise(r => setTimeout(r, 2000));
             }
+        } catch(e) {}
+
+        log("Waiting for results pane...");
+        try {
+            await page.waitForSelector('div[role="feed"]', { timeout: 15000 });
+        } catch(e) {
+            log("Feed not found, possibly no results or blocked.");
+            return leads;
         }
         
-        if (!response) {
-            log(`Failed to fetch Google Maps data after 3 retries.`);
-            return [];
+        log("Scrolling feed...");
+        let previousHeight = 0;
+        let sameHeightCount = 0;
+        
+        while (true) {
+            if (checkState) await checkState();
+            const feedHandle = await page.$('div[role="feed"]');
+            if (!feedHandle) break;
+            
+            const currentCount = await page.evaluate((feed) => {
+                return document.querySelectorAll('a.hfpxzc').length;
+            }, feedHandle);
+            
+            if (currentCount >= limit) break;
+            
+            const newHeight = await page.evaluate((feed) => {
+                feed.scrollTop = feed.scrollHeight;
+                return feed.scrollHeight;
+            }, feedHandle);
+            
+            if (newHeight === previousHeight) {
+                sameHeightCount++;
+                if (sameHeightCount >= 5) break;
+            } else {
+                sameHeightCount = 0;
+            }
+            previousHeight = newHeight;
+            await new Promise(r => setTimeout(r, 1500));
         }
 
-        const places = response.data.places || [];
-        log(`Found ${places.length} raw places from API.`);
+        const places = await page.evaluate(() => {
+            const results = [];
+            const links = Array.from(document.querySelectorAll('a.hfpxzc'));
+            for (const a of links) {
+                const title = a.getAttribute('aria-label') || '';
+                if (title) {
+                    results.push({ title, url: a.href });
+                }
+            }
+            return results;
+        });
+
+        log(`Extracted ${places.length} places from feed. Fetching details...`);
 
         for (const place of places) {
             if (checkState) await checkState();
             if (leads.length >= limit) break;
 
             const name = place.title || '';
-            let website = place.website || '';
-            const phone = place.phoneNumber || '';
-            const address = place.address || '';
+            if (!name) continue;
+
+            log(`Clicking ${name} to get details...`);
+            try {
+                await page.goto(place.url, { waitUntil: 'networkidle2', timeout: 15000 });
+                await new Promise(r => setTimeout(r, 1500));
+            } catch (navErr) {
+                log(`Navigation timeout for ${name}, trying to extract anyway...`);
+            }
+
+            const details = await page.evaluate(() => {
+                const addressBtn = document.querySelector('button[data-item-id="address"]');
+                const websiteBtn = document.querySelector('a[data-item-id="authority"]');
+                const phoneBtn = document.querySelector('button[data-item-id^="phone:tel:"]');
+                return {
+                    address: addressBtn ? addressBtn.innerText.replace(/^.*\\n/, '') : '',
+                    website: websiteBtn ? websiteBtn.href : '',
+                    phone: phoneBtn ? phoneBtn.innerText.replace(/^.*\\n/, '') : ''
+                };
+            });
+
+            let website = details.website || '';
+            const phone = details.phone || '';
+            const address = details.address || '';
             
             if (!name) continue;
 
@@ -444,7 +494,7 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                 linkedin: social.linkedin, 
                 tiktok: '',
                 location: address,
-                source: 'Fast API'
+                source: 'Native Maps'
             };
 
             log(`Found: ${name} (Email: ${email || 'No'} | Phone: ${phone || 'No'} | Website: ${website || 'No'})`);
@@ -458,8 +508,13 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
         log(`Scraping Complete. Successfully extracted ${leads.length} leads.`);
         return leads;
     } catch (e) {
-        log(`Error in Fast API Scraper: ${e.message}`);
+        log(`Error in Native Maps Scraper: ${e.message}`);
         return leads;
+    } finally {
+        if (browser) await browser.close();
+        if (setup?.profileDir && fs.existsSync(setup.profileDir)) {
+            try { fs.rmSync(setup.profileDir, { recursive: true, force: true }); } catch (e) {}
+        }
     }
 }
 
