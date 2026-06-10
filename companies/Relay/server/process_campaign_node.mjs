@@ -573,12 +573,17 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
               if (c.choices && c.choices[0]) {
                 const d = c.choices[0].message.content.trim();
                 try {
-                  const U = d.replace(/\`\`\`json\n|\n\`\`\`/g, "").trim(),
-                    l = JSON.parse(U);
-                  ((S = l.body || l.Body || d),
-                    (E = l.subject || l.Subject || ""));
-                } catch {
-                  S = d;
+                  let cleanStr = d.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "").trim();
+                  const l = JSON.parse(cleanStr);
+                  S = l.body || l.Body || cleanStr;
+                  E = l.subject || l.Subject || "";
+                } catch (err) {
+                  const bodyMatch = d.match(/"body"\s*:\s*"([\s\S]*?)"\s*\}?/i);
+                  if (bodyMatch && bodyMatch[1]) {
+                    S = bodyMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+                  } else {
+                    S = d.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "").trim();
+                  }
                 }
                 await n
                   .from("leads")
