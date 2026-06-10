@@ -46,9 +46,9 @@ async function runScraperScheduler() {
             continue;
         }
 
-        // Only feed leads to campaigns that need more (under 100 leads)
-        if (count !== null && count < 100) {
-            // Check if there is an active scraper task for this campaign in the database to prevent duplicate parallel runs
+        // Max out server: feed leads to campaigns under 5000 leads
+        if (count !== null && count < 5000) {
+            // Check if there is an active scraper task for this campaign in the database
             try {
                 const { data: activeTasks, error: taskCheckErr } = await supabase
                     .from('tasks')
@@ -59,9 +59,10 @@ async function runScraperScheduler() {
                 if (taskCheckErr) {
                     console.error(`[Scraper Scheduler] Error checking active tasks for ${c.id}:`, taskCheckErr.message);
                 } else if (activeTasks) {
-                    const isAlreadyRunning = activeTasks.some(t => t.description && t.description.includes(c.id));
-                    if (isAlreadyRunning) {
-                        console.log(`[Scraper Scheduler] Campaign "${c.name}" (${c.id}) is already being scraped by an active task. Skipping scheduler trigger.`);
+                    // Allow up to 3 parallel scrapers per campaign to max out compute
+                    const runningForThisCampaign = activeTasks.filter(t => t.description && t.description.includes(c.id)).length;
+                    if (runningForThisCampaign >= 3) {
+                        console.log(`[Scraper Scheduler] Campaign "${c.name}" (${c.id}) already has 3 active tasks. Skipping to prevent overlap.`);
                         continue;
                     }
                 }
@@ -93,7 +94,7 @@ async function runScraperScheduler() {
                 location = nameLower.includes('uk') || nameLower.includes('london') || nameLower.includes('midlands') ? 'United Kingdom' : 'United States';
             }
 
-            console.log(`[Scraper Scheduler] Feeding campaign "${c.name}" — current leads: ${count}, requesting 50 more`);
+            console.log(`[Scraper Scheduler] Feeding campaign "${c.name}" — current leads: ${count}, requesting 500 more`);
 
             try {
                 // Trigger Node.js scraper endpoint using the local loopback
@@ -106,7 +107,7 @@ async function runScraperScheduler() {
                     body: JSON.stringify({
                         business: niche,
                         location: location,
-                        limit: 50,
+                        limit: 500,
                         campaignId: c.id,
                         keywords: niche,
                         deepResearch: false // Rely on regex fast-mode
@@ -124,8 +125,8 @@ async function runScraperScheduler() {
                 console.error(`[Scraper Scheduler] Network error triggering scraper for ${c.id}:`, err.message);
             }
             
-            // Wait 2 seconds before queuing the next campaign to avoid hitting concurrency bumps too fast
-            await sleep(2000);
+            // Blast through queue with minimal delay
+            await sleep(100);
         } else {
             console.log(`[Scraper Scheduler] Campaign "${c.name}" has sufficient leads (${count}). Skipping.`);
         }
