@@ -56,7 +56,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [startTime, setStartTime] = useState<string>('09:00');
-  const [emailsPerAccount, setEmailsPerAccount] = useState<number | undefined>(50);
+  const [emailsPerAccount, setEmailsPerAccount] = useState<number | undefined>(500);
   const [emailsPerDay, setEmailsPerDay] = useState<number | undefined>(500);
   const [interval, setInterval] = useState<number | undefined>(15);
   const [intervalAccount, setIntervalAccount] = useState<number | undefined>();
@@ -249,7 +249,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             end_date: getLondonTimestamp(endDate, startTime),
             total_emails: emailsPerDay || 0,
             interval_minutes: interval || 15,
-            emails_per_account: emailsPerAccount || 50,
+            emails_per_account: emailsPerAccount || 500,
             status: 'scheduled',
             scheduled_for: getLondonTimestamp(startDate, startTime)
           })
@@ -260,7 +260,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             schedule_id: data.id,
             email_account_id: accId,
             emails_sent: 0,
-            emails_remaining: emailsPerAccount || 50
+            emails_remaining: emailsPerAccount || 500
           }))
         );
       }
@@ -327,7 +327,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
           startTime: '09:00',
           totalEmails: limitPerDay,
           interval: Math.max(15, interval || 15),
-          emailsPerAccount: emailsPerAccount || 50
+          emailsPerAccount: emailsPerAccount || 500
         };
       });
       setStagedSchedules(proposed);

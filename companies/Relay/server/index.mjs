@@ -1256,16 +1256,7 @@ app.post('/api/scrape-leads', async (req, res) => {
           });
         }
 
-        // ALSO broadcast to global chat_logs if it's a major event, but filter out city-level spam
-        const isMajorEvent = message.includes('Starting') || message.includes('Finished') || message.includes('Reached limit');
-        const isSpam = message.includes('Starting Fast API scraper') || message.includes('Retrying') || message.includes('Fetching Google');
-        
-        if (isMajorEvent && !isSpam) {
-          await client.from('chat_logs').insert({
-            agent_name: 'Scraper',
-            message: `[RELAY] ${message}`
-          });
-        }
+        // REMOVED chat_logs broadcast to prevent dashboard spam
       } catch (e) {
         console.error('Failed to save log to DB:', e.message);
       }
@@ -1289,10 +1280,8 @@ app.post('/api/scrape-leads', async (req, res) => {
     let totalLeadsInThisRun = 0;
 
     const onResult = async (lead) => {
-      // Email is required for cold email outreach campaigns
-      if (!lead.email) {
-        return;
-      }
+      // We no longer discard leads without emails here to prevent endless API usage.
+      // Leads without emails will be saved and skipped by the email engine later.
 
       // REGIONAL INTEGRITY FILTER: Prevent international "leaks" for US-focused campaigns
       const isUsTarget = countryCode === 'US' || 

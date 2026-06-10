@@ -189,7 +189,7 @@ export async function runProcessCampaign() {
           campaign_id_param: e.campaign_id,
           schedule_id_param: e.id,
         })
-        .limit(u.length * (e.emails_per_account || 40));
+        .limit(u.length * (e.emails_per_account || 500));
       if (W) {
         console.error("Error fetching pending leads", W);
         continue;
@@ -417,19 +417,16 @@ export async function runProcessCampaign() {
               .replace(/\n*<company>[\s\S]*$/i, "")
               .trim();
             const k =
-                `You are a world-class B2B sales strategist personalizing cold outreach. Your goal is to rewrite the provided email template to be highly relevant to the specific lead based on their business summary.
+                `You are a witty, world-class B2B sales strategist personalizing cold outreach. Your goal is to rewrite the provided email template to be highly relevant to the specific lead based on their business summary.
 
 CRITICAL RULES:
-1. DO NOT return a template with placeholders like [Name] or {{company}}. Return the FINISHED email.
-2. Use the lead's first name: ` +
-                s +
-                `.
-3. Write a unique, personalized opening sentence based on the provided Lead Notes.
-4. Maintain the core offer and call to action from the Original Template.
-5. Tone: Professional, helpful, concise, and slightly informal (like a colleague).
-6. ABSOLUTELY DO NOT include any sign-off, closing, or signature in the body. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the correct sender signature. Including one will cause a DUPLICATE and a WRONG NAME.
-7. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off or signature" }
-8. CUSTOM SOLUTION RULE: Tailor the product/service offer to the lead's specific industry and deduced pain points using concrete, practical examples (e.g., for a restaurant, suggest building a custom system that automatically syncs and reduces stock count when orders are placed and automatically reverts it if an order is cancelled; for an agency, suggest a secure client portal to avoid emailing files; for a contractor, suggest real-time sync between field techs and office dispatch). Show the recipient EXACTLY how our custom automation solves their manual headache in a clear, practical way.`,
+1. Start the email with EXACTLY: "Hi " followed by the lead's first name, and a comma. Example: "Hi John,". If no name is provided, use "Hi there,". DO NOT just write "there,".
+2. DO NOT return a template with placeholders like [Name] or {{company}}. Return the FINISHED email.
+3. Write a unique, personalized opening sentence that gives genuine praise based on the Lead Notes. Then, ASK them an insightful question about their pain points to try and see what they are currently struggling with in their business.
+4. Maintain the core offer from the Original Template but make it straight to the point, confident, and perfectly correct in grammar and formatting.
+5. ABSOLUTELY DO NOT include any sign-off, closing, or signature in the body. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the correct sender signature. Including one will cause a DUPLICATE and a WRONG NAME. I will heavily penalize you if you output a signature block.
+6. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off or signature" }
+7. CUSTOM SOLUTION RULE: Frame the core offer around the pain points you just asked them about. Make sure the email flows naturally and correctly.`,
               R =
                 'Original Template Subject: "' +
                 e.templates.subject +
@@ -613,20 +610,24 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
           Q = X[Math.floor(Math.random() * X.length)];
         let O = S;
         // AGGRESSIVE sign-off stripping to prevent double signatures
-        // 1. Strip standard greeting closers + everything after
-        const ke =
-          /\n*\s*(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward|Hope to hear),?\s*[\n,][^]*$/i;
+        const ke = /\n*\s*(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward|Hope to hear),?\s*[\n,][^]*$/i;
         O = O.replace(ke, "").trimEnd();
-        // 2. Strip any "Name\nRelay Solutions" or "Name\nCompany" block at end
-        O = O.replace(/\n+\s*[A-Z][a-z]+\s*\n\s*Relay Solutions[^]*$/i, "").trimEnd();
-        // 3. Strip any www.relaysolutions.net or relaysolutions URLs at end
-        O = O.replace(/\n*\s*(?:www\.)?relaysolutions\.net[^]*$/i, "").trimEnd();
-        // 4. Strip {{ender}} and [Sender Name] placeholders
-        O = O.replace(/\n*\s*\{\{?ender\}\}?[\s\S]*$/i, "")
-            .replace(/\n*\s*\[Sender Name\][\s\S]*$/i, "")
-            .trimEnd();
-        // 5. Strip any trailing line that is just a first name (1 word, capitalized)
+        // 2. Strip any dynamic "Name\nCompany" block at end
+        if (V) {
+          const companySafe = V.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const companyRegex = new RegExp(`\\n+\\s*[A-Z][a-z]+\\s*\\n\\s*${companySafe}[^]*$`, 'i');
+          O = O.replace(companyRegex, "").trimEnd();
+        }
+        // 3. Strip any URL blocks at end
+        O = O.replace(/\n*\s*(?:www\.)?[a-zA-Z0-9-]+\.[a-z]{2,}[^]*$/i, "").trimEnd();
+        // 4. Strip placeholders
+        O = O.replace(/\n*\s*\{\{?ender\}\}?[\s\S]*$/i, "").replace(/\n*\s*\[Sender Name\][\s\S]*$/i, "").trimEnd();
+        // 5. Strip any trailing line that is just a first name
         O = O.replace(/\n+\s*[A-Z][a-z]{2,15}\s*$/m, "").trimEnd();
+        
+        // Fix greeting if the AI just spat out "there,"
+        O = O.replace(/^(hi\s+)?(there|friend),/i, "Hi there,");
+        O = O.replace(/^([A-Z][a-z]+),/i, "Hi $1,"); // "John," -> "Hi John,"
         const Z = a.signature ? a.signature.trim() : "",
           Ie =
             e.campaigns?.business_id === "0269fe06-4607-4c58-9263-12a3930a1dc3",
@@ -702,7 +703,7 @@ ${ie}`.trimEnd();
             },
             { pattern: /{{name}}|{name}|\[Name\]/gi, val: t.name || y },
             {
-              pattern: /{{company}}|{company}|{companyName}|\[Company\]/gi,
+              pattern: /{{company}}|{company}|{companyName}|{{org_name}}|{org_name}|\[Company\]/gi,
               val: N || "your business",
             },
             {
@@ -780,10 +781,10 @@ ${ie}`.trimEnd();
         }
         const B = a.email.toLowerCase();
         if (B) {
-          // Track limits per individual email account (40 emails per account)
+          // Track limits per individual email account (500 emails per account)
           const { data: s } = await n.rpc("increment_domain_email_count", {
             p_domain: B, // B is now the full email address, tracking per account
-            p_max_limit: 40,
+            p_max_limit: 500,
           });
           if (!s) {
             console.log(`Account limit reached for ${B}. Skipping account.`);
@@ -793,8 +794,8 @@ ${ie}`.trimEnd();
         try {
           (await De.createTransport({
             host: a.smtp_host,
-            port: a.smtp_port,
-            secure: a.smtp_port === 465,
+            port: Number(a.smtp_port),
+            secure: Number(a.smtp_port) === 465,
             auth: { user: a.email, pass: me },
           }).sendMail({
             from: a.name ? '"' + a.name + '" <' + a.email + ">" : a.email,
