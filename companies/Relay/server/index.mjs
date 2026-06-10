@@ -1286,10 +1286,8 @@ app.post('/api/scrape-leads', async (req, res) => {
     let totalLeadsInThisRun = 0;
 
     const onResult = async (lead) => {
-      // We no longer filter out leads without emails, as they often have phone numbers for cold calling
-      // and can be enriched later.
-      if (!lead.email && !lead.phone) {
-        // Only drop if they have NEITHER email nor phone
+      // Email is required for cold email outreach campaigns
+      if (!lead.email) {
         return;
       }
 
@@ -1549,12 +1547,15 @@ app.post('/api/scrape-leads', async (req, res) => {
         }
 
         if (countryCode && !normalizedLocation) {
-          log(`WARN: No specific location provided. Defaulting to broad country search for ${countryCode}. This may yield poor results.`);
+          log(`Broad country search for ${countryCode}. Picking 30 random cities for fast rotation across campaigns.`);
           const countryCities = City.getCitiesOfCountry(countryCode) || [];
-          // Sort by population if available, otherwise just use them
-          scrapeLocations = countryCities.map(c => `${c.name}, ${c.stateCode || ''}, ${countryCode}`.replace(/,\s*,/g, ','));
-          // Take top 1000 cities to avoid maxing out memory
-          scrapeLocations = scrapeLocations.slice(0, 1000);
+          const allCities = countryCities.map(c => `${c.name}, ${c.stateCode || ''}, ${countryCode}`.replace(/,\s*,/g, ','));
+          // Shuffle and take 30 random cities per run so every campaign gets quick turns
+          for (let i = allCities.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allCities[i], allCities[j]] = [allCities[j], allCities[i]];
+          }
+          scrapeLocations = allCities.slice(0, 30);
         } else if (normalizedLocation) {
           const tokens = normalizedLocation.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean);
           const parsedLocs = [];

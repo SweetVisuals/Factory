@@ -367,26 +367,21 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
             if (website && !website.includes('google.com')) {
                 if (!website.startsWith('http')) website = 'http://' + website;
                 
-                try {
-                    log(`Fast-scanning website: ${website}`);
-                    const webRes = await axios.get(website, { 
-                        timeout: 5000,
-                        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-                    });
-                    const html = webRes.data;
+                const extractFromHtml = (html) => {
                     const $ = cheerio.load(html);
-                    
-                    // Extract Emails via Regex
                     const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
                     const textContent = $('body').text();
-                    const emails = textContent.match(emailRegex) || [];
-                    
-                    const validEmails = emails.filter(e => {
-                        const low = e.toLowerCase();
-                        return !low.endsWith('.png') && !low.endsWith('.jpg') && !low.includes('sentry') && !low.includes('example');
+                    const hrefEmails = [];
+                    $('a[href^="mailto:"]').each((i, el) => {
+                        const mailto = $(el).attr('href').replace('mailto:', '').split('?')[0].trim();
+                        if (mailto) hrefEmails.push(mailto);
                     });
-                    
-                    if (validEmails.length > 0) email = validEmails[0];
+                    const bodyEmails = textContent.match(emailRegex) || [];
+                    const allEmails = [...hrefEmails, ...bodyEmails];
+                    const validEmails = allEmails.filter(e => {
+                        const low = e.toLowerCase();
+                        return !low.endsWith('.png') && !low.endsWith('.jpg') && !low.endsWith('.svg') && !low.includes('sentry') && !low.includes('example') && !low.includes('wixpress') && !low.includes('@2x');
+                    });
                     
                     $('a').each((i, el) => {
                         const href = $(el).attr('href');
@@ -397,6 +392,35 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                             if (href.includes('twitter.com') || href.includes('x.com')) social.twitter = href;
                         }
                     });
+                    return validEmails;
+                };
+                
+                try {
+                    const webRes = await axios.get(website, { 
+                        timeout: 5000,
+                        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+                    });
+                    const validEmails = extractFromHtml(webRes.data);
+                    if (validEmails.length > 0) email = validEmails[0];
+                    
+                    // If no email on homepage, try /contact and /about pages
+                    if (!email) {
+                        const baseUrl = new URL(website).origin;
+                        const contactPages = ['/contact', '/contact-us', '/about', '/about-us', '/get-in-touch'];
+                        for (const page of contactPages) {
+                            try {
+                                const pageRes = await axios.get(`${baseUrl}${page}`, { 
+                                    timeout: 3000, 
+                                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+                                });
+                                const pageEmails = extractFromHtml(pageRes.data);
+                                if (pageEmails.length > 0) {
+                                    email = pageEmails[0];
+                                    break;
+                                }
+                            } catch (e) { /* page doesn't exist, skip */ }
+                        }
+                    }
 
                 } catch (e) {
                     log(`Failed to fast-scan ${website}: ${e.message}`);
