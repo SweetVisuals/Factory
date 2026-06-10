@@ -1247,11 +1247,14 @@ app.post('/api/scrape-leads', async (req, res) => {
 
       // Persistence store
       try {
-        await client.from('scraper_logs').insert({
-          user_id: userId,
-          message: message,
-          timestamp: timestamp
-        });
+        // Only save major milestone logs to the DB to reduce write pressure
+        if (message.includes('Starting scrape') || message.includes('Scraping Complete') || message.includes('Reached limit') || message.includes('Linked lead')) {
+          await client.from('scraper_logs').insert({
+            user_id: userId,
+            message: message,
+            timestamp: timestamp
+          });
+        }
 
         // ALSO broadcast to global chat_logs if it's a major event, but filter out city-level spam
         const isMajorEvent = message.includes('Starting') || message.includes('Finished') || message.includes('Reached limit');
@@ -1421,8 +1424,8 @@ app.post('/api/scrape-leads', async (req, res) => {
                 }, { onConflict: 'campaign_id,lead_id' });
               log(`Linked lead ${upsertedData.company} to campaign: ${campaignName}`);
               
-              // Update Campaign Stats instantly so the user sees progress on the dashboard
-              if (totalLeadsInThisRun > 0) {
+              // Update Campaign Stats every 10 leads to avoid overloading DB
+              if (totalLeadsInThisRun % 10 === 0) {
                 const { count } = await client.from('campaign_leads').select('*', { count: 'exact', head: true }).eq('campaign_id', campaignId);
                 await client.from('campaigns').update({ prospects: count || totalLeadsInThisRun }).eq('id', campaignId);
               }
@@ -1613,7 +1616,7 @@ app.post('/api/scrape-leads', async (req, res) => {
         log(`Starting scrape for ${business || keywords || 'unspecified niche'}...`);
         if (notesContext) log(`Custom Notes Focus: ${notesContext}`);
 
-        const MAX_CONCURRENT = parseInt(process.env.MAX_CONCURRENT_SCRAPES) || 5; // Do 5 concurrent browsers
+        const MAX_CONCURRENT = 2; // Limit to 2 concurrent scrapers to avoid overloading Supabase
         const queue = [...scrapeLocations];
         const activePromises = new Set();
         let isCanceled = false;

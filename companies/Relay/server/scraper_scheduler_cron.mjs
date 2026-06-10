@@ -59,10 +59,10 @@ async function runScraperScheduler() {
                 if (taskCheckErr) {
                     console.error(`[Scraper Scheduler] Error checking active tasks for ${c.id}:`, taskCheckErr.message);
                 } else if (activeTasks) {
-                    // Allow up to 3 parallel scrapers per campaign to max out compute
-                    const runningForThisCampaign = activeTasks.filter(t => t.description && t.description.includes(c.id)).length;
-                    if (runningForThisCampaign >= 3) {
-                        console.log(`[Scraper Scheduler] Campaign "${c.name}" (${c.id}) already has 3 active tasks. Skipping to prevent overlap.`);
+                    // Only 1 scraper per campaign to avoid overloading the DB
+                    const isAlreadyRunning = activeTasks.some(t => t.description && t.description.includes(c.id));
+                    if (isAlreadyRunning) {
+                        console.log(`[Scraper Scheduler] Campaign "${c.name}" (${c.id}) already has an active task. Skipping.`);
                         continue;
                     }
                 }
@@ -152,12 +152,12 @@ export function startScraperSchedulerCron() {
   
   supabase = createClient(supabaseUrl, supabaseKey);
 
-  console.log('[Scraper Scheduler] Initialized. Running every 20 seconds.');
+  console.log('[Scraper Scheduler] Initialized. Running every 60 seconds.');
   
   // Wait a few seconds on startup before running so server has time to boot fully
   setTimeout(() => {
     runScraperScheduler();
-    // Run every 20 seconds
-    setInterval(runScraperScheduler, 20 * 1000);
+    // Run every 60 seconds to avoid overloading DB
+    setInterval(runScraperScheduler, 60 * 1000);
   }, 5 * 1000);
 }
