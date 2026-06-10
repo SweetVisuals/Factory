@@ -199,8 +199,8 @@ Deno.serve(async (req) => {
              continue;
         }
 
-        // Get Pending Leads (limited to prevent timeouts)
-        const maxBatchSize = Math.min(30, scheduleAccounts.length * 5);
+        // Get Pending Leads (increased limits to email quicker)
+        const maxBatchSize = Math.min(100, scheduleAccounts.length * 15);
         const { data: pendingLeads, error: pendingError } = await supabaseAdmin
             .rpc('get_pending_campaign_leads', { 
                 campaign_id_param: schedule.campaign_id,
@@ -710,6 +710,23 @@ Deno.serve(async (req) => {
 
              // ═══ FIX: ALWAYS STRIP EXISTING SIGN-OFFS, THEN APPEND CORRECT ONE ═══
              let strippedBody = bodyContent;
+
+             // Strip sender names/companies explicitly to prevent double sign-off
+             const senderFullName = account.name || senderFirstName;
+             const namesToStrip = [senderFullName, senderFirstName, senderCompany, account.email?.split('@')[0]].filter(Boolean);
+             
+             // Strip common sign-off words + names
+             for (const name of namesToStrip) {
+                 if (!name || name.length < 3) continue; // Skip very short names
+                 const safeName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                 // Match optional sign-off word followed by the name at the end of the email
+                 const nameStripRegex = new RegExp(`\\n*\\s*(?:Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward|Yours)[,:]?\\s*\\n*\\s*${safeName}[\\s\\S]{0,200}$`, 'i');
+                 strippedBody = strippedBody.replace(nameStripRegex, '').trimEnd();
+                 
+                 // Also just match the name by itself at the end of the email
+                 const exactNameRegex = new RegExp(`\\n+\\s*${safeName}[\\s\\S]{0,100}$`, 'i');
+                 strippedBody = strippedBody.replace(exactNameRegex, '').trimEnd();
+             }
 
              // Strip sign-offs at the end
              const signOffStrip = /\n*\s*(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward),?\s*(?:\n[\s\S]{0,200}|\s*$)/i;

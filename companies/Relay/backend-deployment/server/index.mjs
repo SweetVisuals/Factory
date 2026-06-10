@@ -76,12 +76,12 @@ ABSOLUTE RULES (violation = failure):
 
 STEP ARCHETYPES — follow each one precisely:
 
-Step 1 — "The Pattern Interrupt":
-This is the very first cold email. Its ONLY job is to NOT sound like every other cold email they receive.
-- The opening sentence must immediately signal that you understand their world — reference something specific to the {{industry}} space or {{company}}.
-- Do NOT open with a generic observation or compliment. Go straight to something that makes them think "how did they know that?"
-- Ask ONE sharp, unexpected question OR make ONE bold statement that makes them genuinely curious about what you do.
-- The email should feel like a quick DM from someone in their network — not a pitch.
+Step 1 — "The Rapport Builder":
+This is the very first cold email. Its ONLY job is to build rapport and ask what they struggle with regarding time or production. Do NOT pitch an automation system or any specific solution here.
+- The opening sentence must immediately signal that you understand their local business world. Reference something specific to their {{industry}} or {{company}}.
+- Go straight to building rapport. Sound like a peer checking in.
+- Ask ONE simple, conversational question about what manual tasks, time-wasters, or production bottlenecks they struggle with the most right now.
+- Do NOT mention "automation", "systems", or try to sell anything. Just start a conversation.
 - Keep it under 60 words total.
 - Use [[notes]] naturally if it helps anchor the opener to their specific business.
 
@@ -411,7 +411,7 @@ app.post('/api/scrape-leads', async (req, res) => {
   try {
     try { fs.appendFileSync('scraper_endpoint.log', `[${new Date().toISOString()}] Scrape API Called. Body: ${JSON.stringify(req.body)}\n`); } catch (e) { }
 
-    const { platforms = {}, business, location, keywords, notesContext, limit = 20 } = req.body;
+    const { platforms = {}, business, location, keywords, notesContext, limit = 20, campaignId } = req.body;
 
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -427,6 +427,16 @@ app.post('/api/scrape-leads', async (req, res) => {
     }
 
     userId = user.id;
+
+    // Check campaign limit if campaignId is provided
+    if (campaignId) {
+        const scopedSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
+        const { count } = await scopedSupabase.from('campaign_leads').select('*', { count: 'exact', head: true }).eq('campaign_id', campaignId);
+        if (count >= 1000) {
+            console.log(`[${userId}] Campaign ${campaignId} already has ${count} leads. Stopping scraper.`);
+            return res.json({ success: true, message: 'Campaign lead limit reached (1000). Stopping scrape.' });
+        }
+    }
 
     // Initialize user-specific stores
     userLogs.set(userId, []);

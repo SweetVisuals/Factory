@@ -109,7 +109,7 @@ async function runScraperScheduler() {
                     body: JSON.stringify({
                         business: niche,
                         location: location,
-                        limit: 500,
+                        limit: 250,
                         campaignId: c.id,
                         keywords: niche,
                         deepResearch: false // Rely on regex fast-mode
@@ -157,7 +157,7 @@ export function startScraperSchedulerCron() {
   // Wait a few seconds on startup before running so server has time to boot fully
   setTimeout(() => {
     runScraperScheduler();
-    // Run every 60 seconds to avoid overloading DB
-    setInterval(runScraperScheduler, 60 * 1000);
+    // Run every 10 minutes
+    setInterval(runScraperScheduler, 10 * 60 * 1000);
   }, 5 * 1000);
 }

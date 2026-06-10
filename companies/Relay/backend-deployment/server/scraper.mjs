@@ -322,9 +322,10 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                 pendingElements.push({ el, ariaLabel });
             }
 
-            // Process in batches of 5 to avoid overwhelming the server
-            const BATCH_SIZE = 5;
+            // Process in batches of 2 with a delay to avoid overwhelming the server and burning through credits
+            const BATCH_SIZE = 2;
             for (let batchStart = 0; batchStart < pendingElements.length; batchStart += BATCH_SIZE) {
+                await new Promise(r => setTimeout(r, 2000)); // 2 second delay between batches
                 if (leadsWithEmail >= targetLimit) break;
                 const batch = pendingElements.slice(batchStart, batchStart + BATCH_SIZE);
                 const batchPromises = batch.map(item => (async () => {
