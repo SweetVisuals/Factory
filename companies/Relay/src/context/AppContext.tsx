@@ -69,6 +69,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, reloadCampaigns)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_progress' }, reloadCampaigns)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_leads' }, reloadCampaigns)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, reloadCampaigns)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_emails' }, reloadCampaigns)
         .subscribe();
 

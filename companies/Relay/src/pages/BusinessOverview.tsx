@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import CampaignCard from '../components/CampaignCard';
 import { format } from 'date-fns';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 
 type ChartType = 'bar' | 'line' | 'area';
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16'];
@@ -269,7 +270,9 @@ export default function BusinessOverviewPage() {
                 <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">{card.label}</span>
                 <card.icon size={16} className={cn(card.color, "opacity-70")} />
               </div>
-              <span className="text-4xl font-bold text-foreground tracking-tight">{card.value}</span>
+              <span className="text-4xl font-bold text-foreground tracking-tight">
+                <AnimatedNumber value={card.value} />
+              </span>
             </div>
           ))}
         </div>

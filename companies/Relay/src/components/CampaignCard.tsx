@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
 import { CheckCircle2, FileEdit, Activity, Users, Mail, MessageSquare, ArrowUpRight } from 'lucide-react';
+import { AnimatedNumber } from './AnimatedNumber';
 
 interface CampaignCardProps {
   id: string;
@@ -127,16 +128,22 @@ const CampaignCard = ({
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="flex flex-col bg-muted/30 rounded-xl p-4 border border-border transition-colors group-hover:bg-muted/50">
             <span className="text-xs font-semibold tracking-wider text-muted-foreground mb-1">Leads</span>
-            <span className="font-bold text-2xl text-foreground">{prospectsVal}</span>
+            <span className="font-bold text-2xl text-foreground">
+              <AnimatedNumber value={prospectsVal} />
+            </span>
           </div>
           <div className="flex flex-col bg-muted/30 rounded-xl p-4 border border-border transition-colors group-hover:bg-muted/50">
             <span className="text-xs font-semibold tracking-wider text-muted-foreground mb-1">Sent</span>
-            <span className="font-bold text-2xl text-foreground">{sentVal}</span>
+            <span className="font-bold text-2xl text-foreground">
+              <AnimatedNumber value={sentVal} />
+            </span>
           </div>
           <div className="flex flex-col bg-muted/30 rounded-xl p-4 border border-border transition-colors group-hover:bg-muted/50">
             <span className="text-xs font-semibold tracking-wider text-muted-foreground mb-1">Replies</span>
             <div className="flex items-baseline gap-2">
-              <span className="font-bold text-2xl text-foreground">{repliesVal}</span>
+              <span className="font-bold text-2xl text-foreground">
+                <AnimatedNumber value={repliesVal} />
+              </span>
               <span className="text-[10px] font-semibold" style={{ color: activeColor }}>{replyRate || '0.0%'}</span>
             </div>
           </div>

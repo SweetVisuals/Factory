@@ -21,6 +21,7 @@ import CampaignScraperTab from '../components/campaign/CampaignScraperTab';
 import OptionsTab from '../components/campaign/OptionsTab';
 import ProgressTab from '../components/campaign/ProgressTab';
 import { cn } from '../lib/utils';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 
 
 interface CampaignDashboardProps {
@@ -323,17 +324,23 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                 <div className="flex items-center gap-6">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prospects</span>
-                    <span className="text-xl font-black text-foreground">{campaign.prospects}</span>
+                    <span className="text-xl font-black text-foreground">
+                      <AnimatedNumber value={campaign.prospects} />
+                    </span>
                   </div>
                   <div className="h-8 w-px bg-border" />
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Sent</span>
-                    <span className="text-xl font-black text-foreground">{campaign.sent || '0'}</span>
+                    <span className="text-xl font-black text-foreground">
+                      <AnimatedNumber value={campaign.sent || '0'} />
+                    </span>
                   </div>
                   <div className="h-8 w-px bg-border" />
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Replies</span>
-                    <span className="text-xl font-black text-primary">{campaign.replies || '0'}</span>
+                    <span className="text-xl font-black text-primary">
+                      <AnimatedNumber value={campaign.replies || '0'} />
+                    </span>
                   </div>
                 </div>
               </div>

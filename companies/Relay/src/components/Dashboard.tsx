@@ -7,6 +7,7 @@ import CampaignCard from './CampaignCard';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
+import { AnimatedNumber } from './AnimatedNumber';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -119,6 +120,8 @@ export const Dashboard = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_progress' }, () => { fetchAllData(); retry(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_emails' }, () => fetchAllData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'scraper_logs' }, () => fetchAllData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => { fetchAllData(); retry(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => { fetchAllData(); retry(); })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -198,7 +201,9 @@ export const Dashboard = () => {
                   <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{stat.label}</p>
                   <stat.icon size={20} className={stat.color || "text-muted-foreground"} />
                 </div>
-                <p className="text-4xl font-bold text-foreground tracking-tight">{stat.val}</p>
+                <p className="text-4xl font-bold text-foreground tracking-tight">
+                  <AnimatedNumber value={stat.val} />
+                </p>
               </div>
             ))}
           </div>
