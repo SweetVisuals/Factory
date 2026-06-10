@@ -1253,8 +1253,11 @@ app.post('/api/scrape-leads', async (req, res) => {
           timestamp: timestamp
         });
 
-        // ALSO broadcast to global chat_logs if it's a major event
-        if (message.includes('Starting') || message.includes('Finished') || message.includes('Retrying') || message.includes('Reached limit')) {
+        // ALSO broadcast to global chat_logs if it's a major event, but filter out city-level spam
+        const isMajorEvent = message.includes('Starting') || message.includes('Finished') || message.includes('Reached limit');
+        const isSpam = message.includes('Starting Fast API scraper') || message.includes('Retrying') || message.includes('Fetching Google');
+        
+        if (isMajorEvent && !isSpam) {
           await client.from('chat_logs').insert({
             agent_name: 'Scraper',
             message: `[RELAY] ${message}`
@@ -1837,6 +1840,9 @@ app.post('/api/scrape-leads', async (req, res) => {
             const wrappedPromise = processCity(currentLoc);
             activePromises.add(wrappedPromise);
             wrappedPromise.then(() => activePromises.delete(wrappedPromise));
+            
+            // Throttle to prevent 429 Too Many Requests from Serper
+            await new Promise(r => setTimeout(r, 300));
           }
 
           if (activePromises.size > 0) {

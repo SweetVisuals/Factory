@@ -313,18 +313,38 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
         }
 
         log(`Fetching Google Maps data from Serper API...`);
-        const response = await axios({
-            method: 'post',
-            url: 'https://google.serper.dev/places',
-            headers: { 
-                'X-API-KEY': apiKey, 
-                'Content-Type': 'application/json'
-            },
-            data: JSON.stringify({
-                "q": query,
-                "num": limit
-            })
-        });
+        let response = null;
+        let retries = 0;
+        while (retries < 3) {
+            try {
+                response = await axios({
+                    method: 'post',
+                    url: 'https://google.serper.dev/places',
+                    headers: { 
+                        'X-API-KEY': apiKey, 
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify({
+                        "q": query,
+                        "num": limit
+                    })
+                });
+                break;
+            } catch (err) {
+                if (err.response && err.response.status === 429) {
+                    retries++;
+                    log(`[Serper 429 Rate Limit] Retrying in ${retries * 2} seconds...`);
+                    await new Promise(r => setTimeout(r, retries * 2000));
+                } else {
+                    throw err;
+                }
+            }
+        }
+        
+        if (!response) {
+            log(`Failed to fetch Google Maps data after 3 retries.`);
+            return [];
+        }
 
         const places = response.data.places || [];
         log(`Found ${places.length} raw places from API.`);
