@@ -612,12 +612,21 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
           ],
           Q = X[Math.floor(Math.random() * X.length)];
         let O = S;
+        // AGGRESSIVE sign-off stripping to prevent double signatures
+        // 1. Strip standard greeting closers + everything after
         const ke =
-          /\n*\s*(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care),?\s*\n[\s\S]{0,200}$/i;
-        ((O = O.replace(ke, "").trimEnd()),
-          (O = O.replace(/\n*\s*\{\{?ender\}\}?[\s\S]*$/i, "")
+          /\n*\s*(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward|Hope to hear),?\s*[\n,][^]*$/i;
+        O = O.replace(ke, "").trimEnd();
+        // 2. Strip any "Name\nRelay Solutions" or "Name\nCompany" block at end
+        O = O.replace(/\n+\s*[A-Z][a-z]+\s*\n\s*Relay Solutions[^]*$/i, "").trimEnd();
+        // 3. Strip any www.relaysolutions.net or relaysolutions URLs at end
+        O = O.replace(/\n*\s*(?:www\.)?relaysolutions\.net[^]*$/i, "").trimEnd();
+        // 4. Strip {{ender}} and [Sender Name] placeholders
+        O = O.replace(/\n*\s*\{\{?ender\}\}?[\s\S]*$/i, "")
             .replace(/\n*\s*\[Sender Name\][\s\S]*$/i, "")
-            .trimEnd()));
+            .trimEnd();
+        // 5. Strip any trailing line that is just a first name (1 word, capitalized)
+        O = O.replace(/\n+\s*[A-Z][a-z]{2,15}\s*$/m, "").trimEnd();
         const Z = a.signature ? a.signature.trim() : "",
           Ie =
             e.campaigns?.business_id === "0269fe06-4607-4c58-9263-12a3930a1dc3",
