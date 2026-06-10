@@ -42,9 +42,10 @@ Every generated sequence must be witty, remarkably short, straight to the point,
 
 ### 3.1 Relay Solutions B2B Campaigns
 When generating sequences for Relay Solutions, refer to [Relay_ColdEmail_AI_Brief.md](file:///C:/Users/Shadow/Desktop/Openclaw%20Factory/companies/Relay_ColdEmail_AI_Brief.md) and adhere to:
+* **First Outreach Strategy**: The first email MUST be focused entirely on building rapport and seeking/identifying pain points. Ask thoughtful questions about their current manual processes or bottlenecks. **DO NOT pitch automation or software in the first email.** Make it a conversational check-in.
 * **Strict Word Limits**: Keep emails extremely brief and punchy (Step 1 under 45 words, Step 2 under 50 words, Step 3 under 40 words). No fluff.
 * **Plain Text Format**: Ensure all email body content strictly uses plain text format. Do not use HTML tags or markdown.
-* **Core Differentiator**: Focus on custom lead generation software owned completely by the client with zero monthly licensing fees (built, not rented).
+* **Core Differentiator**: When you do mention the solution in follow-ups, focus on custom lead generation software owned completely by the client with zero monthly licensing fees (built, not rented).
 * **Banned Openers**: Do NOT open with generic/pestery openers (e.g. "I hope this email finds you well", "My name is...").
 * **Formatting**: Clean, paragraph sentences separated by newlines. No bullet points or numbered lists.
 * **No Pricing**: Never mention pricing. Let the prospect ask.
