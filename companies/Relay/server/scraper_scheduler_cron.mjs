@@ -151,10 +151,10 @@ export function startScraperSchedulerCron() {
 
   console.log('[Scraper Scheduler] Initialized. Running every 20 seconds.');
   
-  // Wait a minute on startup before running so server has time to boot fully
+  // Wait a few seconds on startup before running so server has time to boot fully
   setTimeout(() => {
     runScraperScheduler();
     // Run every 20 seconds
     setInterval(runScraperScheduler, 20 * 1000);
-  }, 60 * 1000);
+  }, 5 * 1000);
 }
