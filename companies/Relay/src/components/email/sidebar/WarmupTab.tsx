@@ -7,6 +7,7 @@ import { getWarmupProgress } from '../../../lib/api/email-accounts';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../ui/use-toast';
 import { Button } from '../../ui/button';
+import { api } from '../../../lib/api/api';
 
 interface WarmupTabProps {
   account: EmailAccount;
@@ -222,34 +223,22 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
                     description: 'Please wait a moment.',
                   });
 
-                  const response = await fetch('/api/send-email', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${session.access_token}`
+                  await api.post('/send-email', {
+                    from: account.email,
+                    to: 'ptnmgmt@gmail.com',
+                    subject: 'Test Warmup Email',
+                    text: 'This is a test warmup email',
+                    smtp: {
+                      host: account.smtp_host,
+                      port: parseInt(account.smtp_port),
+                      secure: parseInt(account.smtp_port) === 465,
+                      auth: {
+                        user: account.email,
+                        pass: account.encrypted_password
+                      }
                     },
-                    body: JSON.stringify({
-                      from: account.email,
-                      to: 'ptnmgmt@gmail.com',
-                      subject: 'Test Warmup Email',
-                      text: 'This is a test warmup email',
-                      smtp: {
-                        host: account.smtp_host,
-                        port: parseInt(account.smtp_port),
-                        secure: parseInt(account.smtp_port) === 465,
-                        auth: {
-                          user: account.email,
-                          pass: account.encrypted_password
-                        }
-                      },
-                      emailAccountId: account.id
-                    })
+                    emailAccountId: account.id
                   });
-
-                  if (!response.ok) {
-                    const errJson = await response.json();
-                    throw new Error(errJson.error || 'Failed to send test email');
-                  }
 
                   toast({
                     title: 'Test email sent',

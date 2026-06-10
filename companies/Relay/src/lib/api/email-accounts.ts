@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { EmailAccount } from '../../types';
+import { api } from './api';
 
 export const fetchEmailAccounts = async (campaignId?: string): Promise<EmailAccount[]> => {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -295,13 +296,8 @@ export const forceWarmupEmail = async (account: EmailAccount): Promise<void> => 
   // Pick a random internal address or use a standard dummy
   const warmupRecipient = 'ptnmgmt@gmail.com';
 
-  const response = await fetch('/api/send-email', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`
-    },
-    body: JSON.stringify({
+  try {
+    await api.post('/send-email', {
       from: `"${account.name || 'Warmup'}" <${account.email}>`,
       to: warmupRecipient,
       subject: `Initializing Warmup for ${account.email} - ${account.warmup_filter_tag || 'INITIAL'}`,
@@ -316,13 +312,10 @@ export const forceWarmupEmail = async (account: EmailAccount): Promise<void> => 
           pass: account.encrypted_password // Endpoints handles decryption
         }
       }
-    })
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({})) as { error?: string };
-    console.error('Initial warmup failed:', errorData);
-    throw new Error(errorData.error || 'Failed to send initial warmup email');
+    });
+  } catch (error: any) {
+    console.error('Initial warmup failed:', error);
+    throw new Error(error.response?.data?.error || error.message || 'Failed to send initial warmup email');
   }
 };
 

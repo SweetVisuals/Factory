@@ -4,8 +4,13 @@ import { supabase } from '../supabase';
 const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
 const defaultBaseURL = isDevelopment ? 'http://localhost:3001/api' : 'https://api.relaysolutions.net/api';
 
+let configuredURL = import.meta.env.VITE_API_URL || defaultBaseURL;
+if (configuredURL && !configuredURL.endsWith('/api')) {
+  configuredURL = `${configuredURL.replace(/\/$/, '')}/api`;
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || defaultBaseURL,
+  baseURL: configuredURL,
   headers: {
     'Content-Type': 'application/json',
   },

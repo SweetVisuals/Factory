@@ -750,12 +750,20 @@ Deno.serve(async (req) => {
                  randomOptOut = "Still not the right time? Just let me know and I'll update my records.";
              }
              
+             const signatureTemplate = schedule.campaigns?.businesses?.signature_template || '';
+             
+             // Check if the signature template already acts as the primary sign-off
+             const hasSignOff = /(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward)/i.test(signatureTemplate);
+             const hasName = signatureTemplate.includes('{{sender_name}}') || signatureTemplate.includes('{sender_name}') || signatureTemplate.includes('[Sender Name]') || (senderFullName && signatureTemplate.toLowerCase().includes(senderFullName.toLowerCase())) || (senderFirstName && signatureTemplate.toLowerCase().includes(senderFirstName.toLowerCase()));
+             const templateActsAsSignature = hasSignOff || hasName;
+
              let personalContent: string;
 
-             if (cleanSignature) {
+             if (templateActsAsSignature) {
+                 personalContent = `${strippedBody}${randomOptOut ? '\n\n' + randomOptOut : ''}`;
+             } else if (cleanSignature) {
                  personalContent = `${strippedBody}\n\n${cleanSignature}${randomOptOut ? '\n\n' + randomOptOut : ''}`;
              } else {
-                 const senderFullName = account.name || senderFirstName;
                  personalContent = `${strippedBody}\n\n${randomEnder}\n${senderFullName}\n${senderCompany}${randomOptOut ? '\n\n' + randomOptOut : ''}`.trimEnd();
              }
 
@@ -774,7 +782,6 @@ Deno.serve(async (req) => {
              ];
 
                // Append Signature Template if it exists
-               const signatureTemplate = schedule.campaigns?.businesses?.signature_template || '';
                let fullContent = personalContent;
                if (signatureTemplate) {
                    fullContent += '\n\n' + signatureTemplate;
@@ -790,10 +797,10 @@ Deno.serve(async (req) => {
 
                // ═══ FIX: BARE GREETING CLEANUP ═══
                // If the email starts with "there," or "Company Name," fix it to "Hi there," / "Hi Company Name,"
-               finalBody = finalBody.replace(/^there\s*[,:-]*\s*/i, 'Hi there,\n\n');
+               finalBody = finalBody.replace(/^\s*there\s*[,:-]*\s*/i, 'Hi there,\n\n');
                if (safeFirstName && safeFirstName.toLowerCase() !== 'there') {
                    const safeReg = safeFirstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                   const nameRegex = new RegExp(`^${safeReg}\\s*[,:-]*\s*`, 'i');
+                   const nameRegex = new RegExp(`^\\s*${safeReg}\\s*[,:-]*\\s*`, 'i');
                    finalBody = finalBody.replace(nameRegex, `Hi ${safeFirstName},\n\n`);
                }
                
@@ -829,7 +836,7 @@ Deno.serve(async (req) => {
              if (senderIdentifier) {
                  const { data: canSend } = await supabaseAdmin.rpc('increment_domain_email_count', {
                      p_domain: senderIdentifier,
-                     p_max_limit: 50 
+                     p_max_limit: 500 
                  });
                  if (!canSend) {
                      console.log(`Account limit reached for ${senderIdentifier}.`);
@@ -846,14 +853,14 @@ Deno.serve(async (req) => {
                      auth: { user: account.email, pass: decrypted }
                  });
 
-                 const finalHtml = finalBody.replace(/\r?\n/g, '<br/>');
+                 // Strip HTML just in case
+                 finalBody = finalBody.replace(/<[^>]+>/g, '');
 
                  await transporter.sendMail({
                      from: account.name ? '"' + account.name + '" <' + account.email + '>' : account.email,
                      to: lead.email,
                      subject: finalSubject,
-                     text: finalBody,
-                     html: finalHtml
+                     text: finalBody
                  });
 
                 await supabaseAdmin.from('campaign_progress').upsert({

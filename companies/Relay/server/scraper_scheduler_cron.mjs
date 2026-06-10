@@ -21,7 +21,7 @@ async function runScraperScheduler() {
             )
         `)
         .eq('businesses.status', 'active')
-        .in('status', ['draft', 'Draft', 'in_progress', 'active']);
+        .in('status', ['in_progress', 'active']);
 
     if (campaignError) {
         throw campaignError;
@@ -46,8 +46,8 @@ async function runScraperScheduler() {
             continue;
         }
 
-        // Max out server: feed leads to campaigns under 5000 leads
-        if (count !== null && count < 5000) {
+        // Max out server: feed leads to campaigns under 1000 leads
+        if (count !== null && count < 1000) {
             // Check if there is an active scraper task for this campaign in the database
             try {
                 const { data: activeTasks, error: taskCheckErr } = await supabase

@@ -464,7 +464,7 @@ const ProgressTab = ({ campaignId }: ProgressTabProps) => {
                   {log.status}
                 </span>
                 <span className="text-sm font-medium text-foreground/80 truncate flex-1 group-hover:text-foreground transition-colors">{log.lead_email}</span>
-                <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors shrink-0 bg-white/[0.02] px-2.5 py-1 rounded-md">via {log.account_email?.split('@')[0]}</span>
+                <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors shrink-0 bg-white/[0.02] px-2.5 py-1 rounded-md">via {log.account_email}</span>
               </div>
             ))}
             {activityLogs.length === 0 && (

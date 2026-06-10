@@ -1745,8 +1745,9 @@ export async function scrapeYell(business, location, limit = 20, onLog = null, o
 
         log(`Extracted ${companies.length} businesses from Yell.com search.`);
         const leads = [];
+        const toProcess = companies.slice(0, Math.min(companies.length, limit, 5));
 
-        for (const item of companies) {
+        for (const item of toProcess) {
             if (checkState) await checkState();
             if (leads.length >= limit) break;
 

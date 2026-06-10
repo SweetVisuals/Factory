@@ -392,13 +392,21 @@ export async function runProcessCampaign() {
           N = (t.company || "").trim(),
           y = p.split(" ")[0];
         const D = p.toLowerCase();
-        (!p ||
-          D === "the" ||
-          D.startsWith("the ") ||
-          D.startsWith("a ") ||
-          D.startsWith("an ") ||
-          (N && D === N.toLowerCase())) &&
-          (y = "there");
+        const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'real estate', 'clinic', 'dental', 'medical', 'events'];
+        const isBusinessName = businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(D));
+        const nameIsUnusable = !p || D === 'the' || D.startsWith('the ') ||
+            D.startsWith('a ') || D.startsWith('an ') ||
+            (N && D === N.toLowerCase()) ||
+            isBusinessName || p.split(' ').length > 3;
+        if (nameIsUnusable) {
+          if (N && N.length > 1 && N.length <= 30) {
+            y = N;
+          } else {
+            y = 'there';
+          }
+        } else {
+          y = y.charAt(0).toUpperCase() + y.slice(1).toLowerCase();
+        }
         let S = t.personalized_email,
           E = t.personalized_subject;
         const he = v === 0,
@@ -422,11 +430,11 @@ export async function runProcessCampaign() {
 CRITICAL RULES:
 1. Start the email with EXACTLY: "Hi " followed by the lead's first name, and a comma. Example: "Hi John,". If no name is provided, use "Hi there,". DO NOT just write "there,".
 2. DO NOT return a template with placeholders like [Name] or {{company}}. Return the FINISHED email.
-3. Write a unique, personalized opening sentence that gives genuine praise based on the Lead Notes. Then, ASK them an insightful question about their pain points to try and see what they are currently struggling with in their business.
-4. Maintain the core offer from the Original Template but make it straight to the point, confident, and perfectly correct in grammar and formatting.
-5. ABSOLUTELY DO NOT include any sign-off, closing, or signature in the body. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the correct sender signature. Including one will cause a DUPLICATE and a WRONG NAME. I will heavily penalize you if you output a signature block.
+3. Write a witty, confident, and straight-to-the-point message (max 60 words, 350 chars for the body) framed around the pain points found in research. It should NOT be corporate or salesy. Be conversational, direct, and human.
+4. Maintain the core offer from the Original Template but make it extremely concise and compelling. Use proper paragraph breaks.
+5. ABSOLUTELY DO NOT include any sign-off, closing, or signature in the body. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the correct sender signature. Including one will cause a DUPLICATE. I will heavily penalize you if you output a signature block.
 6. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off or signature" }
-7. CUSTOM SOLUTION RULE: Frame the core offer around the pain points you just asked them about. Make sure the email flows naturally and correctly.`,
+7. Frame the core offer around the pain points found in research. Make sure the email flows naturally and correctly.`,
               R =
                 'Original Template Subject: "' +
                 e.templates.subject +
@@ -630,76 +638,44 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
         // 5. Strip any trailing line that is just a first name
         O = O.replace(/\n+\s*[A-Z][a-z]{2,15}\s*$/m, "").trimEnd();
         
-        // Fix greeting if the AI just spat out "there,"
-        O = O.replace(/^(hi\s+)?(there|friend),/i, "Hi there,");
-        O = O.replace(/^([A-Z][a-z]+),/i, "Hi $1,"); // "John," -> "Hi John,"
-        const Z = a.signature ? a.signature.trim() : "",
-          Ie =
-            e.campaigns?.business_id === "0269fe06-4607-4c58-9263-12a3930a1dc3",
-          ee =
-            e.campaigns?.business_id === "102a3bca-7b0a-4cee-bd33-fefd7b4450b4",
-          _ = (e.campaigns?.name || "").toLowerCase();
-        let te = !1,
-          ae = !1,
-          ne = !1;
-        ee &&
-          (_.includes("web dev") ||
-          _.includes("development") ||
-          _.includes("website")
-            ? (te = !0)
-            : _.includes("ai") ||
-                _.includes("artificial intelligence") ||
-                _.includes("machine learning")
-              ? (ae = !0)
-              : (_.includes("automation") || _.includes("workflow")) &&
-                (ne = !0));
-        const se = [
-            "P.S. If you're not the right person for this or prefer I don't reach out again, just let me know.",
-            "If you'd prefer I stop emailing you, just reply and let me know.",
-            "Not interested? Just reply and I'll update my notes.",
-          ],
-          ve = [
-            "P.S. If event medical cover isn't on your radar right now, just let me know and I won't follow up.",
-            "If you'd rather not receive these updates, just drop me a quick reply.",
-            "Not the right time? Just let me know and I'll update my records.",
-          ],
-          Ee = [
-            "P.S. If updating your web presence isn't on your roadmap right now, just let me know.",
-            "If you're already set with a great development team, just drop a quick reply so I don't bug you again.",
-            "Not the right time to talk websites? Just let me know and I'll step back.",
-          ],
-          Oe = [
-            "P.S. If AI isn't a priority for your operations right now, just let me know and I won't follow up.",
-            "If you'd prefer not to hear more about AI integration, just reply and I'll update my notes.",
-            "Not the right time for AI? Just drop me a quick reply.",
-          ],
-          $e = [
-            "P.S. If automating your workflows isn't on the agenda right now, just let me know.",
-            "If your current processes are running perfectly, just drop a quick reply so I know not to reach out again.",
-            "Not focused on automation at the moment? Just let me know and I'll update my records.",
-          ];
-        let w = se;
-        Ie
-          ? (w = ve)
-          : ee && (te ? (w = Ee) : ae ? (w = Oe) : ne ? (w = $e) : (w = se));
-        const ie = w[Math.floor(Math.random() * w.length)];
-        let F;
-        if (Z)
-          F = `${O}
-
-${Z}
-
-${ie}`;
-        else {
-          const s = a.name || b;
-          F = `${O}
-
-${Q}
-${s}
-${V}
-
-${ie}`.trimEnd();
+        const Z = a.signature ? a.signature.trim() : "";
+        let ie = "";
+        if (v === 0) {
+          ie = "Not the right time? Just let me know and I'll update my records.";
+        } else if (v === 4) {
+          ie = "Still not the right time? Just let me know and I'll update my records.";
         }
+
+        const oe = e.campaigns?.businesses?.signature_template || "";
+        const senderFullName = a.name || b;
+        
+        // Check if the signature template already acts as the primary sign-off
+        const hasSignOff = /(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward)/i.test(oe);
+        const hasName = oe.includes('{{sender_name}}') || oe.includes('{sender_name}') || oe.includes('[Sender Name]') || (senderFullName && oe.toLowerCase().includes(senderFullName.toLowerCase())) || (b && oe.toLowerCase().includes(b.toLowerCase()));
+        const templateActsAsSignature = hasSignOff || hasName;
+
+        let F;
+        if (templateActsAsSignature) {
+          F = `${O}${ie ? '\n\n' + ie : ''}`;
+        } else if (Z) {
+          F = `${O}\n\n${Z}${ie ? '\n\n' + ie : ''}`;
+        } else {
+          const s = a.name || b;
+          F = `${O}\n\n${Q}\n${s}\n${V}${ie ? '\n\n' + ie : ''}`.trimEnd();
+        }
+
+        // Additional aggressive stripping to prevent double sign-off if AI generated "Name\nCompany" at the end
+        if (b) {
+          const nameSafe = b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const nameRegex = new RegExp(`\\n+\\s*${nameSafe}\\b[^]*$`, 'i');
+          F = F.replace(nameRegex, "").trimEnd();
+        }
+        if (a.name) {
+          const nameSafe = a.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const nameRegex = new RegExp(`\\n+\\s*${nameSafe}\\b[^]*$`, 'i');
+          F = F.replace(nameRegex, "").trimEnd();
+        }
+
         const Ce = [
             {
               pattern:
@@ -735,25 +711,45 @@ ${ie}`.trimEnd();
               val: V,
             },
             { pattern: /{{ender}}|{ender}/gi, val: Q },
-          ],
-          oe = e.campaigns?.businesses?.signature_template || "";
-        let re = F;
-        oe &&
-          (re +=
-            `
+          ];
 
-` + oe);
+        let subjectFirstName = y;
+        if (y.toLowerCase() === 'there') {
+           subjectFirstName = N ? N : 'Your Business';
+        }
+
+        let re = F;
+        if (oe) {
+          // Strip HTML from the signature template and remove any hardcoded opt-out link
+          let plainTextOe = oe.replace(/<[^>]+>/g, '').trim();
+          plainTextOe = plainTextOe.replace(/To opt out of future emails.*$/i, '').trim();
+          re += "\n\n" + plainTextOe;
+        }
+        // Append correct dynamic plain text opt out link
+        re += `\n\n---\nTo opt out of future emails, please visit: https://relay-mailer.com/api/unsubscribe?leadId=${t.id}&campaignId=${e.campaign_id}`;
+
         let g = re,
           T = E;
         Ce.forEach((s) => {
-          ((g = g.replace(s.pattern, s.val)),
-            (T = T.replace(s.pattern, s.val)));
+          g = g.replace(s.pattern, s.val);
+          // For subject, use the specialized first name to avoid "there - secure portals"
+          if (s.pattern.source.includes('first_name')) {
+             T = T.replace(s.pattern, subjectFirstName);
+          } else {
+             T = T.replace(s.pattern, s.val);
+          }
         });
-        const je = `https://relay-mailer.com/api/unsubscribe?leadId=${t.id}&campaignId=${e.campaign_id}`;
-        g += `
+        
+        // ═══ GREETING CLEANUP ═══
+        g = g.replace(/^\s*(hi\s+)?(there|friend),/i, "Hi there,");
+        g = g.replace(/^\s*([A-Z][a-z]+),/i, "Hi $1,");
+        
+        // Strip any remaining HTML just in case
+        g = g.replace(/<[^>]+>/g, '');
+        // Fix any weird Subject capitalization if we put "Your Business" at the start
+        T = T.charAt(0).toUpperCase() + T.slice(1);
+        
 
----
-<span style="font-size: 10px; color: #999;">To opt out of future emails, please <a href="${je}" style="color: #999; text-decoration: underline;">click here</a>.</span>`;
         const ce = /{{.*?}}|{.*?}|\[.*?\]/g,
           de = (g.match(ce) || []).filter((s) => !s.match(/^\[\s*\]$/)),
           le = T.match(ce) || [];
@@ -806,7 +802,6 @@ ${ie}`.trimEnd();
             from: a.name ? '"' + a.name + '" <' + a.email + ">" : a.email,
             to: t.email,
             subject: T,
-            html: g.replace(/\n/g, "<br/>"),
             text: g,
           }),
             await n
@@ -839,7 +834,7 @@ ${ie}`.trimEnd();
               email_account_id: a.id,
               folder: "sent",
               uid: Math.floor(Math.random() * 1e9),
-              from: a.email,
+              from: a.name ? '"' + a.name + '" <' + a.email + '>' : a.email,
               to: t.email,
               subject: T,
               body_text: g,

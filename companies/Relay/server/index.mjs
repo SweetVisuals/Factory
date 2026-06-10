@@ -1768,8 +1768,8 @@ app.post('/api/scrape-leads', async (req, res) => {
                 }
               }
 
-              // Fallback 2: Yell
-              if ((userResults.get(userId)?.length || 0) === initialLeadCount && !platforms.yell && !platforms.all) {
+              // Fallback 2: Yell (UK only)
+              if ((userResults.get(userId)?.length || 0) === initialLeadCount && !platforms.yell && !platforms.all && countryCode === 'GB') {
                 log(`[Smart Fallback] Trying Yell fallback for ${currentLoc}...`);
                 for (const searchTerm of translatedQueries) {
                   if ((userResults.get(userId)?.length || 0) >= limit) break;
