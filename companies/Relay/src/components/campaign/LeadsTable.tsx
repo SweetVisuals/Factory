@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Plus, Sparkles, Trash, Search, ChevronLeft, ChevronRight, Mail, User,
-  Linkedin, Loader2, Eye, Download,
+  Linkedin, Loader2, Eye, Download, XCircle, Ban,
   ExternalLink, Facebook, Instagram, Twitter, FileText,
   CheckCircle2, AlertTriangle, BrainCircuit, ChevronDown, ChevronUp,
   Database, Activity, Target, ShieldAlert, RefreshCw, MoreVertical, Layers
@@ -47,6 +47,7 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
   const [deepResearchOpen, setDeepResearchOpen] = useState(false);
   const [activeSummaryLead, setActiveSummaryLead] = useState<Lead | null>(null);
   const [deepResearchResults, setDeepResearchResults] = useState<Record<string, string>>({});
+  const [isDeletingBounced, setIsDeletingBounced] = useState(false);
 
   React.useEffect(() => {
     loadLeads();
@@ -67,6 +68,25 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
       }
     });
     return Array.from(leadMap.values());
+  };
+
+  const bouncedLeads = leads.filter(l => l.status === 'bounced');
+  const bouncedCount = bouncedLeads.length;
+
+  const handlePurgeBounced = async () => {
+    if (bouncedCount === 0) return;
+    setIsDeletingBounced(true);
+    try {
+      for (const lead of bouncedLeads) {
+        await deleteLead(campaignId, lead.id);
+      }
+      setLeads(prev => prev.filter(l => l.status !== 'bounced'));
+      toast({ title: 'Bounced Purged', description: `${bouncedCount} bounced leads removed from campaign.` });
+    } catch (error) {
+      toast({ title: 'Purge Failed', description: 'Failed to remove bounced leads.', variant: 'destructive' });
+    } finally {
+      setIsDeletingBounced(false);
+    }
   };
 
   const loadLeads = async () => {
@@ -323,6 +343,15 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
         </div>
 
         <div className="flex items-center gap-4 w-full md:w-auto">
+          {bouncedCount > 0 && (
+            <Button
+              onClick={handlePurgeBounced}
+              disabled={isDeletingBounced}
+              className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl px-6 h-12 font-bold text-sm transition-all gap-2"
+            >
+              {isDeletingBounced ? <RefreshCw className="h-4 w-4 animate-spin" /> : <><Ban size={16} /> Purge Bounced ({bouncedCount})</>}
+            </Button>
+          )}
           {selectedLeads.size > 0 && (
             <Button
               variant="destructive"
@@ -398,7 +427,8 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                       key={lead.id} 
                       className={cn(
                         "group/row transition-all duration-300 hover:bg-muted/50",
-                        isSelected && "bg-primary/5"
+                        isSelected && "bg-primary/5",
+                        lead.status === 'bounced' && "bg-red-500/5 hover:bg-red-500/10"
                       )}
                     >
                       <td className="pl-10 pr-6 py-5">
@@ -406,15 +436,32 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-all duration-300",
-                            isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover/row:bg-primary/10 group-hover/row:text-primary"
-                          )}>
-                            {(lead.name || lead.email).charAt(0).toUpperCase()}
+                          <div className="relative">
+                            <div className={cn(
+                              "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-all duration-300",
+                              lead.status === 'bounced' ? "bg-red-500/20 text-red-500 ring-2 ring-red-500/30" :
+                              isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover/row:bg-primary/10 group-hover/row:text-primary"
+                            )}>
+                              {lead.status === 'bounced' ? <XCircle size={18} /> : (lead.name || lead.email).charAt(0).toUpperCase()}
+                            </div>
+                            {lead.status === 'bounced' && (
+                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-card animate-pulse" />
+                            )}
                           </div>
                           <div className="space-y-0.5 min-w-[150px]">
-                            <div className="text-sm font-bold text-foreground group-hover/row:text-primary transition-colors truncate">{lead.name || 'Unknown Lead'}</div>
-                            <div className="text-xs font-medium text-muted-foreground truncate">{lead.email}</div>
+                            <div className={cn(
+                              "text-sm font-bold transition-colors truncate flex items-center gap-2",
+                              lead.status === 'bounced' ? "text-red-500" : "text-foreground group-hover/row:text-primary"
+                            )}>
+                              {lead.name || 'Unknown Lead'}
+                              {lead.status === 'bounced' && (
+                                <span className="text-[10px] font-black uppercase tracking-wider bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md">Bounced</span>
+                              )}
+                            </div>
+                            <div className={cn(
+                              "text-xs font-medium truncate",
+                              lead.status === 'bounced' ? "text-red-400/70 line-through" : "text-muted-foreground"
+                            )}>{lead.email}</div>
                           </div>
                         </div>
                       </td>

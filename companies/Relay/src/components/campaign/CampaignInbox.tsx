@@ -467,7 +467,7 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
                                             "text-base font-bold truncate flex-1",
                                             !email.isRead ? "text-foreground" : "text-foreground/80"
                                         )}>
-                                            {viewMode === 'sent' ? `To: ${email.to}` : (email.from.replace(/<.*>/, '').trim() || email.from)}
+                                            {viewMode === 'sent' ? `From: ${email.from.replace(/<.*>/, '').trim() || email.from} to ${email.to}` : (email.from.replace(/<.*>/, '').trim() || email.from)}
                                         </span>
                                         <span className="text-xs font-semibold text-muted-foreground shrink-0 mt-1">
                                             {format(new Date(email.date), 'MMM d')}
