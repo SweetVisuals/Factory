@@ -149,12 +149,12 @@ export function startScraperSchedulerCron() {
   
   supabase = createClient(supabaseUrl, supabaseKey);
 
-  console.log('[Scraper Scheduler] Initialized. Running every 3 minutes.');
+  console.log('[Scraper Scheduler] Initialized. Running every 20 seconds.');
   
   // Wait a minute on startup before running so server has time to boot fully
   setTimeout(() => {
     runScraperScheduler();
-    // Run every 3 minutes (3 * 60 * 1000)
-    setInterval(runScraperScheduler, 3 * 60 * 1000);
+    // Run every 20 seconds
+    setInterval(runScraperScheduler, 20 * 1000);
   }, 60 * 1000);
 }
