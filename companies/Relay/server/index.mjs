@@ -1531,11 +1531,27 @@ app.post('/api/scrape-leads', async (req, res) => {
 
         const ignoreHistory = req.body.ignoreHistory === true || req.body.deep === true;
         
-        if (countryCode && !location) {
+        let normalizedLocation = location;
+        if (normalizedLocation) {
+            const locLower = normalizedLocation.trim().toLowerCase();
+            if (locLower === 'united kingdom' || locLower === 'uk' || locLower === 'great britain' || locLower === 'gb') {
+                countryCode = 'GB';
+                normalizedLocation = '';
+            } else if (locLower === 'united states' || locLower === 'us' || locLower === 'usa' || locLower === 'america') {
+                countryCode = 'US';
+                normalizedLocation = '';
+            }
+        }
+
+        if (countryCode && !normalizedLocation) {
           log(`WARN: No specific location provided. Defaulting to broad country search for ${countryCode}. This may yield poor results.`);
-          scrapeLocations = [countryCode];
-        } else if (location) {
-          const tokens = location.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean);
+          const countryCities = City.getCitiesOfCountry(countryCode) || [];
+          // Sort by population if available, otherwise just use them
+          scrapeLocations = countryCities.map(c => `${c.name}, ${c.stateCode || ''}, ${countryCode}`.replace(/,\s*,/g, ','));
+          // Take top 1000 cities to avoid maxing out memory
+          scrapeLocations = scrapeLocations.slice(0, 1000);
+        } else if (normalizedLocation) {
+          const tokens = normalizedLocation.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean);
           const parsedLocs = [];
           for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
