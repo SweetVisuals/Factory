@@ -91,7 +91,8 @@ async function runScraperScheduler() {
 
             if (!location) {
                 const nameLower = nameStr.toLowerCase();
-                location = nameLower.includes('uk') || nameLower.includes('london') || nameLower.includes('midlands') ? 'United Kingdom' : 'United States';
+                // User explicitly requested all defaults to be UK
+                location = nameLower.includes('us') || nameLower.includes('united states') || nameLower.includes('america') ? 'United States' : 'United Kingdom';
             }
 
             console.log(`[Scraper Scheduler] Feeding campaign "${c.name}" — current leads: ${count}, requesting 500 more`);
