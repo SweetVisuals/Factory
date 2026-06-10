@@ -1286,8 +1286,10 @@ app.post('/api/scrape-leads', async (req, res) => {
     let totalLeadsInThisRun = 0;
 
     const onResult = async (lead) => {
-      // Filter out leads without emails
-      if (!lead.email) {
+      // We no longer filter out leads without emails, as they often have phone numbers for cold calling
+      // and can be enriched later.
+      if (!lead.email && !lead.phone) {
+        // Only drop if they have NEITHER email nor phone
         return;
       }
 
@@ -1421,8 +1423,8 @@ app.post('/api/scrape-leads', async (req, res) => {
                 }, { onConflict: 'campaign_id,lead_id' });
               log(`Linked lead ${upsertedData.company} to campaign: ${campaignName}`);
               
-              // Update Campaign Stats (throttled)
-              if (totalLeadsInThisRun % 5 === 0) {
+              // Update Campaign Stats instantly so the user sees progress on the dashboard
+              if (totalLeadsInThisRun > 0) {
                 const { count } = await client.from('campaign_leads').select('*', { count: 'exact', head: true }).eq('campaign_id', campaignId);
                 await client.from('campaigns').update({ prospects: count || totalLeadsInThisRun }).eq('id', campaignId);
               }
