@@ -48,6 +48,27 @@ async function runScraperScheduler() {
 
         // Only feed leads to campaigns that need more (under 100 leads)
         if (count !== null && count < 100) {
+            // Check if there is an active scraper task for this campaign in the database to prevent duplicate parallel runs
+            try {
+                const { data: activeTasks, error: taskCheckErr } = await supabase
+                    .from('tasks')
+                    .select('id, description')
+                    .eq('assigned_to', 'Scraper')
+                    .in('status', ['in_progress', 'pending', 'waiting']);
+                
+                if (taskCheckErr) {
+                    console.error(`[Scraper Scheduler] Error checking active tasks for ${c.id}:`, taskCheckErr.message);
+                } else if (activeTasks) {
+                    const isAlreadyRunning = activeTasks.some(t => t.description && t.description.includes(c.id));
+                    if (isAlreadyRunning) {
+                        console.log(`[Scraper Scheduler] Campaign "${c.name}" (${c.id}) is already being scraped by an active task. Skipping scheduler trigger.`);
+                        continue;
+                    }
+                }
+            } catch (err) {
+                console.error(`[Scraper Scheduler] Exception checking active tasks for ${c.id}:`, err.message);
+            }
+
             // Derive niche from the actual `niche` column
             let niche = c.niche;
 

@@ -67,12 +67,13 @@ async function fetchCompanyOfficers(companyName) {
 async function runCronJob() {
   console.log('[Companies House Cron] Starting cycle...');
   try {
-    // Find UK leads with a company name but no contact name
+    // Find UK leads with a company name but no contact name, and not checked/claimed
     const { data: leads, error } = await supabase
       .from('leads')
-      .select('id, company, location')
+      .select('id, company, location, title')
       .or('name.eq.,name.is.null')
       .not('company', 'is', null)
+      .or('title.is.null,title.eq.') // Only query if title is null or empty
       .limit(250);
       
     if (error) {
@@ -94,36 +95,64 @@ async function runCronJob() {
         const locLower = (lead.location || '').toLowerCase();
         const isUK = ukIndicators.some(ind => locLower.includes(ind));
         
-        if (!isUK) continue;
-        
-        console.log(`[Companies House Cron] Fetching officers for: ${lead.company}`);
-        const officer = await fetchCompanyOfficers(lead.company);
-        
-        if (officer && officer.name) {
-            console.log(`[Companies House Cron] Found director: ${officer.name} for ${lead.company}`);
-            
-            // Format name (often "SMITH, John" -> "John Smith")
-            let formattedName = officer.name;
-            if (formattedName.includes(',')) {
-                const parts = formattedName.split(',');
-                if (parts.length === 2) {
-                    formattedName = `${parts[1].trim()} ${parts[0].trim()}`.replace(/\s+/g, ' ');
-                }
-            }
-            
-            // Update the lead
+        if (!isUK) {
+            // Mark as checked (Non-UK) so we don't query it again
             await supabase
                 .from('leads')
-                .update({ name: formattedName, title: officer.title })
+                .update({ title: 'Non-UK' })
                 .eq('id', lead.id);
-        } else {
-            console.log(`[Companies House Cron] No director found for ${lead.company}. Marking checked...`);
-            // To prevent infinite loops on unfound companies, we could set a flag, 
-            // but for now we just skip. We should really set a fallback so we don't query it again.
-            // A simple trick: set title to 'Unknown' so we don't query it again.
+            continue;
+        }
+        
+        // Atomic Claim: Try to set title to 'Checking' ONLY if it is still null or empty
+        const { data: claimedLeads, error: claimError } = await supabase
+            .from('leads')
+            .update({ title: 'Checking' })
+            .eq('id', lead.id)
+            .or('title.is.null,title.eq.')
+            .select();
+            
+        if (claimError || !claimedLeads || claimedLeads.length === 0) {
+            // Claim failed (another instance got it)
+            console.log(`[Companies House Cron] Lead ${lead.company} already claimed/checked. Skipping.`);
+            continue;
+        }
+
+        try {
+            console.log(`[Companies House Cron] Fetching officers for: ${lead.company}`);
+            const officer = await fetchCompanyOfficers(lead.company);
+            
+            if (officer && officer.name) {
+                console.log(`[Companies House Cron] Found director: ${officer.name} for ${lead.company}`);
+                
+                // Format name (often "SMITH, John" -> "John Smith")
+                let formattedName = officer.name;
+                if (formattedName.includes(',')) {
+                    const parts = formattedName.split(',');
+                    if (parts.length === 2) {
+                        formattedName = `${parts[1].trim()} ${parts[0].trim()}`.replace(/\s+/g, ' ');
+                    }
+                }
+                
+                // Update the lead
+                await supabase
+                    .from('leads')
+                    .update({ name: formattedName, title: officer.title })
+                    .eq('id', lead.id);
+            } else {
+                console.log(`[Companies House Cron] No director found for ${lead.company}. Marking checked...`);
+                // A simple trick: set title to 'Unknown' so we don't query it again.
+                await supabase
+                    .from('leads')
+                    .update({ title: 'Unknown' }) 
+                    .eq('id', lead.id);
+            }
+        } catch (procErr) {
+            console.error(`[Companies House Cron] Error processing ${lead.company}:`, procErr.message);
+            // Revert claim on error so it can be retried
             await supabase
                 .from('leads')
-                .update({ title: 'Unknown' }) // Prevents endless re-fetching if we filter by title is null
+                .update({ title: null })
                 .eq('id', lead.id);
         }
         

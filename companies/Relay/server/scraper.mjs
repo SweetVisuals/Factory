@@ -4,6 +4,8 @@ import util from 'util';
 import { validateEmail } from './email-validation.mjs';
 import { fetchAIChatCompletion } from './ai-client.mjs';
 
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 const execPromise = util.promisify(exec);
 
 const createLogger = (onLog) => (message) => {
@@ -297,562 +299,126 @@ async function setupBrowser(log, options = {}) {
     }
 }
 
+
 export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult = null, notesContext = '', deepResearch = false, checkState = null) {
     const log = createLogger(onLog);
-    // Respect the user's limit
-    const targetLimit = limit;
-    log(`Starting Google Maps scraper for: ${query} (Target: ${targetLimit})`);
-
-    let browser;
-    let puppeteer;
-    try {
-        log('Launching browser...');
-        const setup = await setupBrowser(log, { isMaps: true });
-        browser = setup.browser;
-        puppeteer = setup.puppeteer;
-        log('Browser launched successfully.');
-    } catch (e) {
-        log(`CRITICAL: Browser Launch Failed: ${e.message}`);
-        return [];
-    }
-
-    const page = await browser.newPage();
-
-    // Smaller viewport to reduce rendering cost
-    await page.setViewport({ width: 1280, height: 720 });
-
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-
+    log(`Starting Fast API scraper for: ${query} (Target: ${limit})`);
+    
     let leads = [];
     try {
-        const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}?hl=en`;
-        log(`Navigating directly to search URL: ${searchUrl}`);
-        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-
-        // helper to handle consent
-        const handleConsent = async () => {
-            try {
-                const consentSelectors = [
-                    'button[aria-label="Accept all"]',
-                    'button[aria-label="Agree to the use of cookies and other data for the purposes described"]',
-                    'form[action*="consent"] button',
-                    'div[role="dialog"] button:last-of-type'
-                ];
-                for (const selector of consentSelectors) {
-                    if (await page.$(selector)) {
-                        await page.click(selector);
-                        await page.waitForNavigation({ timeout: 5000 }).catch(() => { });
-                        return;
-                    }
-                }
-            } catch (e) { }
-        };
-
-        await handleConsent();
-
-        log('Waiting for search results container to render...');
-        try {
-            await page.waitForSelector('div[role="feed"], div[role="article"], a[href*="/maps/place/"], .Nv2PK, h1.DUwDvf', { timeout: 15000 });
-        } catch (e) {
-            log(`Wait for search results timed out/failed: ${e.message}`);
+        const apiKey = process.env.SERPER_API_KEY;
+        if (!apiKey) {
+            log('CRITICAL: SERPER_API_KEY is not set in .env! Cannot perform fast scraping.');
+            return [];
         }
 
-        const processedIds = new Set();
-        let noNewResultsCount = 0;
-        let totalProcessed = 0;
-        const feedSelector = 'div[role="feed"]';
+        log(`Fetching Google Maps data from Serper API...`);
+        const response = await axios({
+            method: 'post',
+            url: 'https://google.serper.dev/places',
+            headers: { 
+                'X-API-KEY': apiKey, 
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                "q": query,
+                "num": limit
+            })
+        });
 
-        // More persistent loop to handle up to 5000
-        while (leads.length < targetLimit && noNewResultsCount < 30) {
+        const places = response.data.places || [];
+        log(`Found ${places.length} raw places from API.`);
+
+        for (const place of places) {
             if (checkState) await checkState();
-            const elements = await page.$$('div[role="article"], a[href*="/maps/place/"], .Nv2PK, div[data-result-index]');
+            if (leads.length >= limit) break;
 
-            if (elements.length === 0) {
-                const isSingleResult = await page.evaluate(() => {
-                    const titleEl = document.querySelector('h1.DUwDvf');
-                    const feedEl = document.querySelector('div[role="feed"]');
-                    return !!titleEl && !feedEl;
-                });
+            const name = place.title || '';
+            let website = place.website || '';
+            const phone = place.phoneNumber || '';
+            const address = place.address || '';
+            
+            if (!name) continue;
+
+            let email = '';
+            let social = { linkedin: '', facebook: '', twitter: '', instagram: '' };
+
+            // Fast deep scrape if website exists
+            if (website && !website.includes('google.com')) {
+                if (!website.startsWith('http')) website = 'http://' + website;
                 
-                if (isSingleResult) {
-                    log('Detected single result page. Extracting business directly...');
-                    const leadDetails = await page.evaluate(() => {
-                        const nameEl = document.querySelector('h1.DUwDvf');
-                        if (!nameEl) return null;
-                        const name = nameEl.innerText.trim();
-                        
-                        let website = '';
-                        const webEl = document.querySelector('a[data-item-id="authority"]');
-                        if (webEl) website = webEl.href || '';
-                        
-                        let phone = '';
-                        const phoneEl = document.querySelector('button[data-item-id*="phone:tel:"]');
-                        if (phoneEl) {
-                            phone = phoneEl.getAttribute('data-item-id').replace('phone:tel:', '').trim();
-                        } else {
-                            const phoneBtn = document.querySelector('button[aria-label*="Phone:"]');
-                            if (phoneBtn) phone = phoneBtn.getAttribute('aria-label').replace(/Phone:\s*/i, '').trim();
-                        }
-                        
-                        const addressEl = document.querySelector('button[data-item-id="address"]');
-                        const address = addressEl ? addressEl.innerText.trim() : '';
-                        
-                        return { name, website, phone, address };
+                try {
+                    log(`Fast-scanning website: ${website}`);
+                    const webRes = await axios.get(website, { 
+                        timeout: 5000,
+                        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+                    });
+                    const html = webRes.data;
+                    const $ = cheerio.load(html);
+                    
+                    // Extract Emails via Regex
+                    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
+                    const textContent = $('body').text();
+                    const emails = textContent.match(emailRegex) || [];
+                    
+                    const validEmails = emails.filter(e => {
+                        const low = e.toLowerCase();
+                        return !low.endsWith('.png') && !low.endsWith('.jpg') && !low.includes('sentry') && !low.includes('example');
                     });
                     
-                    if (leadDetails && leadDetails.name) {
-                        const getCleanUrl = (url) => {
-                            if (!url) return '';
-                            if (url.includes('google.com/viewer')) return '';
-                            if (url.includes('google.com/aclk') || url.includes('google.com/url')) {
-                                try { return decodeURIComponent(url.split('adurl=')[1] || url.split('q=')[1]).split('&')[0]; } catch (e) { return url; }
-                            }
-                            return url;
-                        };
-                        const cleanWeb = getCleanUrl(leadDetails.website);
-                        const result = {
-                            id: `scraped-${Math.random().toString(36).substr(2, 9)}`,
-                            name: '',
-                            company: leadDetails.name,
-                            phone: leadDetails.phone,
-                            website: cleanWeb,
-                            address: leadDetails.address,
-                            source: 'google_maps',
-                            query,
-                            status: 'New'
-                        };
-                        
-                        if (cleanWeb) {
-                            log(`Deep scraping single website: ${cleanWeb}`);
-                            try {
-                                const webDetails = await scrapeWebsite(browser, cleanWeb, log, notesContext, deepResearch);
-                                result.email = webDetails.email || '';
-                                result.summary = webDetails.summary || '';
-                                if (webDetails.phone && !result.phone) result.phone = webDetails.phone;
-                                if (webDetails.social && webDetails.social.linkedin && !result.linkedin) result.linkedin = webDetails.social.linkedin;
-                                if (webDetails.social && webDetails.social.facebook && !result.facebook) result.facebook = webDetails.social.facebook;
-                                if (webDetails.social && webDetails.social.twitter && !result.twitter) result.twitter = webDetails.social.twitter;
-                                if (webDetails.social && webDetails.social.instagram && !result.instagram) result.instagram = webDetails.social.instagram;
-                                
-                                // DDG X-RAY FOR CEO/FOUNDER
-                                try {
-                                    const xray = await scrapeDDGXRay(browser, leadDetails.name);
-                                    if (xray && xray.name) {
-                                        result.name = xray.name;
-                                        result.title = 'Executive';
-                                        if (xray.link && !result.linkedin) result.linkedin = xray.link;
-                                    }
-                                } catch (e) {}
-
-                            } catch (e) {
-                                log(`Single website deep scrape failed: ${e.message}`);
-                            }
-                        }
-                        
-                        leads.push(result);
-                        if (onResult && typeof onResult === 'function') {
-                            onResult(result).catch(err => log(`Error in onResult callback: ${err.message}`));
-                        }
-                    }
-                } else {
-                    log('No Google Maps search results detected on page. Stopping maps scrape early to prevent empty looping.');
-                }
-                break;
-            }
-
-            // Process Items
-            const batchPromises = [];
-            for (const el of elements) {
-                if (checkState) await checkState();
-                if (leads.length >= targetLimit) break;
-
-                const ariaLabel = await el.evaluate(e => e.getAttribute('aria-label'));
-                if (processedIds.has(ariaLabel)) continue;
-
-                // AD FILTER: Skip Sponsored results
-                const isAds = await el.evaluate(e => {
-                    return e.innerText.includes('Sponsored') || e.innerText.includes('Ad ·');
-                });
-                if (isAds) {
-                    log(`Skipped ${ariaLabel}: Sponsored Result.`);
-                    continue;
-                }
-
-                // RELEVANCE FILTER: Check if name matches query context
-                const lowerName = (ariaLabel || '').toLowerCase();
-                const lowerQuery = query.toLowerCase();
-
-                // Simple negative keywords based on common mixups or map ads
-                if (lowerQuery.includes('food') || lowerQuery.includes('market') || lowerQuery.includes('truck')) {
-                    if (lowerName.includes('car wash') ||
-                        lowerName.includes('mechanic') ||
-                        lowerName.includes('repair') ||
-                        lowerName.includes('accountant') ||
-                        lowerName.includes('solicitor') ||
-                        lowerName.includes('dental') ||
-                        lowerName.includes('clinic')) {
-                        log(`Skipped ${ariaLabel}: Irrelevant to query.`);
-                        continue;
-                    }
-                }
-
-
-
-                processedIds.add(ariaLabel);
-                totalProcessed++;
-
-                batchPromises.push((async () => {
-                    try {
-                        // Helper for robust phone extraction (UK focus)
-                        const extractPhoneNumber = (str) => {
-                            if (!str) return '';
-
-                            // Specific US Patterns: (555) 555-5555, 555-555-5555, +1 555...
-                            const usMatch = str.match(/(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
-                            if (usMatch) return usMatch[0].replace(/\s+/g, ' ').trim();
-
-                            // Specific UK Patterns (Secondary):
-                            const ukMatch = str.match(/(?:(?:\+|00)44|(?<!\d)44|(?<!\d)0)(?:2|7)[\d\s-]{8,13}/);
-                            if (ukMatch) return ukMatch[0].replace(/\s+/g, ' ').trim();
-
-                            // Fallback: Standard International
-                            const intlMatch = str.match(/(\+|00)[0-9][0-9\s-]{8,20}[0-9]/);
-                            if (intlMatch) return intlMatch[0].replace(/\s+/g, ' ').trim();
-
-                            return '';
-                        };
-
-                        const text = await el.evaluate(e => e.innerText);
-                        let phone = extractPhoneNumber(text);
-
-                        const getCleanUrl = (url) => {
-                            if (!url) return '';
-                            // Bad Google Viewer links
-                            if (url.includes('google.com/viewer')) return '';
-
-                            if (url.includes('google.com/aclk') || url.includes('google.com/url')) {
-                                try { return decodeURIComponent(url.split('adurl=')[1] || url.split('q=')[1]).split('&')[0]; } catch (e) { return url; }
-                            }
-                            return url;
-                        };
-
-                        let websiteUrl = await el.evaluate(e => {
-                            const anchors = Array.from(e.querySelectorAll('a'));
-                            // Try multiple strategies to find the website link
-                            const webLink = anchors.find(a => {
-                                const href = a.href || '';
-                                const label = (a.getAttribute('aria-label') || '').toLowerCase();
-                                const dataVal = a.getAttribute('data-value');
-
-                                // Skip map links/directions
-                                if (href.includes('google.com/maps')) return false;
-
-                                // Explicit Website Buttons
-                                if (dataVal === 'Website' || label.includes('website')) return true;
-
-                                // Generic non-google links (often the title link is just a map deep link, so ignore long google urls)
-                                if (href.startsWith('http') && !href.includes('google.com')) return true;
-
-                                return false;
-                            });
-                            return webLink ? webLink.href : '';
-                        });
-
-                        let website = getCleanUrl(websiteUrl);
-
-                        // DEEP SCRAPE: Click if info missing
-                        if (!phone && !website) {
-                            try {
-                                await el.click();
-                                await new Promise(r => setTimeout(r, 1500));
-
-                                const sideData = await page.evaluate(() => {
-                                    const res = { phone: '', website: '', lastReviewDate: '', rating: '', reviewCount: '' };
-                                    const main = document.querySelector('div[role="main"]');
-                                    if (!main) return res;
-
-                                    // Extract Rating and Review Count
-                                    const ratingEl = main.querySelector('span[aria-label*="stars"]');
-                                    if (ratingEl) {
-                                        res.rating = ratingEl.getAttribute('aria-label');
-                                        const countEl = ratingEl.parentElement.querySelector('span[aria-label*="reviews"]');
-                                        if (countEl) res.reviewCount = countEl.getAttribute('aria-label');
-                                    }
-
-                                    // Extract Last Review Date (roughly)
-                                    // Usually found in the "Reviews" summary or latest review snippet if visible
-                                    const reviewSnippets = Array.from(main.querySelectorAll('div[data-review-id]'));
-                                    if (reviewSnippets.length > 0) {
-                                        // Try to find the date span in the first snippet
-                                        const dateEl = reviewSnippets[0].querySelector('span[class*="publish-date"]');
-                                        if (dateEl) res.lastReviewDate = dateEl.innerText;
-                                    } else {
-                                        // Fallback: search for relative time strings in the side panel
-                                        const text = main.innerText;
-                                        const timeMatch = text.match(/\d+\s+(day|week|month|year)s?\s+ago/i);
-                                        if (timeMatch) res.lastReviewDate = timeMatch[0];
-                                    }
-
-                                    // Scan everything
-                                    const candidates = Array.from(main.querySelectorAll('a, button, div[data-item-id]'));
-
-                                    for (const c of candidates) {
-                                        const label = (c.getAttribute('aria-label') || '').toLowerCase();
-                                        const itemId = c.getAttribute('data-item-id') || '';
-                                        const href = c.href || '';
-                                        const txt = c.innerText || '';
-
-                                        // Website
-                                        if (!res.website) {
-                                            const isWeb = itemId.includes('authority') || label.includes('website') || (href && !href.includes('google') && !href.includes('fid='));
-                                            if (isWeb && href) res.website = href;
-                                        }
-
-                                        // Phone
-                                        if (!res.phone) {
-                                            const isPhone = itemId.includes('phone') || label.includes('phone') || label.includes('call') || itemId.includes('call');
-                                            if (isPhone) {
-                                                // Prioritize US Patterns: (555) 555-5555
-                                                const usRegex = /(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
-                                                const ukRegex = /(?:(?:\+|00)44|(?:\b)44|(?:\b)0)(?:2|7)[\d\s-]{8,13}/;
-                                                
-                                                const searchStr = (label + ' ' + txt);
-                                                const mUS = searchStr.match(usRegex);
-                                                const mUK = searchStr.match(ukRegex);
-                                                
-                                                if (mUS) res.phone = mUS[0].replace(/\s+/g, ' ').trim();
-                                                else if (mUK) res.phone = mUK[0].replace(/\s+/g, ' ').trim();
-                                            }
-                                        }
-                                    }
-                                    return res;
-                                });
-
-                                if (sideData.phone && !phone) phone = sideData.phone;
-                                if (sideData.website && !website) website = getCleanUrl(sideData.website);
-                                
-                                // Activity Check: Filter out if last review was > 2 years ago
-                                if (sideData.lastReviewDate) {
-                                    const lrd = sideData.lastReviewDate.toLowerCase();
-                                    if (lrd.includes('year') && !lrd.includes('1 year')) {
-                                        const years = parseInt(lrd.match(/\d+/)?.[0] || '0');
-                                        if (years >= 2) {
-                                            log(`Dropped ${ariaLabel}: Inactive business (Last review: ${sideData.lastReviewDate})`);
-                                            return null;
-                                        }
-                                    }
-                                }
-                            } catch (e) { }
-                        }
-
-                        if (website && !website.startsWith('http') && !website.includes('google')) website = 'http://' + website;
-
-                        // FALLBACK: If no website found on Maps, Search Google for it!
-                        if (!website || website === 'http://' || website.length < 8 || website.includes('google')) {
-                            // Reset if invalid
-                            if (website.length < 8) website = '';
-
-                            try {
-                                log(`Maps didn't have website for ${ariaLabel}, searching Google...`);
-                                const searchQuery = `${ariaLabel} ${query.replace(' in ', ' ')} official site`;
-                                const foundUrl = await findWebsiteViaGoogle(browser, searchQuery);
-                                if (foundUrl) {
-                                    website = foundUrl;
-                                    log(`Found Website via Search: ${website}`);
-                                } else {
-                                    log(`Search returned no website for ${ariaLabel}`);
-                                }
-                            } catch (e) {
-                                log(`Fallback Search Error: ${e.message}`);
-                            }
-                        }
-
-                        // DATA CONTAINERS
-                        let email = '';
-                        let summary = '';
-                        const social = { twitter: '', facebook: '', instagram: '', linkedin: '', tiktok: '' };
-
-                        // DIRECTORY FILTER
-                        const DIRECTORY_DOMAINS = ['birdeye.com', 'yell.com', 'yellowpages.com', 'yelp.com', 'facebook.com', 'instagram.com', 'checkatrade.com', 'tripadvisor.com', 'trustpilot.com', 'kompass.com', 'cylex-uk.co.uk', 'cylex.us.com', 'bbb.org', 'clutch.co', 'expertise.com'];
-
-                        let isDirectory = false;
-                        if (website) isDirectory = DIRECTORY_DOMAINS.some(d => website.includes(d));
-
-                        // VISIT WEBSITE
-                        if (website && !website.includes('google') && !isDirectory) {
-                            try {
-                                const webData = await scrapeWebsite(browser, website, log, notesContext, deepResearch, ariaLabel);
-                                if (webData.email) email = webData.email;
-                                if (webData.phone && !phone) phone = webData.phone;
-                                if (webData.summary) summary = webData.summary;
-                                Object.assign(social, webData.social);
-                            } catch (e) { }
-                        }
-
-                        // FALLBACK SEARCH
-                        if (!email) {
-                            try {
-                                const googleEmail = await googleSearchEmail(browser, ariaLabel, website);
-                                if (googleEmail) email = googleEmail;
-                            } catch (e) { }
-                        }
-
-                        // DDG X-RAY FOR CEO/FOUNDER
-                        let ceoName = '';
-                        let ceoTitle = '';
-                        if (ariaLabel) {
-                            try {
-                                const xray = await scrapeDDGXRay(browser, ariaLabel);
-                                if (xray && xray.name) {
-                                    ceoName = xray.name;
-                                    ceoTitle = 'Executive';
-                                    if (xray.link && !social.linkedin) social.linkedin = xray.link;
-                                }
-                            } catch (e) {}
-                        }
-
-                        // Directory Email Filter (e.g. profiles@birdeye.com)
-                        if (email) {
-                            const emailParts = email.split('@');
-                            if (emailParts.length === 2) {
-                                const d = emailParts[1].toLowerCase();
-                                if (DIRECTORY_DOMAINS.some(dd => d.includes(dd))) {
-                                    log(`Dropped ${ariaLabel}: Email domain (${d}) is a directory/aggregator.`);
-                                    email = '';
-                                }
-                            }
-                        }
-
-                        // ACCURACY FILTER: We keep leads even without direct contact info if they have a website!
-                        if (!email && !phone && !website) {
-                            log(`Dropped ${ariaLabel}: No contact info or website found.`);
-                            return null;
-                        }
-
-                        if (!email) {
-                            log(`Keeping fallback lead: ${ariaLabel} (Website: ${website}, Phone: ${phone || 'N/A'})`);
-                        }
-
-                        if (!ariaLabel) {
-                            log(`Dropped lead: Missing company name.`);
-                            return null;
-                        }
-
-                        log(`Found: ${ariaLabel} (Email: ${email || 'No'} | Phone: ${phone || 'No'} | Exec: ${ceoName || 'No'} | Summary: ${summary ? 'Yes' : 'No'})`);
-
-                        return {
-                            id: `scraped-${Math.random().toString(36).substr(2, 9)}`,
-                            name: ceoName,
-                            title: ceoTitle,
-                            status: 'New',
-                            company: ariaLabel,
-                            email, phone, website, summary,
-                            role: '',
-                            twitter: social.twitter, facebook: social.facebook, instagram: social.instagram, linkedin: social.linkedin, tiktok: social.tiktok,
-                            location: query.split(' in ')[1] || 'Unknown',
-                            source: 'Google Maps'
-                        };
-                    } catch (e) { return null; }
-                })());
-            }
-
-            // Process Items with limited concurrency (Max 3 at a time) to prevent CPU spikes
-            const results = [];
-            const CONCURRENCY_LIMIT = 3;
-            
-            for (let i = 0; i < batchPromises.length; i += CONCURRENCY_LIMIT) {
-                const chunk = batchPromises.slice(i, i + CONCURRENCY_LIMIT);
-                const chunkResults = await Promise.all(chunk);
-                results.push(...chunkResults.filter(x => x));
-                
-                // Optional: Short delay between chunks to let CPU breathe
-                if (i + CONCURRENCY_LIMIT < batchPromises.length) {
-                    await new Promise(r => setTimeout(r, 500));
-                }
-            }
-            
-            leads.push(...results);
-
-            // Emit Live Results
-            if (onResult && typeof onResult === 'function') {
-                for (const result of results) {
-                    onResult(result).catch(err => log(`Error in onResult callback: ${err.message}`));
-                }
-            }
-
-            log(`Progress: ${leads.length} leads. (Scanned ${totalProcessed})`);
-
-            // SCROLL & DISCOVERY
-            if (leads.length < targetLimit) {
-                log('Scrolling for more results...');
-                await page.evaluate((sel) => {
-                    const el = document.querySelector(sel);
-                    if (el) {
-                        el.scrollBy(0, 4000);
-                    } else {
-                        window.scrollBy(0, 1500);
-                    }
-                }, feedSelector);
-
-                // Use mouse wheel for additional scroll depth
-                await page.mouse.move(700, 500);
-                await page.mouse.wheel({ deltaY: 3000 });
-
-                await new Promise(r => setTimeout(r, 3000));
-
-                const newEls = await page.$$('div[role="article"], a[href*="/maps/place/"], .Nv2PK, div[data-result-index]');
-                if (newEls.length <= elements.length) {
-                    noNewResultsCount++;
-                    log(`No new results by scrolling (${noNewResultsCount}/30). Trying "Search this area" / Browsing mode...`);
+                    if (validEmails.length > 0) email = validEmails[0];
                     
-                    // Attempt to click "Search this area" button if it appears
-                    const searchAreaBtn = await page.$('button[jsaction*="searchthisarea"], button[aria-label*="Search this area"]');
-                    if (searchAreaBtn) {
-                        log('Found "Search this area" button. Clicking to refresh viewport...');
-                        await searchAreaBtn.click();
-                        await new Promise(r => setTimeout(r, 4000));
-                        noNewResultsCount = 0; // Reset as we've refreshed the search
-                    } else {
-                        // Move map slightly and zoom out to trigger new results
-                        log('Browsing: Moving map and zooming out to discover more businesses...');
-                        await page.keyboard.press('Minus'); // Zoom out
-                        await page.mouse.move(400, 400);
-                        await page.mouse.down();
-                        await page.mouse.move(500, 500);
-                        await page.mouse.up();
-                        await new Promise(r => setTimeout(r, 3000));
-                    }
-                } else {
-                    log(`Found ${newEls.length - elements.length} new potential leads.`);
-                    noNewResultsCount = 0;
+                    $('a').each((i, el) => {
+                        const href = $(el).attr('href');
+                        if (href) {
+                            if (href.includes('linkedin.com/company')) social.linkedin = href;
+                            if (href.includes('facebook.com') && !href.includes('sharer')) social.facebook = href;
+                            if (href.includes('instagram.com')) social.instagram = href;
+                            if (href.includes('twitter.com') || href.includes('x.com')) social.twitter = href;
+                        }
+                    });
+
+                } catch (e) {
+                    log(`Failed to fast-scan ${website}: ${e.message}`);
                 }
+            }
+
+            const lead = {
+                id: `scraped-${Math.random().toString(36).substr(2, 9)}`,
+                name: '',
+                title: '',
+                status: 'New',
+                company: name,
+                email, 
+                phone, 
+                website, 
+                summary: '',
+                role: '',
+                twitter: social.twitter, 
+                facebook: social.facebook, 
+                instagram: social.instagram, 
+                linkedin: social.linkedin, 
+                tiktok: '',
+                location: address,
+                source: 'Fast API'
+            };
+
+            log(`Found: ${name} (Email: ${email || 'No'} | Phone: ${phone || 'No'} | Website: ${website || 'No'})`);
+            
+            leads.push(lead);
+            if (onResult && typeof onResult === 'function') {
+                onResult(lead).catch(err => log(`Error in onResult callback: ${err.message}`));
             }
         }
-        log(`Scraping Complete. Found ${leads.length} leads.`);
+        
+        log(`Scraping Complete. Successfully extracted ${leads.length} leads.`);
         return leads;
     } catch (e) {
-        log(`Error in Google Maps Scraper: ${e.message}`);
+        log(`Error in Fast API Scraper: ${e.message}`);
         return leads;
-    } finally {
-        if (browser) {
-            try {
-                log('Closing browser...');
-                await browser.close();
-                log('Browser closed.');
-            } catch (e) {
-                log(`Error closing browser: ${e.message}`);
-            }
-        }
-        // Explicitly cleanup this specific profile if on Windows
-        if (typeof setup !== 'undefined' && setup?.profileDir && fs.existsSync(setup.profileDir)) {
-            try {
-                fs.rmSync(setup.profileDir, { recursive: true, force: true });
-            } catch (e) {}
-        }
     }
 }
 
-// LinkedIn Scraper using Google Search
 export async function scrapeLinkedIn(query, limit = 20, onLog = null, onResult = null, notesContext = '', deepResearch = false, checkState = null) {
     const log = createLogger(onLog);
     log(`Starting LinkedIn scraper for: ${query}`);

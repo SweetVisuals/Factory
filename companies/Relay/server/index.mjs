@@ -1157,6 +1157,27 @@ app.post('/api/scrape-leads', async (req, res) => {
       userId = user.id;
     }
 
+    // Concurrency Lock Check: Reject duplicate active scrapes for the same campaign
+    if (campaignId) {
+      try {
+        const { data: activeTasks, error: taskCheckErr } = await client
+          .from('tasks')
+          .select('id, description')
+          .eq('assigned_to', 'Scraper')
+          .in('status', ['in_progress', 'pending', 'waiting']);
+        
+        if (!taskCheckErr && activeTasks) {
+          const isAlreadyRunning = activeTasks.some(t => t.description && t.description.includes(campaignId));
+          if (isAlreadyRunning) {
+            console.log(`[Scraper API] Duplicate scrape rejected: Campaign ${campaignId} is already being scraped.`);
+            return res.status(409).json({ success: false, message: `Scraper is already running for campaign ${campaignId}.` });
+          }
+        }
+      } catch (err) {
+        console.error('[Scraper API] Error checking active tasks:', err.message);
+      }
+    }
+
     // Initialize user-specific stores
     userLogs.set(userId, []);
     userResults.set(userId, []);
@@ -1448,9 +1469,10 @@ app.post('/api/scrape-leads', async (req, res) => {
         while (currentRetry < MAX_RETRIES) {
           try {
           if (!currentTaskId) {
+            const description = `Scraping ${business} in ${location || 'multiple locations'}` + (campaignId ? ` [Campaign: ${campaignId}]` : '');
             const { data: taskData } = await client.from('tasks').insert([{
               assigned_to: 'Scraper',
-              description: `Scraping ${business} in ${location || 'multiple locations'}`,
+              description,
               status: 'in_progress',
               progress: 0
             }]).select().single();
@@ -1458,11 +1480,12 @@ app.post('/api/scrape-leads', async (req, res) => {
           } else {
              if (taskId) {
               try {
+                const description = `Starting autonomous scrape for ${business || keywords} in ${location}...` + (campaignId ? ` [Campaign: ${campaignId}]` : '');
                 await client
                   .from('tasks')
                   .update({
                     status: 'in_progress',
-                    description: `Starting autonomous scrape for ${business || keywords} in ${location}...`
+                    description
                   })
                   .eq('id', taskId);
               } catch (err) {
@@ -3028,11 +3051,16 @@ app.post('/api/import-local-list', async (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 
-// Start background services
-startCompaniesHouseCron();
-startAutoAssignCron();
-startScraperSchedulerCron();
-startEmailerCron();
+// Start background services if enabled
+if (process.env.ENABLE_CRONS !== 'false') {
+  console.log('[SYSTEM] Background services enabled.');
+  startCompaniesHouseCron();
+  startAutoAssignCron();
+  startScraperSchedulerCron();
+  startEmailerCron();
+} else {
+  console.log('[SYSTEM] Background services (crons) are DISABLED via ENABLE_CRONS=false.');
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

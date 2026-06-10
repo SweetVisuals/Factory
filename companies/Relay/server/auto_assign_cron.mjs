@@ -47,21 +47,53 @@ async function runAutoAssignCron() {
 
     const assignedSet = new Set(existingAssignments?.map(a => a.lead_id) || []);
     
-    // Filter out already assigned or already reviewed by AI
+    // Filter out already assigned, already reviewed by AI, or currently processing
     const unassignedLeads = recentLeads.filter(l => 
         !assignedSet.has(l.id) && 
-        !(l.validation_details || '').includes('[AI_REVIEWED]')
+        !(l.validation_details || '').includes('[AI_REVIEWED]') &&
+        !(l.validation_details || '').includes('[PROCESSING_ASSIGNMENT]')
     );
 
     if (unassignedLeads.length === 0) return;
 
-    console.log(`[Auto-Assign Cron] Found ${unassignedLeads.length} unassigned leads.`);
+    console.log(`[Auto-Assign Cron] Found ${unassignedLeads.length} potentially unassigned leads. Claiming...`);
+
+    const claimedLeads = [];
+    for (const lead of unassignedLeads) {
+      try {
+        const currentDetails = lead.validation_details || '';
+        const newDetails = currentDetails ? `${currentDetails} [PROCESSING_ASSIGNMENT]` : '[PROCESSING_ASSIGNMENT]';
+        
+        // Atomic claim update
+        const { data: claimed, error: claimErr } = await client
+          .from('leads')
+          .update({ validation_details: newDetails })
+          .eq('id', lead.id)
+          .or('validation_details.is.null,validation_details.not.like.*[PROCESSING_ASSIGNMENT]*,validation_details.eq.')
+          .select();
+        
+        if (!claimErr && claimed && claimed.length > 0) {
+          lead.validation_details = newDetails;
+          claimedLeads.push(lead);
+        }
+      } catch (e) {
+        console.error(`[Auto-Assign Cron] Error claiming lead ${lead.id}:`, e.message);
+      }
+    }
+
+    if (claimedLeads.length === 0) {
+      console.log('[Auto-Assign Cron] All candidates were already claimed by other instances.');
+      return;
+    }
+
+    console.log(`[Auto-Assign Cron] Successfully claimed ${claimedLeads.length} leads for this run.`);
 
     let scriptAssignedCount = 0;
     const aiLeads = [];
+    const scriptAssignedLeads = [];
 
     // Pass 1: Simple Script Matching
-    for (const lead of unassignedLeads) {
+    for (const lead of claimedLeads) {
       const c = (lead.company || '').toLowerCase();
       const l = (lead.location || '').toLowerCase();
       const searchText = c + ' ' + l;
@@ -91,6 +123,7 @@ async function runAutoAssignCron() {
           lead_id: lead.id
         }, { onConflict: 'campaign_id,lead_id' });
         scriptAssignedCount++;
+        scriptAssignedLeads.push(lead);
         
         // Update prospect count
         const { count } = await client.from('campaign_leads')
@@ -105,14 +138,25 @@ async function runAutoAssignCron() {
 
     console.log(`[Auto-Assign Cron] Script matched and assigned ${scriptAssignedCount} leads.`);
 
-    // Pass 2: Handoff to Validator AI for the remaining
+    // Clean up claim lock for script-assigned leads (remove [PROCESSING_ASSIGNMENT])
+    for (const lead of scriptAssignedLeads) {
+      const details = lead.validation_details || '';
+      const cleanDetails = details.replace('[PROCESSING_ASSIGNMENT]', '').trim();
+      await client.from('leads').update({ validation_details: cleanDetails }).eq('id', lead.id);
+    }
+
+    const validatorBatchSize = 20;
+    let validatorBatch = [];
+    let unhandledAILeads = [];
+
     if (aiLeads.length > 0) {
-      const batch = aiLeads.slice(0, 20); // Process max 20 at a time to keep AI prompt small
+      validatorBatch = aiLeads.slice(0, validatorBatchSize); // Process max 20 at a time to keep AI prompt small
+      unhandledAILeads = aiLeads.slice(validatorBatchSize); // The rest must release their claim lock
       
       const campaignsInfo = campaigns.map(c => ({ id: c.id, name: c.name, niche: c.niche }));
       
       const prompt = `### Niche Matching & Campaign Assignment
-The automated script could not confidently match the following ${batch.length} leads to a campaign.
+The automated script could not confidently match the following ${validatorBatch.length} leads to a campaign.
 Please review these leads and assign them to the most appropriate active campaign based on their company name and location.
 
 **Active Campaigns:**
@@ -122,7 +166,7 @@ ${JSON.stringify(campaignsInfo, null, 2)}
 
 **Unassigned Leads:**
 \`\`\`json
-${JSON.stringify(batch.map(l => ({ id: l.id, company: l.company, location: l.location })), null, 2)}
+${JSON.stringify(validatorBatch.map(l => ({ id: l.id, company: l.company, location: l.location })), null, 2)}
 \`\`\`
 
 **Action Required:**
@@ -131,20 +175,27 @@ ${JSON.stringify(batch.map(l => ({ id: l.id, company: l.company, location: l.loc
 3. Call \`RELAY_API: ASSIGN_LEADS | {"campaignId": "uuid", "leadIds": ["uuid1", ...]}\` for each matched campaign to assign them.
 4. If a lead does not fit ANY campaign, ignore it.`;
 
-      console.log(`[Auto-Assign Cron] Handing off ${batch.length} leads to Validator AI...`);
+      console.log(`[Auto-Assign Cron] Handing off ${validatorBatch.length} leads to Validator AI...`);
       await client.from('tasks').insert([{
         assigned_to: 'Validator',
         description: prompt,
         status: 'pending'
       }]);
       
-      // Update validation_details to prevent infinite loops for these leads
-      for (const lead of batch) {
+      // Update validation_details to replace claim lock with [AI_REVIEWED]
+      for (const lead of validatorBatch) {
          const details = lead.validation_details || 'Unverified';
-         if (!details.includes('[AI_REVIEWED]')) {
-           await client.from('leads').update({ validation_details: details + ' [AI_REVIEWED]' }).eq('id', lead.id);
-         }
+         const cleanDetails = details.replace('[PROCESSING_ASSIGNMENT]', '').trim();
+         const finalDetails = cleanDetails.includes('[AI_REVIEWED]') ? cleanDetails : `${cleanDetails} [AI_REVIEWED]`.trim();
+         await client.from('leads').update({ validation_details: finalDetails }).eq('id', lead.id);
       }
+    }
+
+    // Release claim lock for any AI candidates that were NOT processed in this batch (unhandledAILeads)
+    for (const lead of unhandledAILeads) {
+      const details = lead.validation_details || '';
+      const cleanDetails = details.replace('[PROCESSING_ASSIGNMENT]', '').trim();
+      await client.from('leads').update({ validation_details: cleanDetails }).eq('id', lead.id);
     }
 
   } catch (error) {
