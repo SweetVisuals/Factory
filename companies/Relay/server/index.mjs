@@ -1695,40 +1695,10 @@ app.post('/api/scrape-leads', async (req, res) => {
             if ((userResults.get(userId)?.length || 0) >= limit) return;
             await checkCancelOrPause();
 
-            if (platforms.yell || platforms.all) {
-              for (const searchTerm of translatedQueries) {
-                if ((userResults.get(userId)?.length || 0) >= limit) break;
-                console.log(`[${currentLoc}] Yell: "${searchTerm}"`);
-                const remainingLimit = Math.max(3, limit - (userResults.get(userId)?.length || 0));
-                await scrapeYell(searchTerm, currentLoc, remainingLimit, log, onResult, checkCancelOrPause);
-              }
-            }
-
-            if ((userResults.get(userId)?.length || 0) >= limit) return;
-            await checkCancelOrPause();
-
             if (platforms.linkedin) {
               log(`[${currentLoc}] LinkedIn scraper bypassed: LinkedIn scraping is disabled.`);
             }
 
-            if ((userResults.get(userId)?.length || 0) >= limit) return;
-            await checkCancelOrPause();
-
-            if (platforms.general || platforms.all) {
-              log(`[${currentLoc}] Scraping General Search...`);
-              const jobRole = req.body.jobRole || '';
-              const rolePart = jobRole ? `"${jobRole}"` : "";
-              const businessPart = business ? `"${business}"` : (keywords || "");
-              const businessQuery = `${rolePart} ${businessPart} ${currentLoc} email contact`.trim();
-              const rl3 = Math.max(5, limit - (userResults.get(userId)?.length || 0));
-              
-              // Run the HTTP backend scraper and General Search Puppeteer scraper alongside each other for maximum efficiency
-              await Promise.allSettled([
-                 scrapeGeneralSearch(businessQuery, rl3, log, onResult, notesContext, deepResearch, checkCancelOrPause),
-                 scrapeLeadsNoPuppeteer(businessQuery, rl3, log, onResult)
-              ]);
-            }
-            
             if ((userResults.get(userId)?.length || 0) >= limit) return;
             await checkCancelOrPause();
 
@@ -1737,19 +1707,6 @@ app.post('/api/scrape-leads', async (req, res) => {
               const remainingLimit = Math.max(5, limit - (userResults.get(userId)?.length || 0));
               const query = `${business || keywords} ${currentLoc}`;
               await scrapeCompaniesHouse(query, remainingLimit, log, onResult, checkCancelOrPause);
-            }
-
-            if ((userResults.get(userId)?.length || 0) >= limit) return;
-            await checkCancelOrPause();
-
-            if (platforms.bing || platforms.all) {
-              for (const searchTerm of translatedQueries) {
-                if ((userResults.get(userId)?.length || 0) >= limit) break;
-                log(`[${currentLoc}] Bing Maps: "${searchTerm}"`);
-                const remainingLimit = Math.max(3, limit - (userResults.get(userId)?.length || 0));
-                const query = `${searchTerm} in ${currentLoc}`;
-                await scrapeBingMaps(query, remainingLimit, log, onResult, checkCancelOrPause);
-              }
             }
 
             if ((userResults.get(userId)?.length || 0) >= limit) return;
