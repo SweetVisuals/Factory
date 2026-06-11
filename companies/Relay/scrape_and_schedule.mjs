@@ -86,6 +86,7 @@ async function main() {
     
     const seqResp = await fetch(seqUrl, {
       method: 'POST',
+      signal: AbortSignal.timeout(60000), // 60-second timeout
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`

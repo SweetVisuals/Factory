@@ -136,6 +136,7 @@ SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "$
 
     const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
       method: 'POST',
+      signal: AbortSignal.timeout(60000), // 60-second timeout to prevent infinite hanging
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
@@ -1133,13 +1134,13 @@ app.post('/api/send-email', async (req, res) => {
     if (senderDomain) {
       const { data: canSend, error: limitError } = await scopedSupabase.rpc('increment_domain_email_count', {
         p_domain: senderDomain.toLowerCase(),
-        p_max_limit: 50 // Default limit is 50/hour per domain
+        p_max_limit: 500 // Default limit is 500/hour per domain
       });
       
       if (limitError) {
         console.error('Domain limit check error:', limitError);
       } else if (!canSend) {
-        throw new Error(`Domain ${senderDomain} has exceeded the max emails per hour (50) allowed. Message will be reattempted later.`);
+        throw new Error(`Domain ${senderDomain} has exceeded the max emails per hour (500) allowed. Message will be reattempted later.`);
       }
     }
 
