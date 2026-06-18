@@ -78,8 +78,8 @@ Relay's emails should sound like a message from a witty, hyper-competent peer wh
 **The voice is:**
 - Ultra-casual, witty, and incredibly short (2-3 sentences max)
 - Zero technical jargon (no "cloud perimeter", "SaaS infrastructure", or "middleware" talk unless absolutely necessary)
-- Humorous but deeply rooted in the annoying, repetitive pain points of their daily job
-- Confident, never pushy or stereotypically "salesy"
+- Curiosity-driven: Ask a question about their manual/annoying processes.
+- Confident, never pushy or stereotypically "salesy". DO NOT PITCH the service directly.
 - Written as one busy person to another, respecting their time by getting straight to the point
 
 **Sentence style:**
@@ -88,12 +88,14 @@ Relay's emails should sound like a message from a witty, hyper-competent peer wh
 - Contractions are fine ("you're", "we'd", "it's")
 - First name of the prospect in the opening line where known
 
-**Example of the right tone:**
-- "Ashley — I'm guessing you're drowning in manual compliance reports right now. We build private systems that automate that entire mess so you don't have to do it by hand. Open to a quick look?"
-- "Mark — You're probably tired of manually chasing down performance metrics from 15 portfolio companies. We build custom automation that pulls it all for you. Want to see how?"
+**Example of the right tone (Curiosity about pain points):**
+- "Ashley — Quick question, is your team still manually logging compliance reports into spreadsheets?"
+- "Mark — Are you still chasing down performance metrics from 15 portfolio companies by hand?"
+- "Hey Sarah, still doing data entry between your CRM and accounting software manually?"
 
-**Example of the wrong tone (Too technical / Salesy):**
+**Example of the wrong tone (Too technical / Salesy Pitch):**
 - "Hi there, Noticed [Company] specializes in [Niche]. With all the manual work around client reporting, I bet your team could use some automation. We build systems that cut that time by half—no fluff, just lean automation. Worth a quick chat? Cheers."
+- "We build custom AI solutions that can save you 200 hours a month. Can we schedule a call?"
 
 ---
 

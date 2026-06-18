@@ -484,17 +484,15 @@ Deno.serve(async (req) => {
                          .replace(/\n*<company>[\s\S]*$/i, '')
                          .trim();
 
-                     const systemPrompt = "You are a world-class B2B sales strategist personalizing cold outreach. Your goal is to rewrite the provided email template to be highly relevant to the specific lead based on their business summary.\n\n" +
+                     const systemPrompt = "You are a witty, world-class B2B cold outreach specialist. You write curiosity-based emails that make prospects think about their own pain points — NOT sales pitches.\n\n" +
 "CRITICAL RULES:\n" +
-"1. DO NOT return a template with placeholders like [Name] or {{company}}. Return the FINISHED email.\n" +
-"2. Start the email with a proper greeting: 'Hi " + (leadFirstName.toLowerCase() === 'there' ? 'there' : leadFirstName) + ",'\n" +
-"3. Write a unique, personalized opening sentence based on the provided Lead Notes.\n" +
-"4. Maintain the core offer and call to action from the Original Template.\n" +
-"5. Tone: Professional, helpful, concise, and slightly informal (like a colleague).\n" +
-"6. ABSOLUTELY DO NOT include any sign-off, closing, or signature in the body. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the correct sender signature. Including one will cause a DUPLICATE and a WRONG NAME.\n" +
-"7. LENGTH LIMITS: The core email body MUST NOT exceed 60 words and 350 characters.\n" +
-"8. FORMATTING: Use proper paragraph breaks (newlines \\n) to make it readable. Do not output a single block of text.\n" +
-"9. Output ONLY valid JSON: { \"subject\": \"Customized subject line\", \"body\": \"Finished email body with newlines\" }";
+"1. Start with EXACTLY: \"Hi \" + lead's first name + \",\". If no name, use \"Hi there,\". NEVER just \"there,\".\n" +
+"2. DO NOT return placeholders like [Name] or {{company}}. Return the FINISHED email.\n" +
+"3. Write a SHORT curiosity-based message (max 60 words, 350 chars). Frame it as a QUESTION about their pain point, NOT a pitch about what we sell. Be conversational, direct, and human. Examples of good openers: \"Still manually logging X into spreadsheets?\" or \"Quick question — is your team still doing Y by hand?\"\n" +
+"4. DO NOT pitch our services directly. Instead, hint at a better way and ask if they'd be curious to see it. The goal is to start a conversation, not close a deal.\n" +
+"5. ABSOLUTELY DO NOT include any sign-off, closing, or signature. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the sender signature. Including one causes a DUPLICATE.\n" +
+"6. Output ONLY valid JSON: { \"subject\": \"Customized subject line\", \"body\": \"Finished email body without any sign-off\" }\n" +
+"7. The subject line should be curiosity-driven and under 9 words. No salesy subjects like \"Transform your business\". Think: \"Quick question about [specific thing]\" or \"[Name], still doing [pain point] manually?\".";
 
             const userPrompt = "Original Template Subject: \"" + schedule.templates.subject + "\"\n" +
 "Original Template Body: \"" + templateBodyForAI + "\"\n" +

@@ -1,0 +1,33 @@
+const { Client } = require('ssh2');
+
+const conn = new Client();
+
+const SETUP_SCRIPT = `
+cd /root/Factory
+git pull
+cd /root/Factory/companies/Relay
+pm2 restart relay-backend
+pm2 restart relay-cron
+echo "DEPLOYMENT FINISHED"
+`;
+
+conn.on('ready', () => {
+  console.log('Client :: ready');
+  conn.exec(SETUP_SCRIPT, (err, stream) => {
+    if (err) throw err;
+    stream.on('close', (code, signal) => {
+      console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+      conn.end();
+    }).on('data', (data) => {
+      process.stdout.write(data);
+    }).stderr.on('data', (data) => {
+      process.stderr.write(data);
+    });
+  });
+}).connect({
+  host: '5.75.252.100',
+  port: 22,
+  username: 'root',
+  password: 'mjaXRVMmbMwC7xCbcLCE',
+  readyTimeout: 60000
+});

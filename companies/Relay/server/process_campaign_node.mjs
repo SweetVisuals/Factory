@@ -81,7 +81,11 @@ export async function runProcessCampaign() {
         (m, P) =>
           new Date(m.start_date).getTime() - new Date(P.start_date).getTime(),
       );
-    for (const e of L) {
+    // ═══ PARALLEL CAMPAIGN PROCESSING ═══
+    // Process each campaign concurrently (all 5 at once) instead of sequentially
+    const _processCampaignSchedules = async (campaignSchedules) => {
+      const campResults = [];
+      for (const e of campaignSchedules) {
       const o = new Date(),
         m = new Date(e.end_date),
         P = new Date(e.scheduled_for);
@@ -425,16 +429,16 @@ export async function runProcessCampaign() {
               .replace(/\n*<company>[\s\S]*$/i, "")
               .trim();
             const k =
-                `You are a witty, world-class B2B sales strategist personalizing cold outreach. Your goal is to rewrite the provided email template to be highly relevant to the specific lead based on their business summary.
+                `You are a witty, world-class B2B cold outreach specialist. You write curiosity-based emails that make prospects think about their own pain points — NOT sales pitches.
 
 CRITICAL RULES:
-1. Start the email with EXACTLY: "Hi " followed by the lead's first name, and a comma. Example: "Hi John,". If no name is provided, use "Hi there,". DO NOT just write "there,".
-2. DO NOT return a template with placeholders like [Name] or {{company}}. Return the FINISHED email.
-3. Write a witty, confident, and straight-to-the-point message (max 60 words, 350 chars for the body) framed around the pain points found in research. It should NOT be corporate or salesy. Be conversational, direct, and human.
-4. Maintain the core offer from the Original Template but make it extremely concise and compelling. Use proper paragraph breaks.
-5. ABSOLUTELY DO NOT include any sign-off, closing, or signature in the body. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the correct sender signature. Including one will cause a DUPLICATE. I will heavily penalize you if you output a signature block.
-6. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off or signature" }
-7. Frame the core offer around the pain points found in research. Make sure the email flows naturally and correctly.`,
+1. Start with EXACTLY: "Hi " + lead's first name + ",". If no name, use "Hi there,". NEVER just "there,".
+2. DO NOT return placeholders like [Name] or {{company}}. Return the FINISHED email.
+3. Write a SHORT curiosity-based message (max 60 words, 350 chars). Frame it as a QUESTION about their pain point, NOT a pitch about what we sell. Be conversational, direct, and human. Examples of good openers: "Still manually logging X into spreadsheets?" or "Quick question — is your team still doing Y by hand?"
+4. DO NOT pitch our services directly. Instead, hint at a better way and ask if they'd be curious to see it. The goal is to start a conversation, not close a deal.
+5. ABSOLUTELY DO NOT include any sign-off, closing, or signature. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the sender signature. Including one causes a DUPLICATE.
+6. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off" }
+7. The subject line should be curiosity-driven and under 9 words. No salesy subjects like "Transform your business". Think: "Quick question about [specific thing]" or "[Name], still doing [pain point] manually?".`,
               R =
                 'Original Template Subject: "' +
                 e.templates.subject +
@@ -631,8 +635,8 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
           const companyRegex = new RegExp(`\\n+\\s*[A-Z][a-z]+\\s*\\n\\s*${companySafe}[^]*$`, 'i');
           O = O.replace(companyRegex, "").trimEnd();
         }
-        // 3. Strip any URL blocks at end
-        O = O.replace(/\n*\s*(?:www\.)?[a-zA-Z0-9-]+\.[a-z]{2,}[^]*$/i, "").trimEnd();
+        // 3. Strip any standalone URL-only lines at the very end
+        O = O.replace(/\n+\s*(?:https?:\/\/|www\.)[^\s]+\s*$/i, "").trimEnd();
         // 4. Strip placeholders
         O = O.replace(/\n*\s*\{\{?ender\}\}?[\s\S]*$/i, "").replace(/\n*\s*\[Sender Name\][\s\S]*$/i, "").trimEnd();
         // 5. Strip any trailing line that is just a first name
@@ -664,17 +668,10 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
           F = `${O}\n\n${Q}\n${s}\n${V}${ie ? '\n\n' + ie : ''}`.trimEnd();
         }
 
-        // Additional aggressive stripping to prevent double sign-off if AI generated "Name\nCompany" at the end
-        if (b) {
-          const nameSafe = b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const nameRegex = new RegExp(`\\n+\\s*${nameSafe}\\b[^]*$`, 'i');
-          F = F.replace(nameRegex, "").trimEnd();
-        }
-        if (a.name) {
-          const nameSafe = a.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const nameRegex = new RegExp(`\\n+\\s*${nameSafe}\\b[^]*$`, 'i');
-          F = F.replace(nameRegex, "").trimEnd();
-        }
+        // NOTE: Post-assembly name stripping REMOVED.
+        // Sign-off stripping already happens on O (body) BEFORE the signature is built.
+        // The old code here was stripping the sender's name AFTER it was correctly appended,
+        // which caused the footer to lose the sender name entirely.
 
         const Ce = [
             {
@@ -895,6 +892,19 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
           .update({ scheduled_for: t.toISOString() })
           .eq("id", e.id);
       }
+      } // end for (const e of campaignSchedules)
+      return campResults;
+    }; // end _processCampaignSchedules
+
+    // Launch ALL campaigns in parallel (not one at a time)
+    const _campPromises = [...$].map(([cid, scheds]) => {
+      console.log(`[PARALLEL] Launching campaign ${cid} with ${scheds.length} schedule(s)`);
+      return _processCampaignSchedules(scheds);
+    });
+    const _settled = await Promise.allSettled(_campPromises);
+    for (const _r of _settled) {
+      if (_r.status === 'fulfilled' && _r.value) z.push(..._r.value);
+      else if (_r.status === 'rejected') console.error('[PARALLEL ERROR]', _r.reason);
     }
     return JSON.stringify({ success: !0, processed: z });
   } catch (n) {
