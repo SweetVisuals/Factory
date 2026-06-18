@@ -3,9 +3,10 @@ import { useBusinessData } from '../hooks/useBusinessData';
 import CampaignCard from './CampaignCard';
 import Skeleton from './Skeleton';
 
-const Dashboard = () => {
+const Dashboard = ({ toggleOverlay }: { toggleOverlay?: (view: string) => void }) => {
   const { businesses, setSelectedBusiness, metrics } = useBusinessData();
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('all');
+  const [isLogOpen, setIsLogOpen] = useState(false);
 
   const handleBusinessChange = (bizId: string) => {
     setSelectedBusinessId(bizId);
@@ -28,6 +29,73 @@ const Dashboard = () => {
   return (
     <div style={{ padding: '2rem 3rem', color: 'var(--text-color)', height: '100%', overflowY: 'auto' }}>
       
+      {/* Activity Log - Collapsible */}
+      <div style={{ marginBottom: '2rem', backgroundColor: 'var(--panel-bg)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', overflow: 'hidden' }}>
+        <div 
+          onClick={() => setIsLogOpen(!isLogOpen)}
+          style={{ 
+            padding: '1rem 1.5rem', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            cursor: 'pointer',
+            backgroundColor: 'rgba(255, 255, 255, 0.02)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent-color)', boxShadow: '0 0 10px var(--accent-color)' }} />
+            <h3 style={{ margin: 0, fontFamily: 'Inter, sans-serif', fontSize: '1.1rem', fontWeight: 600 }}>System Activity Log</h3>
+          </div>
+          <span style={{ transform: isLogOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', color: 'var(--text-muted)' }}>▼</span>
+        </div>
+        
+        {isLogOpen && (
+          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)', maxHeight: '300px', overflowY: 'auto' }}>
+            {isLoading ? (
+              <Skeleton width="100%" height="20px" />
+            ) : metrics?.recentLogs && metrics.recentLogs.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {metrics.recentLogs.map((log) => (
+                  <div 
+                    key={log.id}
+                    onClick={() => {
+                      if (toggleOverlay) {
+                        if (log.type === 'email_received') toggleOverlay('inbox');
+                        else if (log.type === 'lead_added') toggleOverlay('discover');
+                        else toggleOverlay('campaigns'); // 'dashboard' handles campaigns, maybe just keep it dashboard or 'discover'
+                      }
+                    }}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      padding: '0.75rem 1rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      borderLeft: `3px solid ${log.type === 'sent' ? '#10b981' : log.type === 'bounced' ? '#ef4444' : log.type === 'email_received' ? '#3b82f6' : '#8b5cf6'}`,
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.2)'}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '0.2rem' }}>{log.title}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{log.description}</div>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>No recent activity.</div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Header matching old CampaignHub layout */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '3rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>

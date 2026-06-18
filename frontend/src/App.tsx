@@ -394,7 +394,7 @@ function App() {
         
         <div className="overlay-content page-enter">
           {activeOverlay === 'discover' && <Discover />}
-          {activeOverlay === 'dashboard' && <Dashboard />}
+          {activeOverlay === 'dashboard' && <Dashboard toggleOverlay={toggleOverlay} />}
           {activeOverlay === 'profile' && <Profile />}
           {activeOverlay === 'employees' && <Employees />}
 

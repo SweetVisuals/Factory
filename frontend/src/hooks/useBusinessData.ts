@@ -33,6 +33,15 @@ export interface BusinessMetrics {
   urgentEmails: UrgentEmail[];
   allReplies: UrgentEmail[];
   campaignsList: any[];
+  recentLogs: ActivityLogItem[];
+}
+
+export interface ActivityLogItem {
+  id: string;
+  type: 'sent' | 'bounced' | 'replied' | 'lead_added' | 'email_received';
+  title: string;
+  description: string;
+  timestamp: string;
 }
 
 export interface UrgentEmail {
@@ -186,12 +195,64 @@ export function useBusinessData() {
       needs_human_review: e.needs_human_review
     }));
 
+    // Recent Logs
+    const { data: recentProgress } = await supabase.from('campaign_progress').select('*').in('campaign_id', campIdsWithDummy).order('updated_at', { ascending: false }).limit(30);
+    const progressLeadIds = (recentProgress || []).map((p: any) => p.lead_id).filter(Boolean);
+    const { data: progressLeads } = progressLeadIds.length > 0 ? await supabase.from('leads').select('id, email').in('id', progressLeadIds) : { data: [] };
+    
+    let leadsQuery = supabase.from('leads').select('id, email, company, created_at').order('created_at', { ascending: false }).limit(30);
+    if (uniqueLeadIds.length > 0 && uniqueLeadIdsWithDummy[0] !== '00000000-0000-0000-0000-000000000000') {
+      leadsQuery = leadsQuery.in('id', uniqueLeadIds);
+    } else if (businessId !== 'all') {
+      leadsQuery = leadsQuery.eq('id', '00000000-0000-0000-0000-000000000000'); // hack to match nothing
+    }
+    const { data: recentLeads } = await leadsQuery;
+    
+    const { data: recentEmails } = await supabase.from('inbox_emails').select('id, subject, received_at, from').in('campaign_id', campIdsWithDummy).order('received_at', { ascending: false }).limit(30);
+
+    const recentLogs: ActivityLogItem[] = [];
+
+    (recentProgress || []).forEach((p: any) => {
+      const leadEmail = (progressLeads || []).find((l: any) => l.id === p.lead_id)?.email || 'Unknown';
+      recentLogs.push({
+        id: `prog-${p.id}`,
+        type: p.status === 'sent' ? 'sent' : p.status === 'bounced' ? 'bounced' : p.status === 'replied' ? 'replied' : 'sent',
+        title: `Email ${p.status}`,
+        description: `To: ${leadEmail}`,
+        timestamp: p.updated_at || p.sent_at || new Date().toISOString()
+      });
+    });
+
+    (recentLeads || []).forEach((l: any) => {
+      recentLogs.push({
+        id: `lead-${l.id}`,
+        type: 'lead_added',
+        title: `Lead Added`,
+        description: `${l.email} (${l.company || 'Unknown Company'})`,
+        timestamp: l.created_at || new Date().toISOString()
+      });
+    });
+
+    (recentEmails || []).forEach((e: any) => {
+      recentLogs.push({
+        id: `email-${e.id}`,
+        type: 'email_received',
+        title: `Email Received`,
+        description: `From: ${e.from} - ${e.subject}`,
+        timestamp: e.received_at || new Date().toISOString()
+      });
+    });
+
+    recentLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const topLogs = recentLogs.slice(0, 40);
+
     setMetrics({
       totalLeads, activeCampaigns, avgOpenRate, avgReplyRate,
       emailsSent24h: emailsSent24h || 0, totalSent: totalSent || 0, conversionRate,
       activeTargets: activeTargets || 0, totalProspects, dailyLeads, dailyEmails, urgentEmails,
       allReplies,
-      campaignsList: campaigns || []
+      campaignsList: campaigns || [],
+      recentLogs: topLogs
     });
   };
 
