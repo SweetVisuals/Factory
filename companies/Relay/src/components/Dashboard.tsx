@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle, AlertCircle, Zap, Shield, Users, Mail, Target, ArrowUpRight, Wifi, ChevronLeft, ChevronRight, Activity, TrendingUp, BarChart2 } from 'lucide-react';
+import { PlusCircle, AlertCircle, Zap, Shield, Users, Mail, Target, ArrowUpRight, Wifi, ChevronLeft, ChevronRight, ChevronDown, Activity, TrendingUp, BarChart2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Layout from './layout/Layout';
 import CampaignCard from './CampaignCard';
@@ -22,6 +22,7 @@ export const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<'campaigns' | 'activity'>('campaigns');
   const [campaignsPage, setCampaignsPage] = useState(0);
   const [activityPage, setActivityPage] = useState(0);
+  const [isLogOpen, setIsLogOpen] = useState(false);
   
   const ITEMS_PER_PAGE = 8;
   const CAMPAIGNS_PER_PAGE = 8;
@@ -71,32 +72,35 @@ export const Dashboard = () => {
         conversions: convs || 0 
       }));
 
-      const [{ data: sentData }, { data: repliesData }, { data: scraperData }] = await Promise.all([
-        supabase.from('campaign_progress').select('id, created_at, status, campaign:campaigns(name), lead:leads(name, email, company)').eq('status', 'sent').in('campaign_id', campIds).order('created_at', { ascending: false }).limit(30),
-        supabase.from('inbox_emails').select('id, received_at, subject, from, to, body_text, campaign:campaigns(name)').eq('folder', 'inbox').in('campaign_id', campIds).order('received_at', { ascending: false }).limit(20),
-        supabase.from('scraper_logs').select('*').order('timestamp', { ascending: false }).limit(20)
+      const [{ data: progressData }, { data: repliesData }, { data: scraperData }, { data: leadsData }] = await Promise.all([
+        supabase.from('campaign_progress').select('id, created_at, status, campaign_id, campaign:campaigns(name), lead:leads(id, name, email, company)').in('status', ['sent', 'failed', 'bounced', 'replied']).in('campaign_id', campIds).order('created_at', { ascending: false }).limit(30),
+        supabase.from('inbox_emails').select('id, received_at, subject, from, to, body_text, campaign_id, campaign:campaigns(name)').eq('folder', 'inbox').in('campaign_id', campIds).order('received_at', { ascending: false }).limit(20),
+        supabase.from('scraper_logs').select('*').order('timestamp', { ascending: false }).limit(20),
+        supabase.from('leads').select('id, created_at, name, email, company').order('created_at', { ascending: false }).limit(20)
       ]);
 
-      const sentItems = (sentData || []).map(item => ({
-        id: `sent-${item.id}`,
-        type: 'sent',
+      const progressItems = (progressData || []).map(item => ({
+        id: `prog-${item.id}`,
+        type: item.status === 'sent' ? 'sent' : (item.status === 'failed' || item.status === 'bounced') ? 'bounced' : 'replied',
         timestamp: item.created_at,
-        subject: `Outgoing Email Sent`,
+        subject: `Email ${item.status}`,
         from: 'System',
         to: (item.lead?.name && item.lead.name.trim() !== '') ? item.lead.name : (item.lead?.email || 'Unknown Lead'),
         campaignName: (item.campaign as any)?.name || 'Direct',
-        details: `Sent successfully. Company: ${item.lead?.company || 'N/A'}`
+        details: `${item.status === 'sent' ? 'Sent successfully' : item.status === 'replied' ? 'Replied' : 'Failed to send'}. Company: ${item.lead?.company || 'N/A'}`,
+        actionUrl: item.campaign_id ? `/campaign/${item.campaign_id}` : '/campaigns'
       }));
 
       const receivedItems = (repliesData || []).map(item => ({
         id: `recv-${item.id}`,
         type: 'received',
         timestamp: item.received_at,
-        subject: item.subject,
+        subject: item.subject || 'Email Received',
         from: item.from,
         to: item.to,
         campaignName: (item.campaign as any)?.name || 'Direct',
-        details: item.body_text?.substring(0, 150) || 'No content available.'
+        details: item.body_text?.substring(0, 150) || 'No content available.',
+        actionUrl: '/inbox'
       }));
 
       const neuralItems = (scraperData || []).map(item => ({
@@ -107,10 +111,23 @@ export const Dashboard = () => {
         from: 'Scraper Engine',
         to: 'System',
         campaignName: 'Prospecting',
-        details: item.message
+        details: item.message,
+        actionUrl: '/discover'
       }));
 
-      const combined = [...sentItems, ...receivedItems, ...neuralItems].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const leadItems = (leadsData || []).map(item => ({
+        id: `lead-${item.id}`,
+        type: 'lead',
+        timestamp: item.created_at,
+        subject: 'Lead Added',
+        from: 'System',
+        to: (item.name && item.name.trim() !== '') ? item.name : item.email,
+        campaignName: 'General',
+        details: `Company: ${item.company || 'N/A'}`,
+        actionUrl: '/discover'
+      }));
+
+      const combined = [...progressItems, ...receivedItems, ...neuralItems, ...leadItems].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setActivities(combined);
     };
 
@@ -188,6 +205,49 @@ export const Dashboard = () => {
 
         <div className="p-10 max-w-[1400px] mx-auto w-full flex-1 flex flex-col gap-10">
           
+          {/* Collapsible Activity Log */}
+          <div className="bg-card/40 border border-white/5 rounded-xl overflow-hidden flex flex-col">
+            <div 
+              onClick={() => setIsLogOpen(!isLogOpen)}
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--tw-colors-primary),0.8)]" />
+                <h3 className="font-bold text-foreground">System Activity Log</h3>
+              </div>
+              <ChevronDown size={18} className={cn("text-muted-foreground transition-transform duration-200", isLogOpen && "rotate-180")} />
+            </div>
+            
+            {isLogOpen && (
+              <div className="border-t border-white/5 max-h-[300px] overflow-y-auto p-4 flex flex-col gap-2">
+                {activities.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-4">No recent activity.</div>
+                ) : (
+                  activities.slice(0, 30).map(item => (
+                    <div 
+                      key={item.id}
+                      onClick={() => item.actionUrl && navigate(item.actionUrl)}
+                      className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-white/5 cursor-pointer border border-transparent hover:border-white/10 transition-all group"
+                      style={{ borderLeft: `3px solid ${item.type === 'sent' ? '#10b981' : item.type === 'bounced' ? '#ef4444' : item.type === 'received' ? '#3b82f6' : item.type === 'lead' ? '#f59e0b' : '#8b5cf6'}` }}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.subject}</span>
+                          <span className="text-xs text-muted-foreground">{item.type === 'sent' || item.type === 'lead' ? `To: ${item.to}` : `From: ${item.from}`}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground truncate max-w-xl">{item.details}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(item.timestamp), 'h:mm a')}</span>
+                        <ChevronRight size={14} className="text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Always Visible Performance Summary */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
