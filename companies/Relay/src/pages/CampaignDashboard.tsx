@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { openclawSupabase } from '../lib/openclaw';
 import Layout from '../components/layout/Layout';
 import PageHeader from '../components/layout/PageHeader';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { AlertCircle, Zap, LayoutDashboard, Users, GitMerge, Calendar, Mail, Inbox, BarChart3, Settings2, Target, ChevronDown, ChevronRight, Database, Sparkles, Folder, Activity, MessageSquare, ArrowLeft } from 'lucide-react';
 import CampaignStats from '../components/campaign/CampaignStats';
@@ -22,6 +22,7 @@ import OptionsTab from '../components/campaign/OptionsTab';
 import ProgressTab from '../components/campaign/ProgressTab';
 import { cn } from '../lib/utils';
 import { AnimatedNumber } from '../components/AnimatedNumber';
+import { LeadDetailModal } from '../components/modals/LeadDetailModal';
 
 
 interface CampaignDashboardProps {
@@ -41,6 +42,19 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
   const [showOptions, setShowOptions] = useState(false);
   const [senderCountdown, setSenderCountdown] = useState(5);
   const campaign = campaigns.find(c => c.id === id);
+  const location = useLocation();
+  const [focusLeadId, setFocusLeadId] = useState<string | null>(null);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.focusLeadId) {
+      setFocusLeadId(state.focusLeadId);
+      setIsLeadModalOpen(true);
+      // Clear location state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const updateSenderCountdown = () => {
@@ -380,6 +394,11 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
           {renderTabContent()}
         </div>
       </div>
+      <LeadDetailModal
+        leadId={focusLeadId}
+        open={isLeadModalOpen}
+        onClose={() => setIsLeadModalOpen(false)}
+      />
     </Layout>
   );
 };

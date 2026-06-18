@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { fetchLists, removeDuplicatesFromList, removeLeadFromList, removeLeadsFromList, deleteList, deleteMultipleLists, findCrossListDuplicates, removeDuplicateEntries, CrossListDuplicate, fetchFolders, createFolder, updateFolder, deleteFolder, moveListToFolder, moveMultipleListsToFolder } from '../lib/api/lists';
 import { Lead } from '../types';
 import { LeadTable } from '../components/lead-scraper/LeadTable';
 import { CampaignSelector } from '../components/lead-scraper/CampaignSelector';
-import { List, Search, Hash, AlertTriangle, Trash2, Copy, ChevronDown, ChevronUp, X, Zap, Folder, FolderPlus, MoreVertical, Edit2, Move, ShieldCheck, Loader2, Sparkles, Filter, Terminal, Brain, Activity } from 'lucide-react';
+import { List, Search, Hash, AlertTriangle, Trash2, Copy, ChevronDown, ChevronUp, X, Zap, Folder, FolderPlus, MoreVertical, Edit2, Move, ShieldCheck, Loader2, Sparkles, Filter, Terminal, Brain, Activity, RefreshCw } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { toast } from '../components/ui/use-toast';
@@ -28,8 +29,10 @@ import { Archive, Database, Download } from 'lucide-react';
 import LeadScraperForm from '../components/lead-scraper/LeadScraperForm';
 import LeadScraperResults from '../components/lead-scraper/LeadScraperResults';
 import { api } from '../lib/api/api';
+import { LeadDetailModal } from '../components/modals/LeadDetailModal';
 
 const Discover = () => {
+    const location = useLocation();
     const [lists, setLists] = useState<any[]>([]);
     const [folders, setFolders] = useState<any[]>([]);
     const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -46,6 +49,21 @@ const Discover = () => {
     const [newFolderName, setNewFolderName] = useState('');
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+
+    // Deep linking state
+    const [focusLeadId, setFocusLeadId] = useState<string | null>(null);
+    const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+
+    // Deep linking hook
+    useEffect(() => {
+        const state = location.state as any;
+        if (state?.focusLeadId) {
+            setFocusLeadId(state.focusLeadId);
+            setIsLeadModalOpen(true);
+            // Clear location state
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     // Multi-selection and Drag & Drop state
     const [selectedListIds, setSelectedListIds] = useState<Set<string>>(new Set());
@@ -297,6 +315,45 @@ const Discover = () => {
         }
     };
 
+    const handleResetRegistry = async () => {
+        if (!window.confirm("WARNING: This will permanently purge ALL target lists, folders, list-to-lead associations, and unmanaged leads. Irreversible. Proceed?")) {
+            return;
+        }
+        try {
+            setLoading(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("User not authenticated");
+
+            const listIds = lists.map(l => l.id);
+            if (listIds.length > 0) {
+                await supabase.from('list_leads').delete().in('list_id', listIds);
+            }
+
+            await supabase.from('saved_lists').delete().eq('user_id', user.id);
+            await supabase.from('list_folders').delete().eq('user_id', user.id);
+            await supabase.rpc('clear_unmanaged_leads');
+
+            toast({
+                title: "Registry Reset Complete",
+                description: "All target registries and unmanaged leads have been purged.",
+            });
+
+            setSelectedListId(null);
+            setSelectedListIds(new Set());
+            setLastSelectedListId(null);
+            await loadData();
+        } catch (e: any) {
+            console.error("Error resetting registry:", e);
+            toast({
+                title: "Reset Failed",
+                description: e.message || "An error occurred during reset.",
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Cross-list duplicate detection
     const crossListDuplicates = useMemo(() => {
         return findCrossListDuplicates(lists);
@@ -420,7 +477,7 @@ const Discover = () => {
                 if (list.id === selectedListId) {
                     return {
                         ...list,
-                        list_leads: list.list_leads.filter((item: any) => item.lead.id !== leadId)
+                        list_leads: list.list_leads.filter((item: any) => item.lead?.id !== leadId)
                     };
                 }
                 return list;
@@ -512,7 +569,7 @@ const Discover = () => {
                 if (list.id === selectedListId) {
                     return {
                         ...list,
-                        list_leads: list.list_leads.filter((item: any) => !invalidLeadIds.includes(item.lead.id))
+                        list_leads: list.list_leads.filter((item: any) => !invalidLeadIds.includes(item.lead?.id))
                     };
                 }
                 return list;
@@ -537,8 +594,8 @@ const Discover = () => {
 
     const handleValidateFolder = async (folderId: string) => {
         const folderLists = lists.filter(l => l.folder_id === folderId);
-        const folderLeads = folderLists.flatMap(l => l.list_leads?.map((ll: any) => ll.lead) || []);
-        const leadsToValidate = folderLeads.filter(l => l.email && (!l.validation_status || l.validation_status === 'idle'));
+        const folderLeads = folderLists.flatMap(l => l.list_leads?.map((ll: any) => ll.lead).filter(Boolean) || []);
+        const leadsToValidate = folderLeads.filter(l => l && l.email && (!l.validation_status || l.validation_status === 'idle'));
         const uniqueLeadsToValidate = Array.from(new Map(leadsToValidate.map(l => [l.email, l])).values());
 
         if (uniqueLeadsToValidate.length === 0) {
@@ -752,7 +809,7 @@ const Discover = () => {
     };
 
     const selectedList = lists.find(l => l.id === selectedListId);
-    const currentLeads: Lead[] = selectedList?.list_leads?.map((item: any) => item.lead) || [];
+    const currentLeads: Lead[] = selectedList?.list_leads?.map((item: any) => item.lead).filter(Boolean) || [];
     const duplicatesFound = selectedList ? hasDuplicates(selectedList) : false;
 
     const filteredLists = lists.filter(list =>
@@ -1002,14 +1059,26 @@ const Discover = () => {
                                     <h1 className="text-xl font-black uppercase tracking-tighter text-foreground">Target Registry</h1>
                                     <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">{lists.length} ACTIVE LISTS</p>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-10 w-10 bg-foreground/[0.02] hover:bg-primary/10 hover:text-primary transition-all duration-500 rounded-none"
-                                    onClick={() => setIsCreatingFolder(!isCreatingFolder)}
-                                >
-                                    <FolderPlus size={16} />
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 bg-foreground/[0.02] hover:bg-primary/10 hover:text-primary transition-all duration-500 rounded-none"
+                                        onClick={() => setIsCreatingFolder(!isCreatingFolder)}
+                                        title="Create Folder"
+                                    >
+                                        <FolderPlus size={16} />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 bg-foreground/[0.02] hover:bg-red-500/10 hover:text-red-500 transition-all duration-500 rounded-none text-muted-foreground/40"
+                                        onClick={handleResetRegistry}
+                                        title="Reset target registry"
+                                    >
+                                        <RefreshCw size={16} />
+                                    </Button>
+                                </div>
                             </div>
 
                             {selectedListIds.size > 0 && (
@@ -1471,6 +1540,11 @@ const Discover = () => {
                     </div>
                 </DialogContent>
             </Dialog>
+            <LeadDetailModal
+                leadId={focusLeadId}
+                open={isLeadModalOpen}
+                onClose={() => setIsLeadModalOpen(false)}
+            />
         </Layout>
     );
 };

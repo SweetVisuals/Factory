@@ -4,7 +4,9 @@ const conn = new Client();
 
 const SETUP_SCRIPT = `
 cd /root/Factory
-git pull
+git fetch --all
+git reset --hard origin/main
+git clean -fd
 cd /root/Factory/companies/Relay
 pm2 restart relay-backend
 pm2 restart relay-cron
@@ -28,6 +30,6 @@ conn.on('ready', () => {
   host: '5.75.252.100',
   port: 22,
   username: 'root',
-  password: 'mjaXRVMmbMwC7xCbcLCE',
+  password: 'mjaXRVMmbMwC7xCbcLCE123',
   readyTimeout: 60000
 });

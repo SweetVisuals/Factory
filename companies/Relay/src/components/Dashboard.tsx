@@ -88,7 +88,8 @@ export const Dashboard = () => {
         to: (item.lead?.name && item.lead.name.trim() !== '') ? item.lead.name : (item.lead?.email || 'Unknown Lead'),
         campaignName: (item.campaign as any)?.name || 'Direct',
         details: `${item.status === 'sent' ? 'Sent successfully' : item.status === 'replied' ? 'Replied' : 'Failed to send'}. Company: ${item.lead?.company || 'N/A'}`,
-        actionUrl: item.campaign_id ? `/campaign/${item.campaign_id}` : '/campaigns'
+        actionUrl: item.campaign_id ? `/campaign/${item.campaign_id}` : '/campaigns',
+        leadId: item.lead?.id
       }));
 
       const receivedItems = (repliesData || []).map(item => ({
@@ -124,7 +125,8 @@ export const Dashboard = () => {
         to: (item.name && item.name.trim() !== '') ? item.name : item.email,
         campaignName: 'General',
         details: `Company: ${item.company || 'N/A'}`,
-        actionUrl: '/discover'
+        actionUrl: '/discover',
+        leadId: item.id
       }));
 
       const combined = [...progressItems, ...receivedItems, ...neuralItems, ...leadItems].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -226,7 +228,16 @@ export const Dashboard = () => {
                   activities.slice(0, 30).map(item => (
                     <div 
                       key={item.id}
-                      onClick={() => item.actionUrl && navigate(item.actionUrl)}
+                      onClick={() => {
+                        if (item.actionUrl) {
+                          navigate(item.actionUrl, {
+                            state: {
+                              focusLeadId: item.leadId,
+                              focusEmailFrom: item.from !== 'System' && item.from !== 'Scraper Engine' ? item.from : undefined
+                            }
+                          });
+                        }
+                      }}
                       className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-white/5 cursor-pointer border border-transparent hover:border-white/10 transition-all group"
                       style={{ borderLeft: `3px solid ${item.type === 'sent' ? '#10b981' : item.type === 'bounced' ? '#ef4444' : item.type === 'received' ? '#3b82f6' : item.type === 'lead' ? '#f59e0b' : '#8b5cf6'}` }}
                     >

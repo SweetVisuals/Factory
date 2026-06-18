@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 import { Search, Mail, RefreshCw, Trash2, Archive, Inbox as InboxIcon, ChevronDown, ChevronRight, Briefcase, Folder } from 'lucide-react';
@@ -33,6 +34,28 @@ const Inbox = () => {
   const [expandedBusinesses, setExpandedBusinesses] = useState<Set<string>>(new Set());
   const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const location = useLocation();
+
+  // Deep linking hook for emails
+  useEffect(() => {
+    if (emails.length > 0 && location.state) {
+      const state = location.state as any;
+      if (state.focusEmailFrom) {
+        // Find matching email
+        const matched = emails.find(e => 
+          e.from.toLowerCase().includes(state.focusEmailFrom.toLowerCase()) || 
+          state.focusEmailFrom.toLowerCase().includes(e.from.toLowerCase())
+        );
+        if (matched) {
+          setSelectedEmail(matched);
+          setSelectedEmailIds(new Set([matched.id]));
+          setLastSelectedId(matched.id);
+          // Clear location state
+          window.history.replaceState({}, document.title);
+        }
+      }
+    }
+  }, [emails, location.state]);
 
   const getBusinessName = (accountId: string): string => {
     const account = accounts.find(a => a.id === accountId);
