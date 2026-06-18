@@ -927,35 +927,24 @@ async function generateAISummary(text, notesContext = '', isDeepResearch = true)
 
         if (isDeepResearch) {
             systemPrompt = `You are an elite business intelligence researcher. 
-Your task is to write a detailed "Deep Research" report (approx 400-600 words) about the target company.
+Your task is to write a short, punchy 2-3 sentence summary about the target company.
 
 ${contextInstruction}Structure your response exactly as follows:
 
 ## ⚡ Quick Summary
 (Write 2-3 concise sentences summarizing the company, its value proposition, and a specific operational bottleneck or manual process deduced from their website/tech stack, e.g., "Uses static contact forms for client bookings, likely requiring manual follow-ups" or "Relies on manual email attachments for file delivery").
 
-## 🔬 Deep Research
-(The detailed report starts here.)
-
-Focus Areas for Deep Research:
-1. **Executive Summary**: What they do, their niche, their "vibe".
-2. **Operational Workflows & Tech Stack**: Deducing their backend operations (e.g., booking flows, reservations, ordering, file sharing, invoicing, stock count entry) and identifying manual processes or potential bottlenecks.
-3. **Key People**: Identify CEO, Founders, or key roles if present in the data. *Crucial*: Try to find specific names.
-4. **Social Presence**: Analyze their social media footprint.
-5. **Specific Observations**: Quirky details, specific "things they like".
-6. **Business Data**: Briefly mention how we found them (Website, Search).
-
 Tone: Professional, insightful, "Sherlock Holmes" style.
-Format: Markdown (headers ##, bullet points).
-`;
+Format: Markdown. DO NOT include a massive deep research report.`;
         } else {
             systemPrompt = `You are an AI assistant helping a user extract specific information from a company's website.
 
 ${contextInstruction}Structure your response exactly as follows:
-(Do not include a massive executive summary or deep research report, as the user specifically disabled Deep Research for this query).
 
 ## ⚡ Quick Summary
 (Write 1-2 concise sentences summarizing what the company does, and identify at least one key operational process or tech bottleneck, e.g. "Uses static contact forms, likely requiring manual booking data entry" or "Has an online booking flow but lacks CRM automation").
+
+(Do not include a massive executive summary or deep research report, as the user specifically disabled Deep Research for this query).
 
 Format: Markdown. Keep it direct and concise.`;
         }
