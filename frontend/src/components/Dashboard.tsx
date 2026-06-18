@@ -3,7 +3,7 @@ import { useBusinessData } from '../hooks/useBusinessData';
 import CampaignCard from './CampaignCard';
 import Skeleton from './Skeleton';
 
-const Dashboard = ({ toggleOverlay }: { toggleOverlay?: (view: string) => void }) => {
+const Dashboard = ({ toggleOverlay }: { toggleOverlay?: (view: 'discover' | 'dashboard' | 'profile' | 'employees' | 'queue' | 'business' | 'logs' | 'inbox') => void }) => {
   const { businesses, setSelectedBusiness, metrics } = useBusinessData();
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('all');
   const [isLogOpen, setIsLogOpen] = useState(false);
@@ -62,7 +62,7 @@ const Dashboard = ({ toggleOverlay }: { toggleOverlay?: (view: string) => void }
                       if (toggleOverlay) {
                         if (log.type === 'email_received') toggleOverlay('inbox');
                         else if (log.type === 'lead_added') toggleOverlay('discover');
-                        else toggleOverlay('campaigns'); // 'dashboard' handles campaigns, maybe just keep it dashboard or 'discover'
+                        else toggleOverlay('business'); // 'dashboard' handles campaigns, maybe just keep it dashboard or 'discover'
                       }
                     }}
                     style={{ 
