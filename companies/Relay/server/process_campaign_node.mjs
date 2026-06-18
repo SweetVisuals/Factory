@@ -72,6 +72,11 @@ export async function runProcessCampaign() {
       return JSON.stringify({ message: "No active schedules (all filtered or inactive)" });
     const z = [],
       $ = new Map();
+    // ═══ FIX 2: GLOBAL MEMORY LOCK FOR DEDUP ═══
+    const globalTargetedEmails = new Set();
+    // ═══ FIX 1: SMTP CONNECTION POOL ═══
+    const smtpPool = new Map();
+
     for (const e of L) {
       const o = e.campaign_id;
       ($.has(o) || $.set(o, []), $.get(o).push(e));
@@ -242,9 +247,10 @@ export async function runProcessCampaign() {
               ));
           continue;
         }
-        if (A.has(t.email.toLowerCase())) {
+        const lowerEmail = t.email.toLowerCase();
+        if (A.has(lowerEmail) || globalTargetedEmails.has(lowerEmail)) {
           (console.log(
-            `[DEDUP] Skipping lead ${t.email}: Already targeted by another campaign.`,
+            `[DEDUP] Skipping lead ${t.email}: Already targeted by another campaign or locked in memory.`,
           ),
             await n
               .from("campaign_progress")
@@ -283,6 +289,10 @@ export async function runProcessCampaign() {
               ));
           continue;
         }
+        
+        // ═══ FIX 2: APPLY MEMORY LOCK ═══
+        globalTargetedEmails.add(lowerEmail);
+
         let a = null;
         if (t.assigned_email_account_id) {
           const s = u.find(
@@ -605,6 +615,8 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
             }
           } catch (s) {
             console.error("AI Personalization Failed", s);
+            console.log(`[AI Retry Queue] Skipping lead ${t.email} due to AI error. Will retry on next run.`);
+            continue;
           }
         (S || (S = e.templates.content), E || (E = e.templates.subject));
         let b = "Sender";
@@ -790,12 +802,17 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
           }
         }
         try {
-          (await De.createTransport({
-            host: a.smtp_host,
-            port: Number(a.smtp_port),
-            secure: Number(a.smtp_port) === 465,
-            auth: { user: a.email, pass: me },
-          }).sendMail({
+          if (!smtpPool.has(a.id)) {
+            smtpPool.set(a.id, De.createTransport({
+              host: a.smtp_host,
+              port: Number(a.smtp_port),
+              secure: Number(a.smtp_port) === 465,
+              auth: { user: a.email, pass: me },
+            }));
+          }
+          const transporter = smtpPool.get(a.id);
+
+          (await transporter.sendMail({
             from: a.name ? '"' + a.name + '" <' + a.email + ">" : a.email,
             to: t.email,
             subject: T,
@@ -906,6 +923,12 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
       if (_r.status === 'fulfilled' && _r.value) z.push(..._r.value);
       else if (_r.status === 'rejected') console.error('[PARALLEL ERROR]', _r.reason);
     }
+    
+    // Close all SMTP connections in the pool gracefully
+    for (const transporter of smtpPool.values()) {
+      transporter.close();
+    }
+    console.log(`[SMTP POOL] Gracefully closed ${smtpPool.size} active SMTP connections.`);
     return JSON.stringify({ success: !0, processed: z });
   } catch (n) {
     return JSON.stringify({ success: false, error: String(n?.message ?? n) });

@@ -28,6 +28,7 @@ import { startCompaniesHouseCron } from './companies_house_cron.mjs';
 import { startAutoAssignCron } from './auto_assign_cron.mjs';
 import { startScraperSchedulerCron } from './scraper_scheduler_cron.mjs';
 import { startEmailerCron } from './emailer_cron.mjs';
+import { startBounceProcessorCron } from './bounce_processor_cron.mjs';
 
 // Prevent Puppeteer temp profile deletion errors (EBUSY unlink) from crashing the server
 process.on('unhandledRejection', (reason, promise) => {
@@ -3032,6 +3033,7 @@ if (process.env.ENABLE_CRONS !== 'false') {
   startAutoAssignCron();
   startScraperSchedulerCron();
   startEmailerCron();
+  startBounceProcessorCron();
 } else {
   console.log('[SYSTEM] Background services (crons) are DISABLED via ENABLE_CRONS=false.');
 }
