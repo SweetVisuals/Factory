@@ -1139,7 +1139,8 @@ CRITICAL INSTRUCTIONS:
 1. You MUST strictly follow the copywriting constraints, rules, word counts, and forbidden terms defined in the brief above.
 2. Identify the segment of the campaign based on the niche/parameters and apply the correct angle/hooks.
 3. Return ONLY a valid JSON array containing exactly 5 objects with keys: "name", "subject", "content".
-4. Do NOT include markdown styling or outer explanation. Just the raw JSON.`;
+4. Do NOT include markdown styling or outer explanation. Just the raw JSON.
+5. ABSOLUTELY DO NOT include any email sign-off, closing (such as "Best,", "Regards,", "Cheers,"), or sender name/signature/company at the end of the email content. Stop immediately after the final call-to-action sentence.`;
 
               await checkRateLimit();
               const seqResponse = await fetchAIChatCompletion({

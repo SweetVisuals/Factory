@@ -26,6 +26,33 @@ export async function runProcessCampaign() {
         .eq("service", "disable_deepseek")
         .maybeSingle(),
       ge = pe?.key_value === "true";
+
+    const { data: allDbAccounts } = await n.from('email_accounts').select('name, email, company');
+    const globalNamesToStrip = new Set();
+    if (allDbAccounts) {
+      for (const acct of allDbAccounts) {
+        if (acct.name) {
+          globalNamesToStrip.add(acct.name.trim());
+          const first = acct.name.split(' ')[0].trim();
+          if (first) globalNamesToStrip.add(first);
+        }
+        if (acct.email) {
+          const prefix = acct.email.split('@')[0].trim();
+          if (prefix) {
+            globalNamesToStrip.add(prefix);
+            globalNamesToStrip.add(prefix.charAt(0).toUpperCase() + prefix.slice(1));
+          }
+        }
+        if (acct.company) {
+          globalNamesToStrip.add(acct.company.trim());
+        }
+      }
+    }
+    globalNamesToStrip.add("Ethan");
+    globalNamesToStrip.add("Clara");
+    globalNamesToStrip.add("Relay Solutions");
+    globalNamesToStrip.add("MrMedic");
+    globalNamesToStrip.add("MrMedic Events");
     console.log("Checking engine status...");
     const { data: _e } = await n
       .from("agent_memory")
@@ -429,7 +456,20 @@ export async function runProcessCampaign() {
             e.templates.content.includes("[") ||
             e.templates.subject.includes("{") ||
             e.templates.subject.includes("[");
-        if ((he || !S || !E || ye) && t.summary)
+        
+        const hasValidSummary = t.summary && 
+                                t.summary.trim() !== "" && 
+                                !t.summary.toLowerCase().includes("failed to perform") &&
+                                !t.summary.toLowerCase().includes("could not complete");
+
+        const needsPersonalization = (he || !S || !E || ye);
+        
+        if (needsPersonalization && !hasValidSummary) {
+          console.log(`[PERSONALIZATION BLOCK] Skipping lead ${t.email}: No valid research summary available yet for personalization.`);
+          continue;
+        }
+
+        if (needsPersonalization && hasValidSummary)
           try {
             const s = y;
             let i = e.templates.content
@@ -638,21 +678,41 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
           ],
           Q = X[Math.floor(Math.random() * X.length)];
         let O = S;
-        // AGGRESSIVE sign-off stripping to prevent double signatures
-        const ke = /\n*\s*(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward|Hope to hear),?\s*[\n,][^]*$/i;
-        O = O.replace(ke, "").trimEnd();
-        // 2. Strip any dynamic "Name\nCompany" block at end
-        if (V) {
-          const companySafe = V.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const companyRegex = new RegExp(`\\n+\\s*[A-Z][a-z]+\\s*\\n\\s*${companySafe}[^]*$`, 'i');
-          O = O.replace(companyRegex, "").trimEnd();
+        // ═══ FIX: ALWAYS STRIP EXISTING SIGN-OFFS, THEN APPEND CORRECT ONE ═══
+        let strippedBody = O;
+
+        // Strip sender names/companies explicitly to prevent double sign-off
+        const senderFullName = a.name || b;
+        const localNamesToStrip = [senderFullName, b, V, a.email?.split('@')[0]].filter(Boolean);
+        const combinedNames = new Set([...localNamesToStrip, ...globalNamesToStrip]);
+        
+        // Strip common sign-off words + names
+        for (const name of combinedNames) {
+          if (!name || name.length < 3) continue; // Skip very short names
+          const safeName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // Match optional sign-off word followed by the name at the end of the email
+          const nameStripRegex = new RegExp(`\\n*\\s*(?:Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward|Yours|Ender)[,:]?\\s*\\n*\\s*${safeName}[\\s\\S]{0,200}$`, 'i');
+          strippedBody = strippedBody.replace(nameStripRegex, '').trimEnd();
+          
+          // Also just match the name by itself at the end of the email
+          const exactNameRegex = new RegExp(`\\n+\\s*${safeName}[\\s\\S]{0,100}$`, 'i');
+          strippedBody = strippedBody.replace(exactNameRegex, '').trimEnd();
         }
-        // 3. Strip any standalone URL-only lines at the very end
-        O = O.replace(/\n+\s*(?:https?:\/\/|www\.)[^\s]+\s*$/i, "").trimEnd();
-        // 4. Strip placeholders
-        O = O.replace(/\n*\s*\{\{?ender\}\}?[\s\S]*$/i, "").replace(/\n*\s*\[Sender Name\][\s\S]*$/i, "").trimEnd();
-        // 5. Strip any trailing line that is just a first name
-        O = O.replace(/\n+\s*[A-Z][a-z]{2,15}\s*$/m, "").trimEnd();
+        
+        // Strip sign-offs at the end
+        const signOffStrip = /\n*\s*(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward),?\s*(?:\n[\s\S]{0,200}|\s*$)/i;
+        strippedBody = strippedBody.replace(signOffStrip, '').trimEnd();
+        
+        // Also strip any standalone URL-only lines at the very end
+        strippedBody = strippedBody.replace(/\n+\s*(?:https?:\/\/|www\.)[^\s]+\s*$/i, "").trimEnd();
+
+        // Also strip {ender} placeholders and everything after them
+        strippedBody = strippedBody
+            .replace(/\n*\s*\{\{?ender\}\}?[\s\S]*$/i, '')
+            .replace(/\n*\s*\[Sender Name\][\s\S]*$/i, '')
+            .trimEnd();
+
+        O = strippedBody;
         
         const Z = a.signature ? a.signature.trim() : "";
         let ie = "";

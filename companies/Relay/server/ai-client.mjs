@@ -18,12 +18,7 @@ const KEY_COOLDOWN_MS = 5 * 60 * 1000;
 // Helper: Load OpenRouter keys from file
 function loadOpenRouterKeys() {
   const defaultKeys = [
-    "process.env.OPENROUTER_API_KEY",
-    "process.env.OPENROUTER_API_KEY",
-    "process.env.OPENROUTER_API_KEY",
-    "process.env.OPENROUTER_API_KEY",
-    "process.env.OPENROUTER_API_KEY",
-    "process.env.OPENROUTER_API_KEY"
+    process.env.OPENROUTER_API_KEY || "sk-or-v1-dummykey"
   ];
 
   try {
