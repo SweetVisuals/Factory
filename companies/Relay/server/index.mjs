@@ -1161,11 +1161,17 @@ app.post('/api/scrape-leads', async (req, res) => {
     // Concurrency Lock Check: Reject duplicate active scrapes for the same campaign
     if (campaignId) {
       try {
-        const { data: activeTasks, error: taskCheckErr } = await client
+        let query = client
           .from('tasks')
           .select('id, description')
           .eq('assigned_to', 'Scraper')
           .in('status', ['in_progress', 'pending', 'waiting']);
+        
+        if (taskId) {
+          query = query.neq('id', taskId);
+        }
+        
+        const { data: activeTasks, error: taskCheckErr } = await query;
         
         if (!taskCheckErr && activeTasks) {
           const isAlreadyRunning = activeTasks.some(t => t.description && t.description.includes(campaignId));
