@@ -74,6 +74,27 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           read: false
         }, ...prev].slice(0, 10));
       })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'inbox_emails' }, async (payload) => {
+        if (payload.new.folder !== 'inbox') return;
+        setNotifications(prev => [{
+          id: Date.now(),
+          title: 'New Reply Received',
+          message: `From: ${payload.new.from}\nSubject: ${payload.new.subject}`,
+          time: new Date().toLocaleTimeString(),
+          read: false
+        }, ...prev].slice(0, 10));
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns' }, async (payload) => {
+        if (payload.new.status === 'paused' || payload.new.status === 'error' || payload.new.status === 'stopped') {
+          setNotifications(prev => [{
+            id: Date.now(),
+            title: 'Campaign Alert',
+            message: `Campaign "${payload.new.name}" status changed to ${payload.new.status}`,
+            time: new Date().toLocaleTimeString(),
+            read: false
+          }, ...prev].slice(0, 10));
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);

@@ -71,7 +71,7 @@ const CampaignStats = ({ campaignId }: CampaignStatsProps) => {
           .from('campaign_progress')
           .select('id', { count: 'exact', head: false })
           .eq('campaign_id', campaignId)
-          .eq('status', 'failed');
+          .eq('status', 'bounced');
 
         const bounceCount = bounceData?.length || 0;
         const bounceRate = totalSentCount > 0

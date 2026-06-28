@@ -61,41 +61,37 @@ const EmailAccountsList: React.FC = () => {
   const relayAccounts = emailAccounts.filter(acc => acc.email.toLowerCase().includes('relay'));
   const mrmedicAccounts = emailAccounts.filter(acc => !acc.email.toLowerCase().includes('relay'));
 
-  const renderAccountGroup = (title: string, accounts: EmailAccount[], colorClass: string, bgTint: string) => (
-    <div className="flex flex-col gap-4 mb-10">
-      <div className="flex items-center gap-3 px-2">
-        <div className={cn("w-3 h-3 rounded-full shadow-sm", colorClass)} />
-        <h3 className="text-lg font-bold text-foreground tracking-tight">{title}</h3>
-        <span className="px-2.5 py-0.5 rounded-full bg-muted text-xs font-bold text-muted-foreground">{accounts.length}</span>
+  const renderAccountGroup = (title: string, accounts: EmailAccount[]) => (
+    <div className="flex flex-col gap-3 mb-8">
+      <div className="flex items-center gap-2 px-1">
+        <h3 className="text-sm font-medium text-foreground">{title}</h3>
+        <span className="px-2 py-0.5 rounded-full bg-muted text-[10px] font-medium text-muted-foreground">{accounts.length}</span>
       </div>
 
       {accounts.length === 0 ? (
-        <div className="p-10 rounded-2xl bg-card border border-border flex flex-col items-center justify-center text-center shadow-sm">
-          <Activity size={32} className="text-muted-foreground/30 mb-4" />
-          <p className="text-sm font-medium text-muted-foreground">No accounts configured for this business.</p>
+        <div className="p-8 rounded-xl border border-border border-dashed flex flex-col items-center justify-center text-center">
+          <Activity size={24} className="text-muted-foreground/30 mb-3" />
+          <p className="text-sm text-muted-foreground">No accounts configured.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {accounts.map(account => (
             <div
               key={account.id}
               onClick={() => handleAccountClick(account)}
               className={cn(
-                "group relative bg-card border border-border rounded-2xl p-6 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-1 overflow-hidden",
-                selectedAccount?.id === account.id ? "ring-2 ring-primary border-primary/50" : ""
+                "group bg-card border border-border rounded-xl p-4 transition-all duration-200 cursor-pointer hover:border-border/80 hover:bg-muted/20",
+                selectedAccount?.id === account.id ? "ring-1 ring-primary border-primary" : ""
               )}
             >
-              {/* Subtle tint overlay */}
-              <div className={cn("absolute inset-0 opacity-[0.03] transition-opacity group-hover:opacity-[0.05]", bgTint)} />
-
-              <div className="relative z-10 flex flex-col gap-6">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <span className="font-bold text-foreground truncate text-base">{account.email}</span>
-                    <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium text-foreground truncate text-sm">{account.email}</span>
+                    <div className="flex items-center mt-1">
                       <span className={cn(
-                        "flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest",
-                        account.status === 'active' ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                        "flex items-center gap-1 text-[10px] font-medium",
+                        account.status === 'active' ? "text-emerald-500" : "text-red-500"
                       )}>
                         {account.status === 'active' ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
                         {account.status}
@@ -109,36 +105,36 @@ const EmailAccountsList: React.FC = () => {
                         <button
                           onClick={(e) => toggleWarmup(account, e)}
                           className={cn(
-                            "p-2.5 rounded-xl transition-all shadow-sm border",
-                            account.warmup_status === 'enabled' ? "bg-amber-500/20 text-amber-500 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]" :
-                            account.warmup_status === 'paused' ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/30" :
-                            "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
+                            "p-1.5 rounded-md transition-colors",
+                            account.warmup_status === 'enabled' ? "text-amber-500 hover:bg-amber-500/10" :
+                            account.warmup_status === 'paused' ? "text-yellow-600 hover:bg-yellow-600/10" :
+                            "text-muted-foreground hover:bg-muted"
                           )}
                         >
-                          <Flame size={18} className={account.warmup_status === 'enabled' ? "animate-pulse" : ""} />
+                          <Flame size={16} className={account.warmup_status === 'enabled' ? "animate-pulse" : ""} />
                         </button>
                       </Tooltip.Trigger>
-                      <Tooltip.Content side="top" className="bg-popover text-popover-foreground px-3 py-1.5 rounded-lg text-xs font-bold shadow-xl border border-border" sideOffset={5}>
+                      <Tooltip.Content side="top" className="bg-popover text-popover-foreground px-2 py-1 rounded text-xs border border-border shadow-md" sideOffset={5}>
                         {account.warmup_status === 'enabled' ? 'Pause Warmup' : account.warmup_status === 'paused' ? 'Resume Warmup' : 'Enable Warmup'}
                       </Tooltip.Content>
                     </Tooltip.Root>
                   </Tooltip.Provider>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="flex flex-col gap-1 bg-background/50 p-3 rounded-xl border border-border/50">
-                    <span className="text-[9px] uppercase font-bold tracking-widest text-muted-foreground">Sent</span>
-                    <span className="text-lg font-light text-foreground">{account.emailsSent || 0}</span>
+                <div className="grid grid-cols-3 gap-2 border-t border-border/50 pt-3">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Sent</span>
+                    <span className="text-sm font-medium text-foreground">{account.emailsSent || 0}</span>
                   </div>
-                  <div className="flex flex-col gap-1 bg-background/50 p-3 rounded-xl border border-border/50">
-                    <span className="text-[9px] uppercase font-bold tracking-widest text-muted-foreground">Warmup</span>
-                    <span className="text-lg font-light text-foreground">{account.warmupEmails || 0}</span>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Warmup</span>
+                    <span className="text-sm font-medium text-foreground">{account.warmupEmails || 0}</span>
                   </div>
-                  <div className="flex flex-col gap-1 bg-background/50 p-3 rounded-xl border border-border/50">
-                    <span className="text-[9px] uppercase font-bold tracking-widest text-muted-foreground">Health</span>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Health</span>
                     <span className={cn(
-                      "text-lg font-bold",
-                      (account.healthScore || 0) > 90 ? "text-emerald-500" : (account.healthScore || 0) > 70 ? "text-yellow-500" : "text-red-500"
+                      "text-sm font-medium",
+                      (account.healthScore || 0) > 90 ? "text-emerald-500" : (account.healthScore || 0) > 70 ? "text-yellow-600" : "text-red-500"
                     )}>{account.healthScore || 'N/A'}</span>
                   </div>
                 </div>
@@ -153,8 +149,8 @@ const EmailAccountsList: React.FC = () => {
   return (
     <div className="relative flex gap-8">
       <div className="flex-1 flex flex-col min-w-0">
-        {renderAccountGroup("Relay Solutions", relayAccounts, "bg-emerald-500", "bg-emerald-500")}
-        {renderAccountGroup("MrMedic Events", mrmedicAccounts, "bg-blue-500", "bg-blue-500")}
+        {renderAccountGroup("Relay Solutions", relayAccounts)}
+        {renderAccountGroup("MrMedic Events", mrmedicAccounts)}
       </div>
 
       {showSidebar && selectedAccount && (

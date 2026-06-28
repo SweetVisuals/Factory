@@ -73,61 +73,57 @@ const EmailAccounts = () => {
     <Layout>
       <div className="w-full flex flex-col h-full bg-background overflow-y-auto text-foreground animate-in fade-in duration-500">
         
-        {/* Thick Padded Header */}
-        <div className="px-10 py-10 bg-background border-b border-border/50 shrink-0">
-          <div className="flex flex-col gap-8 max-w-[1400px] mx-auto">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-              
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-card border border-border rounded-xl shadow-sm">
-                  <AtSign size={24} className="text-muted-foreground" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <h1 className="text-3xl font-bold tracking-tight text-foreground">Email Accounts</h1>
-                  <p className="text-sm font-medium text-muted-foreground">Manage your connected sender domains and warmup health.</p>
-                </div>
+        {/* Clean Header */}
+        <div className="px-8 py-6 bg-background border-b border-border/50 shrink-0">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 max-w-[1400px] mx-auto">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-muted/50 rounded-lg">
+                <AtSign size={20} className="text-muted-foreground" />
               </div>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Email Accounts</h1>
+                <p className="text-sm text-muted-foreground">Manage your connected sender domains and warmup health.</p>
+              </div>
+            </div>
 
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search domains..."
-                    className="pl-10 pr-4 py-2.5 w-64 text-sm font-medium rounded-xl bg-card border border-border focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
-                  />
-                </div>
-                <div className="h-8 w-px bg-border" />
-                <button
-                  onClick={handleCleanup}
-                  className="p-2.5 rounded-xl border border-transparent hover:bg-destructive/10 text-destructive transition-colors"
-                  title="Cleanup Invalid"
-                >
-                  <Trash2 size={18} />
-                </button>
-                <button
-                  onClick={() => setShowTestDesignModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors shadow-sm"
-                >
-                  <Send size={16} className="text-purple-500" />
-                  Test Engine
-                </button>
-                <button
-                  onClick={handleForceWarmup}
-                  disabled={isForcingWarmup}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors shadow-sm disabled:opacity-50"
-                >
-                  <Zap size={16} className="text-amber-500" />
-                  {isForcingWarmup ? 'Forcing...' : 'Force Warmup'}
-                </button>
-                <button
-                  onClick={() => setShowAddEmailModal(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
-                >
-                  <Plus size={18} />
-                  Add Account
-                </button>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={14} />
+                <input
+                  type="text"
+                  placeholder="Search domains..."
+                  className="pl-9 pr-4 py-2 w-64 text-sm rounded-lg bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
+              <button
+                onClick={handleCleanup}
+                className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                title="Cleanup Invalid"
+              >
+                <Trash2 size={16} />
+              </button>
+              <button
+                onClick={() => setShowTestDesignModal(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <Send size={14} className="text-muted-foreground" />
+                Test Engine
+              </button>
+              <button
+                onClick={handleForceWarmup}
+                disabled={isForcingWarmup}
+                className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                <Zap size={14} className="text-muted-foreground" />
+                {isForcingWarmup ? 'Forcing...' : 'Force Warmup'}
+              </button>
+              <button
+                onClick={() => setShowAddEmailModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-all"
+              >
+                <Plus size={16} />
+                Add Account
+              </button>
             </div>
           </div>
         </div>

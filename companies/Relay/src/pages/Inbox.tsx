@@ -261,10 +261,10 @@ const Inbox = () => {
 
   return (
     <Layout fullHeight>
-      <div className="flex flex-col h-full bg-background p-6">
+      <div className="flex flex-col h-full bg-background p-0">
         
         {/* Main Inbox Application Shell */}
-        <div className="flex flex-1 overflow-hidden bg-card border border-border shadow-md rounded-3xl">
+        <div className="flex flex-1 overflow-hidden bg-card border-none">
 
           {/* Sidebar */}
           <div className="w-64 border-r border-border flex flex-col bg-card/50">
