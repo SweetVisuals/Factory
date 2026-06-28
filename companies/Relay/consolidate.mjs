@@ -1,109 +1,122 @@
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-async function main() {
-  const { data: authData } = await supabase.auth.signInWithPassword({
-    email: 'ptnmgmt@gmail.com',
-    password: 'Longlonglong1!'
-  });
-  if (!authData) { console.log('Auth failed'); return; }
-  
-  const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${authData.session.access_token}` } }
-  });
-
-  // Get all campaigns with lead counts
-  const { data: campaigns } = await client.from('campaigns').select('*');
-  
-  for (const c of campaigns) {
-    const { count } = await client.from('campaign_leads').select('*', { count: 'exact', head: true }).eq('campaign_id', c.id);
-    c.lead_count = count || 0;
-  }
-  
-  // Sort by lead count desc
-  campaigns.sort((a, b) => b.lead_count - a.lead_count);
-  
-  console.log('Current campaign state:');
-  campaigns.forEach(c => console.log(`  ${c.status === 'Draft' ? 'DRAFT' : c.status.padEnd(8)} | ${String(c.lead_count).padStart(3)} leads | ${c.name}`));
-  
-  // Strategy: Keep the 5 most important campaigns with data
-  // Keep: Legal Services - UK, Law Firm Cybersecurity Compliance, Cybersecurity Compliance, Roofing Contractors, E-commerce Stores
-  // Consolidate duplicated cybersecurity/law firm campaigns
-  
-  const keepNames = [
-    'Legal Services - UK',
-    'Law Firm Cybersecurity Compliance', 
-    'Cybersecurity Compliance',
-    'Roofing Contractors - US',
-    'E-commerce Stores'
-  ];
-  
-  const deleteNames = [
-    'London Law Firm Outreach',      // duplicate of Legal Services - UK
-    'AI-Powered QA Automation',      // no leads, not a focus
-    'Real Estate Agents',            // duplicate, no leads
-    'Real Estate Agent Outreach',    // duplicate, no leads  
-    'Law Firm Cybersecurity (Partners/IT)',   // duplicate
-    'Law Firm Cybersecurity Compliance USA'   // duplicate
-  ];
-  
-  // Move leads from duplicate campaigns to the primary ones
-  const mergeMap = {
-    'London Law Firm Outreach': 'Legal Services - UK',
-    'Law Firm Cybersecurity Compliance USA': 'Law Firm Cybersecurity Compliance',
-    'Law Firm Cybersecurity (Partners/IT)': 'Cybersecurity Compliance',
-    'Real Estate Agent Outreach': 'Legal Services - UK',  // no real estate leads exist anyway
-    'Real Estate Agents': 'Legal Services - UK',
-    'AI-Powered QA Automation': 'Cybersecurity Compliance'
-  };
-  
-  // Move leads
-  for (const [fromName, toName] of Object.entries(mergeMap)) {
-    const from = campaigns.find(c => c.name === fromName);
-    const to = campaigns.find(c => c.name === toName);
-    if (!from || !to) continue;
-    
-    const { data: leadsToMove } = await client.from('campaign_leads').select('lead_id').eq('campaign_id', from.id);
-    if (leadsToMove && leadsToMove.length > 0) {
-      let moved = 0;
-      for (const { lead_id } of leadsToMove) {
-        const { error } = await client.from('campaign_leads').upsert({
-          campaign_id: to.id,
-          lead_id
-        }, { onConflict: 'campaign_id,lead_id' });
-        if (!error) moved++;
-      }
-      console.log(`Moved ${moved}/${leadsToMove.length} leads from "${fromName}" to "${toName}"`);
-    }
-  }
-  
-  // Delete duplicate campaigns (actually mark as archived)
-  for (const name of deleteNames) {
-    const c = campaigns.find(c => c.name === name);
-    if (!c) continue;
-    
-    // Delete campaign_leads for this campaign
-    await client.from('campaign_leads').delete().eq('campaign_id', c.id);
-    // Delete the campaign
-    const { error } = await client.from('campaigns').delete().eq('id', c.id);
-    console.log(`Deleted campaign: "${name}" ${error ? 'ERROR: ' + error.message : 'OK'}`);
-  }
-  
-  // Update lead counts for kept campaigns
-  console.log('\nFinal campaign state:');
-  const { data: final } = await client.from('campaigns').select('*');
-  for (const c of final) {
-    const { count } = await client.from('campaign_leads').select('*', { count: 'exact', head: true }).eq('campaign_id', c.id);
-    await client.from('campaigns').update({ prospects: count || 0 }).eq('id', c.id);
-    console.log(`  ${c.name}: ${count || 0} leads | ${c.status}`);
-  }
+if (!supabaseUrl || !supabaseKey) {
+  console.error("Missing Supabase credentials.");
+  process.exit(1);
 }
 
-main().catch(console.error);
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const getCategory = (listName) => {
+  const match = listName.match(/\(([^)]+)\)/);
+  if (!match) return "Other";
+  
+  const tag = match[1].toLowerCase();
+  
+  if (tag.includes('dental') || tag.includes('dentist') || tag.includes('healthcare')) return "Healthcare & Dental";
+  if (tag.includes('construction') || tag.includes('civil') || tag.includes('building')) return "Construction & Civils";
+  if (tag.includes('event') || tag.includes('hotel') || tag.includes('conference') || tag.includes('media') || tag.includes('film') || tag.includes('post-production')) return "Media & Events";
+  if (tag.includes('consulting') || tag.includes('automation') || tag.includes('management') || tag.includes('workflow')) return "Consulting & Tech";
+  if (tag.includes('web development')) return "Consulting & Tech";
+  
+  return "Other";
+};
+
+async function consolidateLists() {
+  console.log("Starting consolidation...");
+  
+  // 1. Fetch current lists
+  const { data: lists, error: listsErr } = await supabase.from('saved_lists').select('*');
+  if (listsErr) throw listsErr;
+  
+  if (!lists || lists.length === 0) {
+    console.log("No lists to consolidate.");
+    return;
+  }
+  
+  // We need the user_id to associate folders and lists. We will pick the user_id from the first list.
+  const userId = lists[0].user_id;
+
+  // 2. Fetch current folders
+  const { data: folders, error: foldersErr } = await supabase.from('list_folders').select('*');
+  if (foldersErr) throw foldersErr;
+  
+  const folderMap = new Map();
+  folders.forEach(f => folderMap.set(f.name, f.id));
+
+  // 3. Define high-level categories and ensure folders exist
+  const categories = ["Healthcare & Dental", "Construction & Civils", "Media & Events", "Consulting & Tech", "Other"];
+  
+  for (const cat of categories) {
+    if (!folderMap.has(cat)) {
+      console.log(`Creating folder: ${cat}`);
+      const folderId = crypto.randomUUID();
+      const { error } = await supabase.from('list_folders').insert({ id: folderId, user_id: userId, name: cat });
+      if (error) throw error;
+      folderMap.set(cat, folderId);
+    }
+  }
+
+  // 4. Create Master Lists for each category if they don't exist
+  const masterListMap = new Map();
+  for (const cat of categories) {
+    const masterName = `Master Registry: ${cat}`;
+    const existing = lists.find(l => l.name === masterName);
+    if (existing) {
+      masterListMap.set(cat, existing.id);
+    } else {
+      console.log(`Creating Master List: ${masterName}`);
+      const listId = crypto.randomUUID();
+      const { error } = await supabase.from('saved_lists').insert({
+        id: listId,
+        user_id: userId,
+        name: masterName,
+        folder_id: folderMap.get(cat)
+      });
+      if (error) throw error;
+      masterListMap.set(cat, listId);
+    }
+  }
+
+  // 5. Migrate leads from old lists to master lists
+  const oldLists = lists.filter(l => !l.name.startsWith('Master Registry:'));
+  
+  for (const list of oldLists) {
+    const cat = getCategory(list.name);
+    const masterId = masterListMap.get(cat);
+    
+    // Fetch list_leads for this list
+    const { data: listLeads, error: llErr } = await supabase.from('list_leads').select('lead_id').eq('list_id', list.id);
+    if (llErr) throw llErr;
+    
+    if (listLeads && listLeads.length > 0) {
+      const inserts = listLeads.map(ll => ({
+        list_id: masterId,
+        lead_id: ll.lead_id
+      }));
+      
+      console.log(`Migrating ${inserts.length} leads from "${list.name}" to "${cat}"...`);
+      // Use ignoreDuplicates in upsert if possible, or just insert and ignore conflicts
+      const { error: insErr } = await supabase.from('list_leads').upsert(inserts, { onConflict: 'list_id,lead_id', ignoreDuplicates: true });
+      if (insErr) {
+        console.error(`Error migrating leads for ${list.name}:`, insErr);
+      }
+    }
+    
+    // 6. Delete old list
+    console.log(`Deleting old list: ${list.name}`);
+    await supabase.from('saved_lists').delete().eq('id', list.id);
+  }
+  
+  console.log("Consolidation complete!");
+}
+
+consolidateLists().catch(console.error);

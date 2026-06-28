@@ -120,8 +120,12 @@ export const Dashboard = () => {
       }));
 
       // Fetch Scraper Logs
-      const { data: sLogs } = await supabase.from('scraper_logs').select('*').order('timestamp', { ascending: false }).limit(50);
-      if (sLogs) setScraperLogs(sLogs.reverse()); // Chronological for the feed
+      try {
+        const logRes = await api.get('/scraper-logs');
+        if (Array.isArray(logRes.data) && logRes.data.length > 0) {
+            setScraperLogs(logRes.data);
+        }
+      } catch(e) {}
 
       // Fetch Inbox
       const { data: iEmails } = await supabase.from('inbox_emails').select('id, received_at, subject, from, to, body_text, body_html, campaign_id, email_account_id, is_read, campaign:campaigns(name)').eq('folder', 'inbox').in('campaign_id', campIds).order('received_at', { ascending: false }).limit(50);
@@ -137,12 +141,32 @@ export const Dashboard = () => {
     const channel = supabase.channel('dashboard-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_progress' }, () => fetchAllData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_emails' }, () => fetchAllData())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'scraper_logs' }, (payload) => {
-        setScraperLogs(prev => [...prev.slice(-49), payload.new as ScraperLog]);
-      })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    let logsInterval: any;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      supabase.channel(`scraped-leads-${session.user.id}`)
+        .on('broadcast', { event: 'scrape-log' }, (payload) => {
+           if (payload.payload && payload.payload.message) {
+             setScraperLogs(prev => [...prev.slice(-49), payload.payload as ScraperLog]);
+           }
+        }).subscribe();
+        
+      logsInterval = setInterval(async () => {
+        try {
+          const logRes = await api.get('/scraper-logs');
+          if (Array.isArray(logRes.data) && logRes.data.length > 0) {
+            setScraperLogs(logRes.data);
+          }
+        } catch(e) {}
+      }, 2000);
+    });
+
+    return () => { 
+      supabase.removeChannel(channel); 
+      if (logsInterval) clearInterval(logsInterval);
+    };
   }, [selectedBusinessId]);
 
   const handleAIDraft = async () => {
@@ -436,7 +460,9 @@ export const Dashboard = () => {
                             <span className="text-blue-400 flex items-center gap-1"><TerminalIcon size={10} /> SYSTEM</span>
                             <span>{format(new Date(log.timestamp), 'HH:mm:ss')}</span>
                           </div>
-                          <span className="text-emerald-400">{log.message}</span>
+                          <div className="text-emerald-400 whitespace-pre-wrap break-words max-h-32 overflow-y-auto custom-scrollbar pr-2 bg-black/20 p-2 rounded border border-white/5">
+                            {log.message}
+                          </div>
                         </div>
                       ))
                     )}
