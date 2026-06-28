@@ -11,6 +11,12 @@ async function runScraperScheduler() {
   try {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
     
+    const { data: memData } = await supabase.from('agent_memory').select('value').eq('key_name', 'factory_status').maybeSingle();
+    if (memData?.value?.status === 'paused') {
+      console.log(`[Scraper Scheduler] Factory is paused for reason: ${memData?.value?.reason}. Skipping scraper schedule.`);
+      return;
+    }
+
     // Get active campaigns
     const { data: campaigns, error: campaignError } = await supabase
         .from('campaigns')

@@ -229,6 +229,7 @@ ABSOLUTE RULES (violation = failure):
 6. Plain text only. No HTML. Normal line breaks between paragraphs.
 7. Each step MUST cover a completely unique angle — no repeated topics, features, or ideas across steps.
 8. SPECIFIC USE CASES & SOLUTIONS: Instead of talking about generic benefits (like "streamlining operations" or "increasing efficiency"), describe a highly concrete, realistic custom automation or software solution tailored specifically to the targeted niche. Show them EXACTLY what we can build for them (e.g. for a restaurant: "we can build something that automatically reduces stock count when orders are placed and automatically reverts it if an order is cancelled"; for field contractors: "real-time dispatch-to-field sync that stops invoicing delays"). Let them see the exact mechanical workflow we would automate.
+9. NEVER SELL OR PITCH DIRECTLY. Your ONLY goal is to book a calendar slot or phone call by enquiring about their current struggles and hurdles. DO NOT offer a solution immediately. Be genuinely curious about their pain points.
 
 STEP ARCHETYPES — follow each one precisely:
 
@@ -292,7 +293,7 @@ ${isSingle ? '' : 'Each email MUST be completely different in topic and approach
 SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "${niche}" and genuinely intriguing to a decision-maker in that space. Think carefully about the real daily challenges, ambitions, and pressures of someone running a business in the "${niche}" industry, and write subjects that speak directly to those. Be bold, be specific, be original. Do NOT use generic phrases.`;
 
     const data = await fetchAIChatCompletion({
-      model: 'deepseek-v4-flash',
+      model: 'deepseek-chat',
       temperature: 1.2,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -379,13 +380,13 @@ Template Body: ${templateContent}`;
 
         const userPrompt = `Personalise the email for ${leadFirstName} at ${lead.company || 'their company'}. You are sending this from our company, ${company}.
 Ensure NO full names, NO job titles, NO added sign-offs. 
-Make the email strictly SHORT, natural, non-technical, and conversational.
-If the template sounds pestery or desperate (e.g. "I'll stop filling your inbox"), rewrite it to sound confident and understanding instead.
+Make the email strictly SHORT, natural, non-technical, and conversational. NEVER sell or pitch directly. Your goal is to enquire about their struggles/hurdles and secure a calendar booking.
+The subject line MUST be hyper-personalized using the Research Notes about their website or goals.
 Return ONLY JSON with 'subject' and 'content'.`;
 
         try {
-          const data = await fetchAIChatCompletion({
-            model: 'deepseek-v4-flash',
+          const aiResponse = await fetchAIChatCompletion({
+            model: 'deepseek-chat',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
@@ -393,7 +394,7 @@ Return ONLY JSON with 'subject' and 'content'.`;
             response_format: { type: 'json_object' }
           }, console.log);
 
-          const personalized = JSON.parse(data.choices[0].message.content);
+          const personalized = JSON.parse(aiResponse.choices[0].message.content);
 
           return {
             leadId: lead.id,
@@ -586,7 +587,7 @@ Lead Info: ${leadFirstName} at ${lead.company || 'their company'}`;
     userPrompt += `\n\nEmail Thread History:\n${thread}\n\nDraft the reply now (raw text only):`;
 
     const data = await fetchAIChatCompletion({
-      model: 'deepseek-v4-flash',
+      model: 'deepseek-chat',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -1061,7 +1062,7 @@ Schema:
 The lead's name is "${name || 'John Doe'}" and email is "${email || 'john@example.com'}".`;
 
     const data = await fetchAIChatCompletion({
-      model: 'deepseek-v4-flash',
+      model: 'deepseek-chat',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }

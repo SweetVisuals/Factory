@@ -1496,7 +1496,7 @@ You are the Boss of the Openclaw Factory Assembly Line. An agent has just report
 **Your job now:**
 1. **READ THE LIVE CAMPAIGN DASHBOARD ABOVE** — use ONLY the real UUIDs shown there.
 2. **MONITOR CURRENT CAMPAIGNS**: If any campaign is active but its Leads count is 0 or stalled, your IMMEDIATE priority is to DELEGATE to **Scraper** to replenish leads for that specific campaign. Do not leave campaigns with 0 leads.
-3. **MAINTAIN 3-5 TARGETS & CAMPAIGNS**: Only if existing campaigns are healthy (prospects > 0 and progressing), should you create new ones. If there are fewer than 3 active targets in LIVE METRICS, use \`RELAY_API: CREATE_TARGET\`. CRITICAL: Target names MUST be action-oriented goals. If fewer than 3 active campaigns in the dashboard, use \`RELAY_API: CREATE_CAMPAIGN\`. Maximum of 5 active for each.
+3. **MAINTAIN 3-5 TARGETS & CAMPAIGNS**: Only if existing campaigns are healthy (prospects > 0 and progressing), should you create new ones. If there are fewer than 3 active targets in LIVE METRICS, use \`RELAY_API: CREATE_TARGET\`. CRITICAL: Target names MUST focus on booking and securing clients via calendar or phone. We are NOT selling, we are inquiring about current struggles and hurdles. Do NOT use simple niches or generic nouns. If fewer than 3 active campaigns in the dashboard, use \`RELAY_API: CREATE_CAMPAIGN\`. Maximum of 5 active for each.
 4. If campaigns have prospects > 0 → Follow the RECOMMENDED NEXT STEP above.
 5. **NEVER invent campaign IDs.** Only use UUIDs from the dashboard.
 
@@ -1737,7 +1737,7 @@ ${timelineContext}
    - Look at the RECENTLY COMPLETED logs. Did the agent finish the granular work for this step?
    - If YES → Call \`RELAY_API: UPDATE_TASKLIST_STEP | {"businessId": "${activeBusinessId}", "stepNumber": <number>, "status": "completed"}\` to mark it done, and then immediately DELEGATE the NEXT step to the appropriate agent.
    - If NO → DELEGATE the granular task for the current step to the appropriate agent (e.g. \`DELEGATE: Market Researcher | Find 5 targets for the campaign...\`).
-4. **MAINTAIN 3-5 TARGETS & CAMPAIGNS**: Remember you still use \`RELAY_API: CREATE_TARGET\` and \`RELAY_API: CREATE_CAMPAIGN\` to perform the underlying work of those timeline steps! If you see fewer than 3 active targets in LIVE METRICS, you MUST call \`RELAY_API: CREATE_TARGET\`. CRITICAL: Target names MUST be action-oriented goals (e.g., "Get bookings for AI Automation", "Find clients for Website Renovation"). Do NOT use simple niches or generic nouns (like "UK SaaS" or "Dental Practices"). If you see fewer than 3 active campaigns, you MUST call \`RELAY_API: CREATE_CAMPAIGN\`. Max 5 of each.
+4. **MAINTAIN 3-5 TARGETS & CAMPAIGNS**: Remember you still use \`RELAY_API: CREATE_TARGET\` and \`RELAY_API: CREATE_CAMPAIGN\` to perform the underlying work of those timeline steps! If you see fewer than 3 active targets in LIVE METRICS, you MUST call \`RELAY_API: CREATE_TARGET\`. CRITICAL: Target names MUST focus on booking and securing clients via calendar or phone. We are NOT selling, we are inquiring about current struggles and hurdles. Do NOT use simple niches or generic nouns. If you see fewer than 3 active campaigns, you MUST call \`RELAY_API: CREATE_CAMPAIGN\`. Max 5 of each.
 
 --- CAMPAIGN DASHBOARD ---
 ${campaignDashboard}
@@ -1878,10 +1878,10 @@ async function initialize() {
         }
 
         // Start WhatsApp initialization in the background, do not await so we don't block the engine
-        whatsappClient.initialize().catch(err => {
-            console.error("[WHATSAPP ERROR] Failed to initialize WhatsApp:", err.message);
-            console.log("[WHATSAPP] Continuing without WhatsApp integration...");
-        });
+        // whatsappClient.initialize().catch(err => {
+        //     console.error("[WHATSAPP ERROR] Failed to initialize WhatsApp:", err.message);
+        //     console.log("[WHATSAPP] Continuing without WhatsApp integration...");
+        // });
     } catch (err) {
         console.error("[WHATSAPP SYNC ERROR]", err.message);
     }

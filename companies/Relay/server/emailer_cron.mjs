@@ -18,7 +18,7 @@ async function runAutoResearch() {
     const { data: rows, error } = await supabase
       .from('campaign_leads')
       .select('lead_id, campaigns!inner(id, status), leads!inner(id, name, company, website, summary)')
-      .eq('campaigns.status', 'in_progress')
+      .in('campaigns.status', ['in_progress', 'email_only'])
       .limit(30);
 
     if (error || !rows || rows.length === 0) return;
@@ -70,6 +70,38 @@ async function runEmailerCron() {
   }
   isRunning = true;
   try {
+    const { data: memData } = await supabase.from('agent_memory').select('value').eq('key_name', 'factory_status').maybeSingle();
+    if (memData?.value?.status === 'paused' && memData?.value?.reason === 'insufficient_credits') {
+      console.log('[Emailer Cron] Factory is paused due to insufficient credits. Checking balance...');
+      try {
+         const deepseekKey = process.env.DEEPSEEK_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
+         const balRes = await fetch('https://api.deepseek.com/user/balance', { headers: { 'Authorization': `Bearer ${deepseekKey}` } });
+         if (balRes.ok) {
+            const balData = await balRes.json();
+            if (balData && balData.balance_infos && balData.balance_infos.length > 0) {
+               let realBalance = parseFloat(balData.balance_infos[0].total_balance);
+               await supabase.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance: realBalance } }, { onConflict: 'key_name' });
+               if (realBalance > 0) {
+                  console.log(`[Emailer Cron] Balance is now ${realBalance}. Auto-resuming factory!`);
+                  await supabase.from('agent_memory').upsert({ key_name: 'factory_status', value: { status: 'running' } }, { onConflict: 'key_name' });
+               } else {
+                  console.log(`[Emailer Cron] Balance is still ${realBalance}. Staying paused.`);
+                  isRunning = false;
+                  return;
+               }
+            }
+         }
+      } catch (err) {
+         console.error('[Emailer Cron] Error checking balance:', err);
+         isRunning = false;
+         return;
+      }
+    } else if (memData?.value?.status === 'paused') {
+      console.log(`[Emailer Cron] Factory is paused for reason: ${memData?.value?.reason}. Skipping.`);
+      isRunning = false;
+      return;
+    }
+
     console.log('[Emailer Cron] Triggering background auto-research + running campaign processing...');
     // Trigger auto-research in background (decoupled)
     runAutoResearch().catch(err => console.error('[Auto-Research Error]', err));

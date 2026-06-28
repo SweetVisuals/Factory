@@ -80,7 +80,7 @@ export async function runProcessCampaign() {
         `,
       )
       .eq("status", "scheduled")
-      .eq("campaigns.status", "in_progress")
+      .in("campaigns.status", ["in_progress", "email_only"])
       .eq("campaigns.businesses.status", "active");
     if (x) throw (console.error("Database query error:", x), x);
     if (!q || q.length === 0)
@@ -462,7 +462,7 @@ export async function runProcessCampaign() {
                                 !t.summary.toLowerCase().includes("failed to perform") &&
                                 !t.summary.toLowerCase().includes("could not complete");
 
-        const needsPersonalization = (he || !S || !E || ye);
+        const needsPersonalization = true; // User requested ALL emails to be personalized (No 2 emails should be the same)
         
         if (needsPersonalization && !hasValidSummary) {
           console.log(`[PERSONALIZATION BLOCK] Skipping lead ${t.email}: No valid research summary available yet for personalization.`);
@@ -483,12 +483,12 @@ export async function runProcessCampaign() {
 
 CRITICAL RULES:
 1. Start with EXACTLY: "Hi " + lead's first name + ",". If no name, use "Hi there,". NEVER just "there,".
-2. DO NOT return placeholders like [Name] or {{company}}. Return the FINISHED email.
-3. Write a SHORT curiosity-based message (max 60 words, 350 chars). Frame it as a QUESTION about their pain point, NOT a pitch about what we sell. Be conversational, direct, and human. Examples of good openers: "Still manually logging X into spreadsheets?" or "Quick question — is your team still doing Y by hand?"
+2. DO NOT return placeholders. Return the FINISHED email.
+3. Write a SHORT curiosity-based message (max 60 words). Frame it as a QUESTION about their pain point, NOT a pitch. Be conversational, direct, and human. Inquire about current struggles and hurdles. NO 2 EMAILS SHOULD BE THE SAME!
 4. DO NOT pitch our services directly. Instead, hint at a better way and ask if they'd be curious to see it. The goal is to start a conversation, not close a deal.
-5. ABSOLUTELY DO NOT include any sign-off, closing, or signature. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the sender signature. Including one causes a DUPLICATE.
+5. ABSOLUTELY DO NOT include any sign-off, closing, or signature. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the sender signature.
 6. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off" }
-7. The subject line should be curiosity-driven and under 9 words. No salesy subjects like "Transform your business". Think: "Quick question about [specific thing]" or "[Name], still doing [pain point] manually?".`,
+7. The subject line MUST be hyper-personalized to the lead's website, email, and goals. It should be curiosity-driven and under 9 words. No salesy subjects.`,
               R =
                 'Original Template Subject: "' +
                 e.templates.subject +
@@ -502,11 +502,17 @@ Lead Name: ` +
 Lead Company: ` +
                 (t.company || "their business") +
                 `
-Lead Notes: "` +
+Lead Email: ` +
+                (t.email || "Unknown") +
+                `
+Lead Website: ` +
+                (t.website || "Unknown") +
+                `
+Lead Goals & Notes: "` +
                 (t.summary || "") +
                 `"
 
-Instructions: Customize the subject and body for this lead. Remove all placeholders. Ensure the transition from the personalized opening to the core message is seamless.`;
+Instructions: You MUST deeply personalize BOTH the subject and the body to this specific lead using their website, email, and goals/notes. No two emails should be the same. Ensure the transition from the personalized opening to the core message is seamless.`;
             let r;
             if (ge) {
               console.log(
@@ -723,7 +729,7 @@ Instructions: Customize the subject and body for this lead. Remove all placehold
         }
 
         const oe = e.campaigns?.businesses?.signature_template || "";
-        const senderFullName = a.name || b;
+
         
         // Check if the signature template already acts as the primary sign-off
         const hasSignOff = /(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward)/i.test(oe);

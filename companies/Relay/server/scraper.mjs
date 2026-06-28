@@ -950,7 +950,7 @@ Format: Markdown. Keep it direct and concise.`;
         }
 
         const data = await fetchAIChatCompletion({
-            model: 'deepseek-v4-flash',
+            model: 'deepseek-chat',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: `Here is the gathered data:\n\n${text.substring(0, 15000)}` }
@@ -1433,7 +1433,7 @@ export async function performDeepResearch(company, website, notesContext = '') {
         Input Data provided below (Website dumps + Google Search Snippets).`;
 
         const data = await fetchAIChatCompletion({
-            model: 'deepseek-v4-flash',
+            model: 'deepseek-chat',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: aggregatedData }
