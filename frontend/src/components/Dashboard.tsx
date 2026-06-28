@@ -29,40 +29,28 @@ const Dashboard = ({ toggleOverlay }: { toggleOverlay?: (view: 'discover' | 'das
   return (
     <div style={{ padding: '2rem 3rem', color: 'var(--text-color)', height: '100%', overflowY: 'auto' }}>
       
-      {/* Activity Log - Collapsible */}
-      <div style={{ marginBottom: '2rem', backgroundColor: 'var(--panel-bg)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', overflow: 'hidden' }}>
-        <div 
-          onClick={() => setIsLogOpen(!isLogOpen)}
-          style={{ 
-            padding: '1rem 1.5rem', 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            cursor: 'pointer',
-            backgroundColor: 'rgba(255, 255, 255, 0.02)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {/* Top 3 Cards Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        
+        {/* Card 1: System Activity Log */}
+        <div style={{ backgroundColor: 'var(--panel-bg)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', flexDirection: 'column', height: '350px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent-color)', boxShadow: '0 0 10px var(--accent-color)' }} />
             <h3 style={{ margin: 0, fontFamily: 'Inter, sans-serif', fontSize: '1.1rem', fontWeight: 600 }}>System Activity Log</h3>
           </div>
-          <span style={{ transform: isLogOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', color: 'var(--text-muted)' }}>▼</span>
-        </div>
-        
-        {isLogOpen && (
-          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)', maxHeight: '300px', overflowY: 'auto' }}>
+          <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1 }}>
             {isLoading ? (
               <Skeleton width="100%" height="20px" />
             ) : metrics?.recentLogs && metrics.recentLogs.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {metrics.recentLogs.map((log) => (
+                {metrics.recentLogs.slice(0, 15).map((log) => (
                   <div 
                     key={log.id}
                     onClick={() => {
                       if (toggleOverlay) {
                         if (log.type === 'email_received') toggleOverlay('inbox');
                         else if (log.type === 'lead_added') toggleOverlay('discover');
-                        else toggleOverlay('business'); // 'dashboard' handles campaigns, maybe just keep it dashboard or 'discover'
+                        else toggleOverlay('business');
                       }
                     }}
                     style={{ 
@@ -93,7 +81,139 @@ const Dashboard = ({ toggleOverlay }: { toggleOverlay?: (view: 'discover' | 'das
               <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>No recent activity.</div>
             )}
           </div>
-        )}
+        </div>
+
+        {/* Card 2: Unread Replies */}
+        <div style={{ backgroundColor: 'var(--panel-bg)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', flexDirection: 'column', height: '350px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', boxShadow: '0 0 10px #f59e0b' }} />
+              <h3 style={{ margin: 0, fontFamily: 'Inter, sans-serif', fontSize: '1.1rem', fontWeight: 600 }}>Unread Replies</h3>
+            </div>
+            {!isLoading && metrics?.urgentEmails && metrics.urgentEmails.length > 0 && (
+              <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>
+                {metrics.urgentEmails.length} New
+              </span>
+            )}
+          </div>
+          <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+            {isLoading ? (
+              <Skeleton width="100%" height="20px" />
+            ) : metrics?.urgentEmails && metrics.urgentEmails.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {metrics.urgentEmails.map((email) => (
+                  <div 
+                    key={email.id}
+                    onClick={() => { if (toggleOverlay) toggleOverlay('inbox'); }}
+                    style={{ 
+                      padding: '0.75rem 1rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      borderLeft: '3px solid #f59e0b',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.2)'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email.from}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                        {new Date(email.received_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email.subject}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✨</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>Inbox zero!</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 3: System Health */}
+        <div style={{ backgroundColor: 'var(--panel-bg)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', flexDirection: 'column', height: '350px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444', boxShadow: '0 0 10px #ef4444' }} />
+            <h3 style={{ margin: 0, fontFamily: 'Inter, sans-serif', fontSize: '1.1rem', fontWeight: 600 }}>System Health</h3>
+          </div>
+          <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+            {isLoading ? (
+              <Skeleton width="100%" height="20px" />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Paused Campaigns Alert */}
+                {(() => {
+                  const pausedCampaigns = (metrics?.campaignsList || []).filter(c => c.status === 'Paused' || c.status === 'Stopped');
+                  if (pausedCampaigns.length > 0) {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                        <div style={{ color: '#ef4444', marginTop: '2px' }}>⏸️</div>
+                        <div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fca5a5' }}>{pausedCampaigns.length} Paused Campaign{pausedCampaigns.length !== 1 ? 's' : ''}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#fecaca', marginTop: '0.25rem' }}>
+                            {pausedCampaigns.slice(0, 2).map(c => c.name).join(', ')} {pausedCampaigns.length > 2 ? `+${pausedCampaigns.length - 2} more` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Bounced Emails Alert */}
+                {(() => {
+                  const bounced = (metrics?.recentLogs || []).filter(l => l.type === 'bounced');
+                  if (bounced.length > 0) {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                        <div style={{ color: '#ef4444', marginTop: '2px' }}>⚠️</div>
+                        <div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fca5a5' }}>{bounced.length} Recent Bounce{bounced.length !== 1 ? 's' : ''}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#fecaca', marginTop: '0.25rem' }}>
+                            Review email deliverability and sender reputation.
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* System Status Overview */}
+                <div style={{ marginTop: '0.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Services Overview</div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Outbound Sending</span>
+                    <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '0.1rem 0.5rem', borderRadius: '10px', fontWeight: 500 }}>Operational</span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Lead Generation</span>
+                    <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '0.1rem 0.5rem', borderRadius: '10px', fontWeight: 500 }}>Operational</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>API Credits</span>
+                    <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '0.1rem 0.5rem', borderRadius: '10px', fontWeight: 500 }}>Healthy</span>
+                  </div>
+                </div>
+
+                {(!metrics?.campaignsList?.some(c => c.status === 'Paused' || c.status === 'Stopped') && !metrics?.recentLogs?.some(l => l.type === 'bounced')) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem 0', color: '#10b981', marginTop: 'auto' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>All systems nominal</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Header matching old CampaignHub layout */}
