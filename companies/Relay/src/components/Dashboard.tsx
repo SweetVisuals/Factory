@@ -64,10 +64,6 @@ export const Dashboard = () => {
   const [replyContent, setReplyContent] = useState('');
   const [isDrafting, setIsDrafting] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const logsEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -466,6 +462,7 @@ export const Dashboard = () => {
                         </div>
                       ))
                     )}
+                    <div ref={scraperLogsEndRef} />
                     <div ref={logsEndRef} />
                   </div>
                   <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10 pointer-events-none" />

@@ -969,11 +969,11 @@ app.get('/api/scraper-logs', async (req, res) => {
       .from('scraper_logs')
       .select('timestamp, message')
       .eq('user_id', user.id)
-      .order('timestamp', { ascending: true })
+      .order('timestamp', { ascending: false })
       .limit(200);
 
     if (!dbError && dbLogs && dbLogs.length > 0) {
-      return res.json(dbLogs.map(l => ({
+      return res.json(dbLogs.reverse().map(l => ({
         timestamp: l.timestamp,
         message: l.message
       })));
