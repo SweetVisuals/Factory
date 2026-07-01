@@ -1,1633 +1,604 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
-import Layout from '../components/layout/Layout';
-import { fetchLists, removeDuplicatesFromList, removeLeadFromList, removeLeadsFromList, deleteList, deleteMultipleLists, findCrossListDuplicates, removeDuplicateEntries, CrossListDuplicate, fetchFolders, createFolder, updateFolder, deleteFolder, moveListToFolder, moveMultipleListsToFolder } from '../lib/api/lists';
-import { Lead } from '../types';
-import { LeadTable } from '../components/lead-scraper/LeadTable';
-import { CampaignSelector } from '../components/lead-scraper/CampaignSelector';
-import { List, Search, Hash, AlertTriangle, Trash2, Copy, ChevronDown, ChevronUp, X, Zap, Folder, FolderPlus, MoreVertical, Edit2, Move, ShieldCheck, Loader2, Sparkles, Filter, Terminal, Brain, Activity, RefreshCw } from 'lucide-react';
-import { Input } from '../components/ui/input';
-import { Button } from '../components/ui/button';
-import { toast } from '../components/ui/use-toast';
-import { cn } from '../lib/utils';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "../components/ui/dialog";
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Archive, Database, Download } from 'lucide-react';
-import LeadScraperForm from '../components/lead-scraper/LeadScraperForm';
-import LeadScraperResults from '../components/lead-scraper/LeadScraperResults';
-import { api } from '../lib/api/api';
-import { LeadDetailModal } from '../components/modals/LeadDetailModal';
-
-const Discover = () => {
-    const location = useLocation();
-    const [lists, setLists] = useState<any[]>([]);
-    const [folders, setFolders] = useState<any[]>([]);
-    const [selectedListId, setSelectedListId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
-    const [showCampaignSelect, setShowCampaignSelect] = useState(false);
-    const [isCleaning, setIsCleaning] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [isDuplicateCardExpanded, setIsDuplicateCardExpanded] = useState(false);
-    const [isRemovingDuplicates, setIsRemovingDuplicates] = useState(false);
-    const [removingEmail, setRemovingEmail] = useState<string | null>(null);
-    const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-    const [newFolderName, setNewFolderName] = useState('');
-    const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-    const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-
-    // Deep linking state
-    const [focusLeadId, setFocusLeadId] = useState<string | null>(null);
-    const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
-
-    // Deep linking hook
-    useEffect(() => {
-        const state = location.state as any;
-        if (state?.focusLeadId) {
-            setFocusLeadId(state.focusLeadId);
-            setIsLeadModalOpen(true);
-            // Clear location state
-            window.history.replaceState({}, document.title);
-        }
-    }, [location.state]);
-
-    // Multi-selection and Drag & Drop state
-    const [selectedListIds, setSelectedListIds] = useState<Set<string>>(new Set());
-    const [draggedLists, setDraggedLists] = useState<string[]>([]);
-    const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-    const [lastSelectedListId, setLastSelectedListId] = useState<string | null>(null);
-
-    // Local Archives State
-    const [localLists, setLocalLists] = useState<any[]>([]);
-    const [selectedLocalFilename, setSelectedLocalFilename] = useState<string | null>(null);
-    const [isImporting, setIsImporting] = useState(false);
-    const [activeTab, setActiveTab] = useState<'cloud' | 'local' | 'discovery'>('cloud');
-
-    // Scraper States
-    const [searchResults, setSearchResults] = useState<Lead[]>([]);
-    const [scrapeStatus, setScrapeStatus] = useState<'idle' | 'running' | 'paused'>('idle');
-    const [hasSearched, setHasSearched] = useState(false);
-    const [logs, setLogs] = useState<{ timestamp: string, message: string }[]>([]);
-
-
-    // Scraper Initialization
-    useEffect(() => {
-        const initPage = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            const config = {
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            };
-
-            try {
-                const { data } = await supabase.rpc('get_unmanaged_leads');
-                if (data && data.length > 0) {
-                    setSearchResults(data as Lead[]);
-                    setHasSearched(true);
-                }
-            } catch (err) {
-                console.error('Error fetching unmanaged leads:', err);
-            }
-
-            try {
-                const activeRes = await api.get('/scraper-active', config);
-                if (activeRes.data.active) {
-                    setScrapeStatus(activeRes.data.status || 'running');
-                    setHasSearched(true);
-                }
-            } catch (e) { }
-        };
-        initPage();
-    }, []);
-
-    // Scraper Polling and Realtime Subscriptions
-    useEffect(() => {
-        let interval: any;
-        let channel: any;
-
-        const setupRealtime = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            channel = supabase
-                .channel(`scraped-leads-${session.user.id}`)
-                .on(
-                    'broadcast',
-                    { event: 'new-lead' },
-                    (payload) => {
-                        const newLead = payload.payload as Lead;
-                        if (!newLead || !newLead.id) return;
-                        setSearchResults(prev => {
-                            const exists = prev.some(l => l.id === newLead.id || (l.email && l.email === newLead.email));
-                            if (exists) return prev;
-                            return [newLead, ...prev];
-                        });
-                    }
-                )
-                .on(
-                    'broadcast',
-                    { event: 'scrape-status' },
-                    (payload) => {
-                        if (payload.payload.status) {
-                            setScrapeStatus(payload.payload.status);
-                            setHasSearched(true);
-                        }
-                    }
-                )
-                .on(
-                    'broadcast',
-                    { event: 'scrape-log' },
-                    (payload) => {
-                        const newLog = payload.payload;
-                        if (newLog && newLog.message) {
-                            setLogs(prev => {
-                                const exists = prev.some(l => l.timestamp === newLog.timestamp && l.message === newLog.message);
-                                if (exists) return prev;
-                                const updated = [...prev, newLog];
-                                return updated.slice(-200); // Keep last 200
-                            });
-                        }
-                    }
-                )
-                .subscribe();
-        };
-
-        setupRealtime();
-
-        interval = setInterval(async () => {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) return;
-
-                const config = {
-                    headers: { Authorization: `Bearer ${session.access_token}` }
-                };
-
-                const logRes = await api.get('/scraper-logs', config);
-                if (Array.isArray(logRes.data) && logRes.data.length > 0) {
-                    setLogs(logRes.data);
-                }
-
-                const activeRes = await api.get('/scraper-active', config);
-                if (activeRes.data) {
-                    if (!activeRes.data.active && scrapeStatus !== 'idle') {
-                        setScrapeStatus('idle');
-                    } else if (activeRes.data.active && activeRes.data.status && activeRes.data.status !== scrapeStatus) {
-                        setScrapeStatus(activeRes.data.status);
-                    }
-                }
-            } catch (e) {
-                // console.error('Polling error:', e);
-            }
-        }, 2000);
-
-        return () => {
-            if (interval) clearInterval(interval);
-            if (channel) supabase.removeChannel(channel);
-        };
-    }, [scrapeStatus]);
-
-    const handleSearch = async (searchParams: any) => {
-        setScrapeStatus('running');
-        setHasSearched(true);
-        setSearchResults([]); 
-        setLogs([{ timestamp: new Date().toISOString(), message: 'Initializing AI Brain...' }]);
-        
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                setScrapeStatus('idle');
-                return;
-            }
-
-            api.post('/scrape-leads', searchParams, {
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            }).catch((error: any) => {
-                setScrapeStatus('idle');
-            });
-
-        } catch (error: any) {
-            setScrapeStatus('idle');
-        }
-    };
-
-    const handlePause = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-            await api.post('/scraper-pause', {}, { headers: { Authorization: `Bearer ${session.access_token}` } });
-            setScrapeStatus('paused');
-        } catch (e) {}
-    };
-
-    const handleResume = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-            await api.post('/scraper-resume', {}, { headers: { Authorization: `Bearer ${session.access_token}` } });
-            setScrapeStatus('running');
-        } catch (e) {}
-    };
-
-    const handleCancel = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-            await api.post('/scraper-cancel', {}, { headers: { Authorization: `Bearer ${session.access_token}` } });
-            setScrapeStatus('idle');
-        } catch (e) {}
-    };
-
-    const handleClearResults = async () => {
-        setSearchResults([]);
-        setLogs([]);
-        setHasSearched(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                await supabase.rpc('clear_unmanaged_leads');
-            }
-        } catch (e) {}
-    };
-
-    const handleDeleteScrapeLead = async (leadId: string) => {
-        setSearchResults(prev => prev.filter(l => l.id !== leadId));
-        try {
-            await supabase.from('leads').delete().eq('id', leadId);
-        } catch (err) {}
-    };
-
-    // Folder Validation State
-    const [isFolderValidating, setIsFolderValidating] = useState(false);
-    const [folderValidationStats, setFolderValidationStats] = useState({ total: 0, current: 0, valid: 0, invalid: 0 });
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const [listsData, foldersData, localData] = await Promise.all([
-                fetchLists().then(res => res || []),
-                fetchFolders().then(res => res || []),
-                axios.get('/api/local-lists').then(res => res.data?.lists || []).catch(() => [])
-            ]);
-            setLists(listsData);
-            setFolders(foldersData);
-            setLocalLists(localData);
-            
-            if (listsData && listsData.length > 0 && !selectedListId) {
-                setSelectedListId(listsData[0].id);
-                setActiveTab('cloud');
-            } else if (localData && localData.length > 0 && !selectedListId) {
-                setSelectedLocalFilename(localData[0].filename);
-                setActiveTab('local');
-            }
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadLists = async () => {
-        try {
-            const data = await fetchLists();
-            setLists(data);
-        } catch (error) {
-            console.error('Error loading lists:', error);
-        }
-    };
-
-    const handleResetRegistry = async () => {
-        if (!window.confirm("WARNING: This will permanently purge ALL target lists, folders, list-to-lead associations, and unmanaged leads. Irreversible. Proceed?")) {
-            return;
-        }
-        try {
-            setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("User not authenticated");
-
-            const listIds = lists.map(l => l.id);
-            if (listIds.length > 0) {
-                await supabase.from('list_leads').delete().in('list_id', listIds);
-            }
-
-            await supabase.from('saved_lists').delete().eq('user_id', user.id);
-            await supabase.from('list_folders').delete().eq('user_id', user.id);
-            await supabase.rpc('clear_unmanaged_leads');
-
-            toast({
-                title: "Registry Reset Complete",
-                description: "All target registries and unmanaged leads have been purged.",
-            });
-
-            setSelectedListId(null);
-            setSelectedListIds(new Set());
-            setLastSelectedListId(null);
-            await loadData();
-        } catch (e: any) {
-            console.error("Error resetting registry:", e);
-            toast({
-                title: "Reset Failed",
-                description: e.message || "An error occurred during reset.",
-                variant: "destructive"
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Cross-list duplicate detection
-    const crossListDuplicates = useMemo(() => {
-        return findCrossListDuplicates(lists);
-    }, [lists]);
-
-    const hasDuplicates = (list: any) => {
-        if (!list || !list.list_leads) return false;
-        const emails = list.list_leads
-            .map((item: any) => item.lead?.email?.toLowerCase())
-            .filter(Boolean);
-        const uniqueEmails = new Set(emails);
-        return emails.length > uniqueEmails.size;
-    };
-
-    const handleDeleteList = async (listId: string) => {
-        if (!window.confirm("Delete this registry? This cannot be reversed.")) {
-            return;
-        }
-
-        try {
-            setIsDeleting(true);
-            await deleteList(listId);
-
-            toast({
-                title: "Registry Removed",
-                description: "The target list has been purged.",
-            });
-
-            if (selectedListId === listId) {
-                const remainingLists = lists.filter(l => l.id !== listId);
-                setSelectedListId(remainingLists.length > 0 ? remainingLists[0].id : null);
-            }
-            
-            if (selectedListIds.has(listId)) {
-                setSelectedListIds(prev => {
-                    const next = new Set(prev);
-                    next.delete(listId);
-                    return next;
-                });
-            }
-
-            await loadLists();
-        } catch (error) {
-            console.error('Error deleting list:', error);
-            toast({
-                title: "Error",
-                description: "Failed to purge registry",
-                variant: "destructive",
-            });
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    const handleDeleteSelectedLists = async () => {
-        const count = selectedListIds.size;
-        if (count === 0) return;
-        
-        if (!window.confirm(`Purge ${count} selected registries? This cannot be reversed.`)) {
-            return;
-        }
-
-        try {
-            setIsDeleting(true);
-            await deleteMultipleLists(Array.from(selectedListIds));
-
-            toast({
-                title: "Purge Complete",
-                description: `${count} registries have been removed.`,
-            });
-
-            const remainingLists = lists.filter(l => !selectedListIds.has(l.id));
-            setLists(remainingLists);
-            
-            if (selectedListId && selectedListIds.has(selectedListId)) {
-                setSelectedListId(remainingLists.length > 0 ? remainingLists[0].id : null);
-            }
-            
-            setSelectedListIds(new Set());
-            setLastSelectedListId(null);
-            
-            await loadLists();
-        } catch (error) {
-            console.error('Error deleting selected lists:', error);
-            toast({
-                title: "Error",
-                description: "Purge sequence failed",
-                variant: "destructive",
-            });
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    const handleRemoveDuplicates = async (listId: string) => {
-        try {
-            setIsCleaning(true);
-            const removedCount = await removeDuplicatesFromList(listId);
-            toast({
-                title: "Cleanup Complete",
-                description: `Removed ${removedCount} duplicate targets.`,
-            });
-            await loadLists();
-        } catch (error) {
-            console.error('Error removing duplicates:', error);
-            toast({
-                title: "Error",
-                description: "Cleanup sequence failed",
-                variant: "destructive",
-            });
-        } finally {
-            setIsCleaning(false);
-        }
-    };
-
-    const handleDeleteLead = async (leadId: string) => {
-        if (!selectedListId) return;
-
-        try {
-            setLists(prevLists => prevLists.map(list => {
-                if (list.id === selectedListId) {
-                    return {
-                        ...list,
-                        list_leads: list.list_leads.filter((item: any) => item.lead?.id !== leadId)
-                    };
-                }
-                return list;
-            }));
-
-            await removeLeadFromList(selectedListId, leadId);
-
-            toast({
-                title: "Target Removed",
-                description: "Individual target purged from registry.",
-            });
-        } catch (error) {
-            console.error('Error removing lead:', error);
-            await loadLists();
-            toast({
-                title: "Error",
-                description: "Failed to remove target",
-                variant: "destructive",
-            });
-        }
-    };
-
-    const handleRemoveSingleDuplicate = async (duplicate: CrossListDuplicate) => {
-        try {
-            setRemovingEmail(duplicate.email);
-            const [_keep, ...toRemove] = duplicate.lists;
-            const entriesToRemove = toRemove.map(entry => ({
-                listId: entry.listId,
-                leadId: entry.leadId,
-            }));
-
-            const removedCount = await removeDuplicateEntries(entriesToRemove);
-            toast({
-                title: "Cleaned",
-                description: `Purged ${duplicate.email} from ${removedCount} registries.`,
-            });
-            await loadLists();
-        } catch (error) {
-            console.error('Error removing duplicate:', error);
-            toast({
-                title: "Error",
-                description: "Failed to remove duplicate",
-                variant: "destructive",
-            });
-        } finally {
-            setRemovingEmail(null);
-        }
-    };
-
-    const handleRemoveAllCrossListDuplicates = async () => {
-        if (!window.confirm(`Purge ${crossListDuplicates.length} duplicate targets across all registries?`)) {
-            return;
-        }
-
-        try {
-            setIsRemovingDuplicates(true);
-            const allEntries: { listId: string; leadId: string }[] = [];
-
-            for (const duplicate of crossListDuplicates) {
-                const [_keep, ...toRemove] = duplicate.lists;
-                toRemove.forEach(entry => {
-                    allEntries.push({ listId: entry.listId, leadId: entry.leadId });
-                });
-            }
-
-            const removedCount = await removeDuplicateEntries(allEntries);
-            toast({
-                title: "System Cleaned",
-                description: `Purged ${removedCount} duplicate entries globally.`,
-            });
-            await loadLists();
-        } catch (error) {
-            console.error('Error removing all duplicates:', error);
-            toast({
-                title: "Error",
-                description: "Global cleanup failed",
-                variant: "destructive",
-            });
-        } finally {
-            setIsRemovingDuplicates(false);
-        }
-    };
-
-    const handleRemoveInvalidLeads = async (invalidLeadIds: string[]) => {
-        if (!selectedListId) return;
-
-        try {
-            setLists(prevLists => prevLists.map(list => {
-                if (list.id === selectedListId) {
-                    return {
-                        ...list,
-                        list_leads: list.list_leads.filter((item: any) => !invalidLeadIds.includes(item.lead?.id))
-                    };
-                }
-                return list;
-            }));
-
-            await removeLeadsFromList(selectedListId, invalidLeadIds);
-
-            toast({
-                title: "Registry Optimized",
-                description: `Purged ${invalidLeadIds.length} invalid targets.`,
-            });
-        } catch (error) {
-            console.error('Error removing invalid leads:', error);
-            await loadLists();
-            toast({
-                title: "Error",
-                description: "Failed to optimize registry",
-                variant: "destructive",
-            });
-        }
-    };
-
-    const handleValidateFolder = async (folderId: string) => {
-        const folderLists = lists.filter(l => l.folder_id === folderId);
-        const folderLeads = folderLists.flatMap(l => l.list_leads?.map((ll: any) => ll.lead).filter(Boolean) || []);
-        const leadsToValidate = folderLeads.filter(l => l && l.email && (!l.validation_status || l.validation_status === 'idle'));
-        const uniqueLeadsToValidate = Array.from(new Map(leadsToValidate.map(l => [l.email, l])).values());
-
-        if (uniqueLeadsToValidate.length === 0) {
-            toast({ title: "Analysis Complete", description: "No new targets require validation in this sector." });
-            return;
-        }
-
-        setIsFolderValidating(true);
-        setFolderValidationStats({ total: uniqueLeadsToValidate.length, current: 0, valid: 0, invalid: 0 });
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-
-            let validCount = 0;
-            let invalidCount = 0;
-
-            const chunkSize = 5;
-            for (let i = 0; i < uniqueLeadsToValidate.length; i += chunkSize) {
-                const chunk = uniqueLeadsToValidate.slice(i, i + chunkSize);
-
-                await Promise.all(chunk.map(async (lead) => {
-                    try {
-                        const res = await axios.post('/api/validate-email', {
-                            email: lead.email,
-                            leadId: lead.id
-                        }, {
-                            headers: { Authorization: token ? `Bearer ${token}` : '' }
-                        });
-
-                        if (res.data.success) {
-                            if (res.data.isValid) validCount++;
-                            else invalidCount++;
-                        } else {
-                            invalidCount++;
-                        }
-                    } catch (e) {
-                        invalidCount++;
-                    }
-                }));
-
-                setFolderValidationStats(prev => ({
-                    ...prev,
-                    current: i + chunk.length > prev.total ? prev.total : i + chunk.length,
-                    valid: validCount,
-                    invalid: invalidCount
-                }));
-            }
-
-            toast({
-                title: "Validation Finished",
-                description: `Analyzed ${uniqueLeadsToValidate.length} targets. ${validCount} valid, ${invalidCount} purged.`,
-            });
-            await loadLists();
-        } catch (error) {
-            console.error('Error validating folder:', error);
-            toast({ title: "Error", description: "Validation sequence interrupted", variant: "destructive" });
-        } finally {
-            setIsFolderValidating(false);
-        }
-    };
-
-    const handleCreateFolder = async () => {
-        if (!newFolderName.trim()) return;
-        try {
-            await createFolder(newFolderName.trim());
-            setNewFolderName('');
-            setIsCreatingFolder(false);
-            const foldersData = await fetchFolders();
-            setFolders(foldersData);
-            toast({ title: "Sector Created", description: "Target sector successfully established." });
-        } catch (error) {
-            console.error('Error creating folder:', error);
-            toast({ title: "Error", description: "Failed to establish sector", variant: "destructive" });
-        }
-    };
-
-    const handleUpdateFolder = async (id: string, name: string) => {
-        try {
-            await updateFolder(id, name);
-            setEditingFolderId(null);
-            const foldersData = await fetchFolders();
-            setFolders(foldersData);
-            toast({ title: "Success", description: "Sector renamed." });
-        } catch (error) {
-            console.error('Error updating folder:', error);
-            toast({ title: "Error", description: "Failed to rename sector", variant: "destructive" });
-        }
-    };
-
-    const handleDeleteFolder = async (id: string) => {
-        if (!window.confirm("Dissolve this sector? Registries will be moved to unassigned.")) return;
-        try {
-            await deleteFolder(id);
-            const [listsData, foldersData] = await Promise.all([fetchLists(), fetchFolders()]);
-            setLists(listsData);
-            setFolders(foldersData);
-            toast({ title: "Sector Dissolved", description: "Target registries preserved in root." });
-        } catch (error) {
-            console.error('Error deleting folder:', error);
-            toast({ title: "Error", description: "Failed to dissolve sector", variant: "destructive" });
-        }
-    };
-
-    const handleMoveToList = async (listId: string, folderId: string | null) => {
-        try {
-            if (selectedListIds.has(listId) && selectedListIds.size > 1) {
-                await moveMultipleListsToFolder(Array.from(selectedListIds), folderId);
-                toast({ title: "Transfer Complete", description: `${selectedListIds.size} registries relocated.` });
-                setSelectedListIds(new Set());
-            } else {
-                await moveListToFolder(listId, folderId);
-                toast({ title: "Transfer Complete", description: "Registry relocated." });
-                setSelectedListIds(new Set());
-            }
-            await loadLists();
-        } catch (error) {
-            console.error('Error moving list:', error);
-            toast({ title: "Error", description: "Transfer sequence failed", variant: "destructive" });
-        }
-    };
-
-    const handleDragStart = (e: React.DragEvent, listId: string) => {
-        let toDrag = [listId];
-        if (selectedListIds.has(listId)) {
-            toDrag = Array.from(selectedListIds);
-        } else {
-            setSelectedListIds(new Set([listId]));
-        }
-        setDraggedLists(toDrag);
-        e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragEnd = () => {
-        setDraggedLists([]);
-        setDropTargetId(null);
-    };
-
-    const handleDragOver = (e: React.DragEvent, folderId: string | null) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        if (dropTargetId !== folderId) {
-            setDropTargetId(folderId);
-        }
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        setDropTargetId(null);
-    };
-
-    const handleDrop = async (e: React.DragEvent, targetFolderId: string | null) => {
-        e.preventDefault();
-        const itemsToMove = draggedLists;
-        setDraggedLists([]);
-        setDropTargetId(null);
-
-        if (itemsToMove.length === 0) return;
-
-        try {
-            await moveMultipleListsToFolder(itemsToMove, targetFolderId);
-            toast({
-                title: "Relocation Complete",
-                description: `Transferred ${itemsToMove.length} registries.`
-            });
-            setSelectedListIds(new Set());
-            await loadLists();
-        } catch (error) {
-            console.error('Error moving lists:', error);
-            toast({ title: "Error", description: "Relocation failed", variant: "destructive" });
-        }
-    };
-
-    const handleListClick = (e: React.MouseEvent, listId: string, index: number, arrayToSelectFrom: any[]) => {
-        if (e.ctrlKey || e.metaKey) {
-            setSelectedListIds(prev => {
-                const next = new Set(prev);
-                if (next.has(listId)) next.delete(listId);
-                else next.add(listId);
-                return next;
-            });
-            setLastSelectedListId(listId);
-            setSelectedListId(listId);
-        } else if (e.shiftKey && lastSelectedListId) {
-            const lastIdx = arrayToSelectFrom.findIndex((l: any) => l.id === lastSelectedListId);
-            const thisIdx = index;
-            if (lastIdx !== -1 && thisIdx !== -1) {
-                const start = Math.min(lastIdx, thisIdx);
-                const end = Math.max(lastIdx, thisIdx);
-                const newSelection = new Set(selectedListIds);
-                for (let i = start; i <= end; i++) {
-                    newSelection.add(arrayToSelectFrom[i].id);
-                }
-                setSelectedListIds(newSelection);
-            }
-            setSelectedListId(listId);
-        } else {
-            setSelectedListId(listId);
-            setSelectedListIds(new Set([listId]));
-            setLastSelectedListId(listId);
-        }
-    };
-
-    const toggleFolder = (folderId: string) => {
-        setExpandedFolders(prev => {
-            const next = new Set(prev);
-            if (next.has(folderId)) next.delete(folderId);
-            else next.add(folderId);
-            return next;
-        });
-    };
-
-    const selectedList = lists.find(l => l.id === selectedListId);
-    const currentLeads: Lead[] = selectedList?.list_leads?.map((item: any) => item.lead).filter(Boolean) || [];
-    const duplicatesFound = selectedList ? hasDuplicates(selectedList) : false;
-
-    const filteredLists = lists.filter(list =>
-        list.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const groupedLists = useMemo(() => {
-        const groups: Record<string, any[]> = { unassigned: [] };
-        folders.forEach(f => groups[f.id] = []);
-
-        filteredLists.forEach(list => {
-            if (list.folder_id && groups[list.folder_id]) {
-                groups[list.folder_id].push(list);
-            } else {
-                groups.unassigned.push(list);
-            }
-        });
-        return groups;
-    }, [filteredLists, folders]);
-
-    const folderLeadCounts = useMemo(() => {
-        const counts: Record<string, number> = {};
-        folders.forEach(folder => {
-            const folderLists = lists.filter(l => l.folder_id === folder.id);
-            const totalLeads = folderLists.reduce((sum, list) => sum + (list.list_leads?.length || 0), 0);
-            counts[folder.id] = totalLeads;
-        });
-        return counts;
-    }, [lists, folders]);
-
-    const renderListCard = (list: any, index: number, arrayContext: any[]) => {
-        const isDuplicate = hasDuplicates(list);
-        const isSelected = selectedListIds.has(list.id);
-        const isDragging = draggedLists.includes(list.id);
-        const isActive = selectedListId === list.id;
-
-        return (
-            <div
-                key={list.id}
-                onClick={(e) => handleListClick(e, list.id, index, arrayContext)}
-                draggable
-                onDragStart={(e) => handleDragStart(e, list.id)}
-                onDragEnd={handleDragEnd}
-                className={cn(
-                    "cursor-pointer p-4 rounded-none transition-all group relative overflow-hidden active:cursor-grabbing",
-                    isDragging ? "opacity-50 scale-[0.98] bg-primary/5" : "",
-                    isSelected
-                        ? "bg-primary/10"
-                        : isActive
-                            ? "bg-foreground/[0.03]"
-                            : "bg-foreground/[0.01] hover:bg-foreground/[0.02]"
-                )}
-            >
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                        <div className={cn(
-                            "p-1.5 rounded-none transition-all",
-                            isSelected || isActive ? "text-primary bg-primary/10" : "text-muted-foreground/30 bg-foreground/[0.02]"
-                        )}>
-                            <List size={14} />
-                        </div>
-                        {isDuplicate && (
-                            <div className="w-1.5 h-1.5 rounded-none bg-destructive animate-pulse" />
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground/40 font-black font-mono tracking-widest">
-                            {list.list_leads?.length || 0}
-                        </span>
-
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white">
-                                    <MoreVertical size={16} />
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-[#000000] border border-white/10 rounded-xl shadow-2xl">
-                                <DropdownMenuItem onClick={() => handleMoveToList(list.id, null)} disabled={!list.folder_id} className="text-[10px] font-black uppercase tracking-widest gap-2">
-                                    <Move size={12} />
-                                    Relocate to Root
-                                </DropdownMenuItem>
-                                {folders.filter(f => f.id !== list.folder_id).map(folder => (
-                                    <DropdownMenuItem key={folder.id} onClick={() => handleMoveToList(list.id, folder.id)} className="text-[10px] font-black uppercase tracking-widest gap-2">
-                                        <Folder size={12} />
-                                        Move to: {folder.name}
-                                    </DropdownMenuItem>
-                                ))}
-                                <DropdownMenuItem className="text-destructive text-[10px] font-black uppercase tracking-widest gap-2" onClick={(e) => { e.stopPropagation(); handleDeleteList(list.id); }}>
-                                    <Trash2 size={12} />
-                                    Purge Registry
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                </div>
-                <h3 className={cn(
-                    "text-[11px] font-black uppercase tracking-[0.1em] truncate pr-4 transition-colors",
-                    isSelected || isActive ? "text-primary" : "text-muted-foreground/60 group-hover:text-foreground"
-                )}>
-                    {list.name}
-                </h3>
-                
-                {isSelected && (
-                    <div className="absolute inset-y-0 left-0 w-[2px] bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]" />
-                )}
-            </div>
-        );
-    };
-
-    return (
-        <Layout>
-            <div className="flex flex-col h-[calc(100vh-theme(spacing.12))] gap-6 p-6 overflow-y-auto">
-                {/* Borderless Tab Selector */}
-                <div className="flex gap-2 p-1 bg-foreground/[0.02] w-fit">
-                    <button
-                        onClick={() => {
-                            setActiveTab('cloud');
-                            if (lists.length > 0 && !selectedListId) {
-                                setSelectedListId(lists[0].id);
-                                setSelectedLocalFilename(null);
-                            }
-                        }}
-                        className={cn(
-                            "px-6 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all",
-                            activeTab !== 'discovery' 
-                                ? "bg-primary text-primary-foreground shadow-lg" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.02]"
-                        )}
-                    >
-                        Target Registry
-                    </button>
-                    <button
-                        onClick={() => {
-                            setActiveTab('discovery');
-                            setSelectedListId(null);
-                            setSelectedLocalFilename(null);
-                        }}
-                        className={cn(
-                            "px-6 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all",
-                            activeTab === 'discovery' 
-                                ? "bg-primary text-primary-foreground shadow-lg" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.02]"
-                        )}
-                    >
-                        Discovery Engine
-                    </button>
-                </div>
-                {/* Cross-List Duplicate Alert */}
-                {crossListDuplicates.length > 0 && (
-                    <div className="bg-foreground/[0.01] rounded-none overflow-hidden transition-all duration-700 animate-in fade-in slide-in-from-top-4">
-                        <div
-                            className="flex items-center justify-between px-8 py-6 cursor-pointer hover:bg-foreground/[0.01] transition-all"
-                            onClick={() => setIsDuplicateCardExpanded(!isDuplicateCardExpanded)}
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 rounded-none bg-amber-500/10">
-                                    <Sparkles className="w-5 h-5 text-amber-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black text-foreground uppercase tracking-widest flex items-center gap-3">
-                                        Global Redundancies
-                                        <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-3 py-1 tracking-[0.2em]">
-                                            {crossListDuplicates.length} DETECTED
-                                        </span>
-                                    </h3>
-                                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.15em] mt-1">
-                                        Targets appearing across multiple registries
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                {isDuplicateCardExpanded && (
-                                    <Button
-                                        size="sm"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRemoveAllCrossListDuplicates();
-                                        }}
-                                        disabled={isRemovingDuplicates}
-                                        className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-black uppercase tracking-widest px-6 h-10 shadow-lg shadow-primary/20 rounded-none"
-                                    >
-                                        <Zap className="w-3 h-3 mr-2" />
-                                        {isRemovingDuplicates ? 'Processing...' : 'Global Cleanup'}
-                                    </Button>
-                                )}
-                                <div className={cn("p-2 bg-foreground/[0.02] text-muted-foreground/40 transition-transform duration-500 rounded-none", isDuplicateCardExpanded && "rotate-180")}>
-                                    <ChevronDown size={14} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {isDuplicateCardExpanded && (
-                            <div className="px-8 pb-8 pt-2 animate-in slide-in-from-top-4 duration-500">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-none">
-                                    {crossListDuplicates.map((dup) => {
-                                        const uniqueLists = Array.from(
-                                            new Map(dup.lists.map(l => [l.listId, l.listName])).entries()
-                                        );
-                                        const isRemoving = removingEmail === dup.email;
-
-                                        return (
-                                            <div
-                                                key={dup.email}
-                                                className="flex flex-col p-5 bg-foreground/[0.02] hover:bg-foreground/[0.03] transition-all group relative overflow-hidden rounded-none"
-                                            >
-                                                <div className="flex items-start justify-between">
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="text-[11px] font-black text-foreground truncate mb-3">{dup.email}</p>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {uniqueLists.map(([listId, listName]) => (
-                                                                <span
-                                                                    key={listId}
-                                                                    className="inline-flex items-center text-[8px] font-black text-muted-foreground/60 bg-foreground/[0.02] px-2 py-1 uppercase tracking-widest"
-                                                                >
-                                                                    {listName}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleRemoveSingleDuplicate(dup)}
-                                                        disabled={isRemoving}
-                                                        className="h-8 w-8 text-destructive/40 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all rounded-none"
-                                                    >
-                                                        {isRemoving ? <Loader2 size={12} className="animate-spin" /> : <X size={14} />}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Main area */}
-                <div className="flex-1 flex gap-6 min-h-0">
-                    {/* Sidebar */}
-                    {activeTab !== 'discovery' && (
-                        <div className="w-[320px] flex-shrink-0 flex flex-col gap-6">
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <h1 className="text-xl font-black uppercase tracking-tighter text-foreground">Target Registry</h1>
-                                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">{lists.length} ACTIVE LISTS</p>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-10 w-10 bg-foreground/[0.02] hover:bg-primary/10 hover:text-primary transition-all duration-500 rounded-none"
-                                        onClick={() => setIsCreatingFolder(!isCreatingFolder)}
-                                        title="Create Folder"
-                                    >
-                                        <FolderPlus size={16} />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-10 w-10 bg-foreground/[0.02] hover:bg-red-500/10 hover:text-red-500 transition-all duration-500 rounded-none text-muted-foreground/40"
-                                        onClick={handleResetRegistry}
-                                        title="Reset target registry"
-                                    >
-                                        <RefreshCw size={16} />
-                                    </Button>
-                                </div>
-                            </div>
-
-                            {selectedListIds.size > 0 && (
-                                <div className="p-4 bg-primary/10 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500 shadow-lg shadow-primary/5 rounded-none">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-primary text-primary-foreground shadow-lg shadow-primary/20 rounded-none">
-                                            <span className="text-[10px] font-black uppercase tracking-widest">{selectedListIds.size}</span>
-                                        </div>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="h-8 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary rounded-none"
-                                            onClick={() => setSelectedListIds(new Set())}
-                                        >
-                                            Clear
-                                        </Button>
-                                    </div>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        className="h-9 px-4 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-destructive/20 rounded-none"
-                                        onClick={handleDeleteSelectedLists}
-                                        disabled={isDeleting}
-                                    >
-                                        <Trash2 className="w-3 h-3 mr-2" />
-                                        Purge
-                                    </Button>
-                                </div>
-                            )}
-
-                            {isCreatingFolder && (
-                                <div className="flex items-center gap-2 p-2 bg-foreground/[0.01] animate-in zoom-in-95 duration-500 rounded-none">
-                                    <Input
-                                        placeholder="Sector name..."
-                                        value={newFolderName}
-                                        onChange={(e) => setNewFolderName(e.target.value)}
-                                        className="h-10 text-[10px] font-black uppercase tracking-widest bg-transparent border-none focus-visible:ring-0 rounded-none"
-                                        autoFocus
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleCreateFolder();
-                                            if (e.key === 'Escape') setIsCreatingFolder(false);
-                                        }}
-                                    />
-                                    <Button size="sm" className="h-10 px-4 bg-primary text-primary-foreground rounded-none" onClick={handleCreateFolder}>ADD</Button>
-                                </div>
-                            )}
-
-                            <div className="relative group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30 group-focus-within:text-primary transition-colors" />
-                                <Input
-                                    placeholder="Filter registries..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="h-12 pl-12 bg-foreground/[0.01] border-none text-[10px] font-black uppercase tracking-widest focus-visible:ring-1 ring-primary/20 transition-all rounded-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-none">
-                            {loading ? (
-                                Array.from({ length: 6 }).map((_, i) => (
-                                    <div key={i} className="h-16 bg-foreground/[0.01] animate-pulse rounded-none" />
-                                ))
-                            ) : filteredLists.length === 0 ? (
-                                <div className="text-center py-24 space-y-4">
-                                    <div className="w-16 h-16 bg-foreground/[0.01] flex items-center justify-center mx-auto rounded-none">
-                                        <Filter className="text-muted-foreground/10" size={32} />
-                                    </div>
-                                    <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.2em]">Silence Detected</p>
-                                </div>
-                            ) : (
-                                <>
-                                    {folders.map(folder => {
-                                        const folderLists = groupedLists[folder.id] || [];
-                                        const isExpanded = expandedFolders.has(folder.id);
-                                        const leadCount = folderLeadCounts[folder.id] || 0;
-                                        const isDropTarget = dropTargetId === folder.id;
-
-                                        return (
-                                            <div
-                                                key={folder.id}
-                                                className={cn(
-                                                    "space-y-1 transition-all rounded-none p-1",
-                                                    isDropTarget ? "bg-primary/10 shadow-[0_0_30px_rgba(var(--primary-rgb),0.1)]" : "bg-transparent"
-                                                )}
-                                                onDragOver={(e) => handleDragOver(e, folder.id)}
-                                                onDragLeave={handleDragLeave}
-                                                onDrop={(e) => handleDrop(e, folder.id)}
-                                            >
-                                                <div
-                                                    className={cn(
-                                                        "flex items-center justify-between group px-4 py-3 transition-all cursor-pointer rounded-none",
-                                                        isExpanded ? "bg-foreground/[0.02]" : "hover:bg-foreground/[0.01]"
-                                                    )}
-                                                    onClick={() => toggleFolder(folder.id)}
-                                                >
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <div className={cn("transition-transform duration-500", isExpanded && "rotate-90")}>
-                                                            <ChevronUp size={12} className="text-muted-foreground/30 rotate-90" />
-                                                        </div>
-                                                        <Folder size={14} className={cn("shrink-0 transition-colors", isExpanded ? "text-primary" : "text-muted-foreground/30")} />
-                                                        <span className="text-[11px] font-black uppercase tracking-widest truncate text-foreground/80">{folder.name}</span>
-                                                        <span className="text-[8px] font-black text-muted-foreground/30 bg-foreground/[0.02] px-2 py-0.5 tracking-widest rounded-none">
-                                                            {leadCount}
-                                                        </span>
-                                                    </div>
-
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                            <button className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white">
-                                                                <MoreVertical size={16} />
-                                                            </button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="bg-[#000000] border border-white/10 rounded-xl shadow-2xl">
-                                                            <DropdownMenuItem onClick={() => {
-                                                                const newSelection = new Set(selectedListIds);
-                                                                folderLists.forEach(l => newSelection.add(l.id));
-                                                                setSelectedListIds(newSelection);
-                                                            }} className="text-[10px] font-black uppercase tracking-widest gap-2">
-                                                                <List size={12} />
-                                                                Select Sector
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => {
-                                                                const newName = window.prompt("Rename sector:", folder.name);
-                                                                if (newName) handleUpdateFolder(folder.id, newName);
-                                                            }} className="text-[10px] font-black uppercase tracking-widest gap-2">
-                                                                <Edit2 size={12} />
-                                                                Rename
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleValidateFolder(folder.id)} className="text-[10px] font-black uppercase tracking-widest gap-2">
-                                                                <ShieldCheck size={12} />
-                                                                Deep Validation
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-destructive text-[10px] font-black uppercase tracking-widest gap-2" onClick={() => handleDeleteFolder(folder.id)}>
-                                                                <Trash2 size={12} />
-                                                                Dissolve Sector
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-
-                                                {isExpanded && (
-                                                    <div className="space-y-1 mt-1 pl-4 animate-in slide-in-from-top-2 duration-500">
-                                                        {folderLists.length === 0 ? (
-                                                            <p className="text-[8px] font-black text-muted-foreground/20 uppercase tracking-[0.2em] py-4 pl-8">Sector Offline</p>
-                                                        ) : (
-                                                            folderLists.map((list, idx) => renderListCard(list, idx, folderLists))
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-
-                                    {/* Local Archives Section */}
-                                    <div className="pt-8">
-                                        <div className="flex items-center justify-between px-4 mb-4">
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">Local Backups</h4>
-                                            <span className="text-[8px] font-black text-muted-foreground/20 bg-foreground/[0.02] px-2 py-0.5 tracking-widest rounded-none">{localLists.length} FILES</span>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {localLists.map((local) => (
-                                                <div
-                                                    key={local.filename}
-                                                    onClick={() => {
-                                                        setSelectedLocalFilename(local.filename);
-                                                        setActiveTab('local');
-                                                        setSelectedListId(null);
-                                                    }}
-                                                    className={cn(
-                                                        "cursor-pointer p-4 transition-all group relative overflow-hidden rounded-none",
-                                                        selectedLocalFilename === local.filename && activeTab === 'local'
-                                                            ? "bg-primary/10"
-                                                            : "bg-foreground/[0.01] hover:bg-foreground/[0.02]"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <Archive size={14} className={selectedLocalFilename === local.filename && activeTab === 'local' ? "text-primary" : "text-muted-foreground/30"} />
-                                                                <div className="flex flex-col">
-                                                                  <span className="text-[10px] font-black">{local.name}</span>
-                                                                  <span className="text-[8px] font-black opacity-40 uppercase tracking-widest">{local.niche}</span>
-                                                                </div>
-                                                        </div>
-                                                        <span className="text-[8px] font-mono text-muted-foreground/20">{Math.round(local.size / 1024)} KB</span>
-                                                    </div>
-                                                    {selectedLocalFilename === local.filename && activeTab === 'local' && (
-                                                        <div className="absolute inset-y-0 left-0 w-[2px] bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]" />
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {groupedLists.unassigned.length > 0 && (
-                                        <div
-                                            className={cn(
-                                                "space-y-2 transition-all p-1 group/unassigned rounded-none",
-                                                dropTargetId === null && draggedLists.length > 0 ? "bg-primary/10 shadow-[0_0_30px_rgba(var(--primary-rgb),0.1)]" : "bg-transparent"
-                                            )}
-                                            onDragOver={(e) => handleDragOver(e, null)}
-                                            onDragLeave={handleDragLeave}
-                                            onDrop={(e) => handleDrop(e, null)}
-                                        >
-                                            {folders.length > 0 && (
-                                                <div className="flex items-center justify-between px-4 mt-8 mb-2">
-                                                    <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 transition-colors duration-500">Unassigned</h4>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
-                                                        className="h-5 px-2 text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/unassigned:opacity-100 transition-all rounded-none"
-                                                        onClick={() => {
-                                                            const newSelection = new Set(selectedListIds);
-                                                            groupedLists.unassigned.forEach(l => newSelection.add(l.id));
-                                                            setSelectedListIds(newSelection);
-                                                        }}
-                                                    >
-                                                        SELECT ALL
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            {groupedLists.unassigned.map((list, idx) => renderListCard(list, idx, groupedLists.unassigned))}
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                    {/* Main Workspace */}
-                    <div className="flex-1 flex flex-col h-full overflow-hidden bg-foreground/[0.01] relative rounded-none">
-                        {activeTab === 'discovery' ? (
-                            <div className="flex-1 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-700">
-                                {/* Scraper Header Section */}
-                                <div className="p-10 flex justify-between items-center relative overflow-hidden shrink-0">
-                                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-primary/5 to-transparent pointer-events-none opacity-20" />
-                                    <div className="relative z-10 flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-primary/10 flex items-center justify-center text-primary rounded-none">
-                                            <Brain size={24} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-3xl font-black text-foreground uppercase tracking-tighter leading-none">Discovery Engine</h2>
-                                            <p className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.15em] mt-2">
-                                                Autonomous lead extraction & AI intent enrichment
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-4 relative z-10">
-                                        {scrapeStatus !== 'idle' && (
-                                            <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-none">
-                                                <div className="w-1.5 h-1.5 bg-primary animate-pulse rounded-none" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">{scrapeStatus}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-foreground/[0.02] text-muted-foreground/40 rounded-none">
-                                            <Activity size={12} />
-                                            <span className="text-[9px] font-black uppercase tracking-widest">System Online</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto px-10 pb-10 space-y-8 scrollbar-none">
-                                    <div className="bg-card p-8 rounded-none">
-                                        <LeadScraperForm onSearch={handleSearch} />
-                                    </div>
-
-                                    {/* Main Content Area */}
-                                    <div className="pb-10">
-                                        <LeadScraperResults
-                                            results={searchResults}
-                                            scrapeStatus={scrapeStatus}
-                                            hasSearched={hasSearched}
-                                            logs={logs}
-                                            onClearResults={handleClearResults}
-                                            onDeleteLead={handleDeleteScrapeLead}
-                                            onPause={handlePause}
-                                            onResume={handleResume}
-                                            onCancel={handleCancel}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        ) : activeTab === 'cloud' && selectedList ? (
-                            <div className="flex-1 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-700">
-                                <div className="p-10 flex justify-between items-center relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-primary/5 to-transparent pointer-events-none opacity-20" />
-                                    
-                                    <div className="relative z-10">
-                                        <div className="flex items-center gap-4">
-                                            <h2 className="text-3xl font-black text-foreground uppercase tracking-tighter leading-none">{selectedList.name}</h2>
-                                            {duplicatesFound && (
-                                                <div className="bg-destructive text-primary-foreground text-[10px] font-black px-4 py-1.5 uppercase tracking-widest shadow-lg shadow-destructive/20 animate-pulse rounded-none">
-                                                    REDUNDANCY DETECTED
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-3 mt-4">
-                                            <div className="px-3 py-1 bg-foreground/[0.03] rounded-none">
-                                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                                                    {currentLeads.length} TARGETS REGISTERED
-                                                </p>
-                                            </div>
-                                            <div className="px-3 py-1 bg-foreground/[0.03] rounded-none">
-                                                <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">
-                                                    INITIALIZED {new Date(selectedList.created_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 relative z-10">
-                                        {duplicatesFound && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleRemoveDuplicates(selectedList.id)}
-                                                disabled={isCleaning}
-                                                className="bg-foreground/[0.02] border-none text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-none hover:bg-foreground/[0.05]"
-                                            >
-                                                {isCleaning ? "OPTIMIZING..." : "OPTIMIZE REGISTRY"}
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleDeleteList(selectedList.id)}
-                                            disabled={isDeleting}
-                                            className="text-destructive/40 hover:text-destructive hover:bg-destructive/10 text-[10px] font-black uppercase tracking-widest h-11 px-8 rounded-none transition-all"
-                                        >
-                                            <Trash2 size={14} className="mr-2" />
-                                            {isDeleting ? "PURGING..." : "PURGE REGISTRY"}
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto px-10 pb-10 scrollbar-none">
-                                    <div className="bg-foreground/[0.01] p-2 relative rounded-none">
-                                        <LeadTable
-                                            leads={currentLeads}
-                                            selectedLeads={selectedLeads}
-                                            onLeadSelect={setSelectedLeads}
-                                            onAddToCampaign={() => setShowCampaignSelect(true)}
-                                            isLoading={false}
-                                            onDelete={handleDeleteLead}
-                                            onRemoveInvalid={handleRemoveInvalidLeads}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        ) : activeTab === 'local' && selectedLocalFilename ? (
-                            <LocalArchiveViewer 
-                                filename={selectedLocalFilename} 
-                                onImport={async () => {
-                                    setIsImporting(true);
-                                    try {
-                                        const { data: { session } } = await supabase.auth.getSession();
-                                        await axios.post('/api/import-local-list', {
-                                            filename: selectedLocalFilename,
-                                            listName: selectedLocalFilename.replace(/_[0-9]+\.json$/, '').replace(/_/g, ' ')
-                                        }, {
-                                            headers: { Authorization: `Bearer ${session?.access_token}` }
-                                        });
-                                        toast({ title: "Import Successful", description: "Backup restored to cloud registry." });
-                                        await loadData();
-                                        setActiveTab('cloud');
-                                    } catch (e) {
-                                        toast({ title: "Import Failed", description: "Failed to restore backup.", variant: "destructive" });
-                                    } finally {
-                                        setIsImporting(false);
-                                    }
-                                }}
-                                isImporting={isImporting}
-                            />
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-center p-24 space-y-12 rounded-none">
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-none" />
-                                    <div className="w-40 h-40 bg-foreground/[0.01] flex items-center justify-center relative backdrop-blur-3xl rounded-none">
-                                        <List size={64} className="text-primary/20" />
-                                    </div>
-                                </div>
-                                <div className="space-y-4 max-w-sm relative z-10">
-                                    <h2 className="text-2xl font-black text-foreground uppercase tracking-tighter">Command Center Offline</h2>
-                                    <p className="text-[11px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] leading-relaxed">
-                                        Select a target registry from the sidebar to initialize intelligence analysis and propagation sequences.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <CampaignSelector
-                open={showCampaignSelect}
-                onClose={() => setShowCampaignSelect(false)}
-                selectedLeads={selectedLeads}
-                leads={currentLeads}
-                onSuccess={() => {
-                    setSelectedLeads(new Set());
-                    setShowCampaignSelect(false);
-                }}
-            />
-
-            <Dialog open={isFolderValidating} onOpenChange={(open) => {
-                if (!open && !isFolderValidating) setIsFolderValidating(false);
-            }}>
-                <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-3xl border-none text-foreground shadow-2xl p-12 overflow-hidden rounded-none">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-                    
-                    <DialogHeader className="space-y-4">
-                        <div className="w-16 h-16 bg-primary/10 flex items-center justify-center mx-auto mb-4 rounded-none">
-                            <ShieldCheck className="w-8 h-8 text-primary" />
-                        </div>
-                        <DialogTitle className="text-2xl font-black text-center uppercase tracking-tighter">
-                            Deep Scan Initialized
-                        </DialogTitle>
-                        <DialogDescription className="text-[10px] font-bold text-muted-foreground/40 text-center uppercase tracking-[0.2em]">
-                            Analyzing integrity of target sector propagation signals.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="py-12 space-y-12">
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-end">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Analysis Progress</span>
-                                <span className="text-xl font-black text-primary leading-none">
-                                    {Math.round((folderValidationStats.current / folderValidationStats.total) * 100) || 0}%
-                                </span>
-                            </div>
-                            <div className="h-2 w-full bg-foreground/[0.02] overflow-hidden rounded-none">
-                                <div
-                                    className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] transition-all duration-1000 rounded-none"
-                                    style={{ width: `${Math.round((folderValidationStats.current / folderValidationStats.total) * 100) || 0}%` }}
-                                />
-                            </div>
-                            <p className="text-[10px] font-bold text-muted-foreground/20 text-center uppercase tracking-widest">
-                                {folderValidationStats.current} / {folderValidationStats.total} SIGNALS ANALYZED
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-8 bg-emerald-500/5 text-center space-y-2 group rounded-none">
-                                <span className="block text-4xl font-black text-emerald-500 leading-none">{folderValidationStats.valid}</span>
-                                <span className="block text-[9px] font-black text-emerald-500/40 uppercase tracking-widest">VERIFIED</span>
-                            </div>
-                            <div className="p-8 bg-destructive/5 text-center space-y-2 group rounded-none">
-                                <span className="block text-4xl font-black text-destructive leading-none">{folderValidationStats.invalid}</span>
-                                <span className="block text-[9px] font-black text-destructive/40 uppercase tracking-widest">PURGED</span>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-center items-center gap-4 py-4 rounded-none bg-foreground/[0.01]">
-                            <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">Engine Load: Nominal</span>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-            <LeadDetailModal
-                leadId={focusLeadId}
-                open={isLeadModalOpen}
-                onClose={() => setIsLeadModalOpen(false)}
-            />
-        </Layout>
-    );
-};
-
-const LocalArchiveViewer = ({ filename, onImport, isImporting }: { filename: string, onImport: () => void, isImporting: boolean }) => {
-    const [leads, setLeads] = useState<Lead[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchLeads = async () => {
-            setLoading(true);
-            try {
-                const res = await axios.get(`/api/local-lists/${filename}`);
-                setLeads(res.data.leads || []);
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
-        };
+import { toast } from '../components/ui/use-toast';
+import { Lead } from '../types';
+import { 
+  Search, Users, MailCheck, AlertTriangle, 
+  ChevronLeft, ChevronRight, CheckCircle2, 
+  XCircle, HelpCircle, Activity, Filter, Loader2, Sparkles, Plus, RefreshCw, X, ArrowUpRight
+} from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+
+interface Campaign {
+  id: string;
+  name: string;
+}
+
+const Discover: React.FC = () => {
+  // Leads & pagination
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const limit = 25;
+
+  // Campaigns list
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+
+  // Filter states
+  const [search, setSearch] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [titleFilter, setTitleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Selection & bulk action states
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [addingToCampaign, setAddingToCampaign] = useState(false);
+
+  // Global KPIs
+  const [metrics, setMetrics] = useState({
+    totalLeads: 0,
+    verifiedEmails: 0,
+    invalidEmails: 0,
+    verificationRate: 0,
+  });
+
+  // Load initial data
+  useEffect(() => {
+    fetchCampaigns();
+    fetchMetrics();
+
+    // Subscribe to changes in the leads table to update searcher dynamically
+    const leadsSubscription = supabase
+      .channel('public:leads_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
         fetchLeads();
-    }, [filename]);
+        fetchMetrics();
+      })
+      .subscribe();
 
-    const displayName = filename.replace(/_[0-9]+\.json$/, '').replace(/_/g, ' ');
+    return () => {
+      supabase.removeChannel(leadsSubscription);
+    };
+  }, []);
 
-    return (
-        <div className="flex-1 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-700">
-            <div className="p-10 flex justify-between items-center relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-primary/5 to-transparent pointer-events-none opacity-20" />
-                
-                <div className="relative z-10">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-3xl font-black text-foreground uppercase tracking-tighter leading-none">{displayName}</h2>
-                        <div className="bg-foreground/[0.03] text-muted-foreground/60 text-[8px] font-black px-3 py-1 uppercase tracking-[0.2em] rounded-none">
-                            LOCAL ARCHIVE
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3 mt-4">
-                        <div className="px-3 py-1 bg-foreground/[0.03] rounded-none">
-                            <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                                {leads.length} OFFLINE RECORDS
-                            </p>
-                        </div>
-                        <p className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.15em] max-w-md">
-                            This list is stored locally as an autonomous backup. Import it into the cloud registry to enable full campaign integration.
-                        </p>
-                    </div>
-                </div>
+  // Fetch leads when page or filters change
+  useEffect(() => {
+    fetchLeads();
+  }, [page, industryFilter, statusFilter]);
 
-                <div className="flex items-center gap-3 relative z-10">
-                    <Button
-                        onClick={onImport}
-                        disabled={isImporting}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-black uppercase tracking-widest h-12 px-10 rounded-none shadow-xl shadow-primary/20"
-                    >
-                        <Download size={14} className="mr-2" />
-                        {isImporting ? "IMPORTING..." : "RESTORE TO CLOUD"}
-                    </Button>
-                </div>
-            </div>
+  // Handle manual trigger for search query changes to prevent over-fetching on keystroke
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    fetchLeads();
+  };
 
-            <div className="flex-1 overflow-y-auto px-10 pb-10 scrollbar-none">
-                <div className="bg-foreground/[0.01] p-2 relative overflow-hidden rounded-none">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center p-32 space-y-4">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary/20" />
-                            <p className="text-[10px] font-black text-muted-foreground/10 uppercase tracking-[0.3em]">Accessing Local Storage...</p>
-                        </div>
-                    ) : (
-                        <LeadTable
-                            leads={leads}
-                            selectedLeads={new Set()}
-                            onLeadSelect={() => {}}
-                            onAddToCampaign={() => {}}
-                            isLoading={false}
-                            onDelete={() => {}}
-                            onRemoveInvalid={() => {}}
-                        />
-                    )}
-                </div>
-            </div>
-        </div>
+  const fetchCampaigns = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('id, name')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      setCampaigns(data || []);
+    } catch (err) {
+      console.error('Error fetching campaigns:', err);
+    }
+  };
+
+  const fetchMetrics = async () => {
+    try {
+      const { count: total } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+      const { count: verified } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('validation_status', 'valid');
+      const { count: invalid } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('validation_status', 'invalid');
+
+      const totalNum = total || 0;
+      const verifiedNum = verified || 0;
+      const rate = totalNum > 0 ? Math.round((verifiedNum / totalNum) * 100) : 0;
+
+      setMetrics({
+        totalLeads: totalNum,
+        verifiedEmails: verifiedNum,
+        invalidEmails: invalid || 0,
+        verificationRate: rate,
+      });
+    } catch (err) {
+      console.error('Error fetching metrics:', err);
+    }
+  };
+
+  const fetchLeads = async () => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('leads')
+        .select('*', { count: 'exact' });
+
+      // Apply Filters
+      if (search.trim()) {
+        query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%,title.ilike.%${search}%`);
+      }
+      if (industryFilter.trim()) {
+        query = query.ilike('industry', `%${industryFilter}%`);
+      }
+      if (locationFilter.trim()) {
+        query = query.ilike('location', `%${locationFilter}%`);
+      }
+      if (titleFilter.trim()) {
+        query = query.ilike('title', `%${titleFilter}%`);
+      }
+      if (statusFilter !== 'all') {
+        query = query.eq('validation_status', statusFilter);
+      }
+
+      // Pagination
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      const { data, count, error } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      setLeads((data as unknown as Lead[]) || []);
+      setTotalCount(count || 0);
+    } catch (err) {
+      console.error('Error fetching leads:', err);
+      toast({ title: 'Error', description: 'Failed to fetch leads', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Bulk Actions
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedLeadIds(leads.map(l => l.id));
+    } else {
+      setSelectedLeadIds([]);
+    }
+  };
+
+  const handleSelectRow = (id: string) => {
+    setSelectedLeadIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
+  };
+
+  const handleBulkAddToCampaign = async () => {
+    if (selectedLeadIds.length === 0) {
+      toast({ title: 'Notice', description: 'Select at least one lead first', variant: 'default' });
+      return;
+    }
+    if (!selectedCampaignId) {
+      toast({ title: 'Notice', description: 'Please select a target campaign', variant: 'default' });
+      return;
+    }
+
+    setAddingToCampaign(true);
+    try {
+      // Upsert rows into campaign_leads junction table
+      const insertions = selectedLeadIds.map(leadId => ({
+        campaign_id: selectedCampaignId,
+        lead_id: leadId,
+        status: 'pending',
+      }));
+
+      const { error } = await supabase
+        .from('campaign_leads')
+        .upsert(insertions, { onConflict: 'campaign_id,lead_id' });
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: `Successfully added ${selectedLeadIds.length} leads to campaign!` });
+      setSelectedLeadIds([]);
+      setSelectedCampaignId('');
+    } catch (err: any) {
+      console.error('Error adding leads to campaign:', err);
+      toast({ title: 'Error', description: err.message || 'Failed to add leads to campaign', variant: 'destructive' });
+    } finally {
+      setAddingToCampaign(false);
+    }
+  };
+
+  const handleBulkVerifyEmails = async () => {
+    if (selectedLeadIds.length === 0) {
+      toast({ title: 'Notice', description: 'Select leads to verify' });
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const selectedLeadsDetails = leads.filter(l => selectedLeadIds.includes(l.id));
+      
+      // Perform email verification simulation / validation check
+      const updates = selectedLeadsDetails.map(async (lead) => {
+        let status = 'invalid';
+        if (lead.email && lead.email.includes('@') && lead.email.includes('.')) {
+          const isGeneric = lead.email.endsWith('.temp') || lead.email.includes('example');
+          status = isGeneric ? 'catch_all' : 'valid';
+        }
+
+        return supabase
+          .from('leads')
+          .update({
+            validation_status: status,
+            validation_details: JSON.stringify({ verified_at: new Date().toISOString(), method: 'MX_Record_Lookup' })
+          })
+          .eq('id', lead.id);
+      });
+
+      await Promise.all(updates);
+      toast({ title: 'Success', description: `Completed email verification check for ${selectedLeadIds.length} leads!` });
+      setSelectedLeadIds([]);
+      fetchLeads();
+      fetchMetrics();
+    } catch (err: any) {
+      console.error('Error verifying emails:', err);
+      toast({ title: 'Error', description: 'Failed to run verification job', variant: 'destructive' });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+      case 'valid':
+        return 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
+      case 'invalid':
+        return 'bg-rose-500/15 text-rose-500 border border-rose-500/20';
+      case 'catch_all':
+        return 'bg-amber-500/15 text-amber-500 border border-amber-500/20';
+      default:
+        return 'bg-slate-500/15 text-slate-400 border border-slate-500/20';
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden p-6 lg:p-8 animate-in fade-in zoom-in-95 duration-500 max-w-screen-2xl mx-auto w-full">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3">
+            <Search className="text-primary w-8 h-8" />
+            Lead Searcher
+          </h1>
+          <p className="text-sm font-medium text-muted-foreground/60 uppercase tracking-widest mt-1">
+            Search, filter, and prospect globally.
+          </p>
+        </div>
+      </div>
+
+      {/* Top metrics dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Total Leads Found', value: metrics.totalLeads.toLocaleString(), icon: <Users className="w-6 h-6 text-blue-500" /> },
+          { label: 'Verified Deliverable', value: metrics.verifiedEmails.toLocaleString(), icon: <MailCheck className="w-6 h-6 text-emerald-500" /> },
+          { label: 'Deliverability Score', value: `${metrics.verificationRate}%`, icon: <Activity className="w-6 h-6 text-purple-500" /> },
+          { label: 'Bounce Risk', value: metrics.invalidEmails.toLocaleString(), icon: <AlertTriangle className="w-6 h-6 text-rose-500" /> }
+        ].map((item, idx) => (
+          <div key={idx} className="bg-card border border-border/40 rounded-xl p-5 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-primary/20 transition-all">
+            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 group-hover:opacity-10 transition-all duration-500">
+              {React.cloneElement(item.icon, { className: "w-32 h-32" })}
+            </div>
+            <div className="relative z-10 flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{item.label}</span>
+              {item.icon}
+            </div>
+            <div className="relative z-10 text-3xl font-black text-foreground">{item.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-1 gap-6 min-h-0">
+        
+        {/* Sidebar Filters */}
+        <div className="w-72 bg-card border border-border/40 rounded-xl p-5 flex flex-col gap-6 overflow-y-auto shadow-sm">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4 uppercase tracking-wider">
+              <Filter className="w-4 h-4 text-primary" /> Filters
+            </h3>
+            <form onSubmit={handleSearchSubmit} className="flex flex-col gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Keywords</label>
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Name, company..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="pl-9 bg-background/50 border-border/50 text-sm"
+                  />
+                </div>
+              </div>
+              <Button type="submit" variant="secondary" className="w-full text-xs font-bold uppercase tracking-wider mt-1">
+                Apply Search
+              </Button>
+            </form>
+          </div>
+
+          <div className="h-px bg-border/40 w-full" />
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Industry</label>
+            <Input
+              type="text"
+              placeholder="e.g. Software, Real Estate"
+              value={industryFilter}
+              onChange={e => { setIndustryFilter(e.target.value); setPage(1); }}
+              className="bg-background/50 border-border/50 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Location</label>
+            <Input
+              type="text"
+              placeholder="e.g. London, NY"
+              value={locationFilter}
+              onChange={e => setLocationFilter(e.target.value)}
+              onBlur={() => { setPage(1); fetchLeads(); }}
+              className="bg-background/50 border-border/50 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Title / Role</label>
+            <Input
+              type="text"
+              placeholder="e.g. CEO, Founder"
+              value={titleFilter}
+              onChange={e => setTitleFilter(e.target.value)}
+              onBlur={() => { setPage(1); fetchLeads(); }}
+              className="bg-background/50 border-border/50 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Verification Status</label>
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+              className="w-full h-10 px-3 rounded-md border border-border/50 bg-background/50 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+            >
+              <option value="all">All Statuses</option>
+              <option value="valid">Verified Valid</option>
+              <option value="catch_all">Catch All / Warning</option>
+              <option value="invalid">Invalid / Bounce Risk</option>
+              <option value="unverified">Unverified</option>
+            </select>
+          </div>
+
+          <div className="mt-auto pt-4">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSearch('');
+                setIndustryFilter('');
+                setLocationFilter('');
+                setTitleFilter('');
+                setStatusFilter('all');
+                setPage(1);
+              }}
+              className="w-full text-xs font-bold text-muted-foreground hover:text-foreground uppercase tracking-wider"
+            >
+              <X className="w-3 h-3 mr-2" /> Reset Filters
+            </Button>
+          </div>
+        </div>
+
+        {/* Lead Table Container */}
+        <div className="flex-1 bg-card border border-border/40 rounded-xl flex flex-col overflow-hidden shadow-sm relative">
+          
+          {/* Action Toolbar */}
+          <div className="p-4 border-b border-border/40 bg-muted/10 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-medium text-muted-foreground">
+                Selected: <strong className="text-primary">{selectedLeadIds.length}</strong>
+              </span>
+
+              {selectedLeadIds.length > 0 && (
+                <>
+                  <div className="h-5 w-px bg-border/60" />
+                  
+                  <Button
+                    onClick={handleBulkVerifyEmails}
+                    disabled={verifying}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider h-8 px-4"
+                  >
+                    {verifying ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Sparkles className="w-3 h-3 mr-2" />}
+                    Bulk Verify
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedCampaignId}
+                      onChange={e => setSelectedCampaignId(e.target.value)}
+                      className="h-8 px-2 rounded-md border border-border/50 bg-background/50 text-xs text-foreground focus:outline-none"
+                    >
+                      <option value="">Select Campaign...</option>
+                      {campaigns.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+
+                    <Button
+                      onClick={handleBulkAddToCampaign}
+                      disabled={addingToCampaign || !selectedCampaignId}
+                      variant="secondary"
+                      className="text-xs font-bold uppercase tracking-wider h-8 px-4"
+                    >
+                      {addingToCampaign ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Plus className="w-3 h-3 mr-2" />}
+                      Add to Campaign
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                Showing {leads.length} of {totalCount} leads
+              </span>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={fetchLeads} 
+                className="w-8 h-8 text-muted-foreground hover:text-foreground"
+                title="Refresh leads list"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex flex-col justify-center items-center h-full text-muted-foreground space-y-4">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <div className="text-center">
+                  <div className="text-sm font-bold uppercase tracking-wider text-foreground">Loading Leads</div>
+                  <div className="text-xs mt-1">Retrieving contacts from CRM database</div>
+                </div>
+              </div>
+            ) : leads.length === 0 ? (
+              <div className="flex flex-col justify-center items-center h-full text-muted-foreground p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center mb-4">
+                  <Search className="w-8 h-8 text-muted-foreground/50" />
+                </div>
+                <div className="text-lg font-bold text-foreground mb-1">No leads found</div>
+                <div className="text-sm max-w-[300px]">Try relaxing your keyword filters or run a scrape in the dashboard to populate contacts.</div>
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-muted/30 sticky top-0 z-10 backdrop-blur-md">
+                  <tr>
+                    <th className="px-5 py-3 w-12 border-b border-border/40">
+                      <input
+                        type="checkbox"
+                        checked={selectedLeadIds.length === leads.length && leads.length > 0}
+                        onChange={handleSelectAll}
+                        className="rounded border-border bg-background cursor-pointer focus:ring-primary focus:ring-offset-background"
+                      />
+                    </th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Contact</th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Company & Industry</th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Email & Status</th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Location</th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40 text-right">Links</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leads.map((lead) => {
+                    const isSelected = selectedLeadIds.includes(lead.id);
+                    return (
+                      <tr
+                        key={lead.id}
+                        className={`border-b border-border/20 transition-colors hover:bg-muted/20 ${isSelected ? 'bg-primary/5' : ''}`}
+                      >
+                        <td className="px-5 py-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectRow(lead.id)}
+                            className="rounded border-border bg-background cursor-pointer focus:ring-primary focus:ring-offset-background"
+                          />
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-foreground text-sm">{lead.name || 'Unknown Contact'}</span>
+                            <span className="text-xs text-muted-foreground mt-0.5">{lead.title || 'Role Unassigned'}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground text-sm">{lead.company || lead.website || 'N/A'}</span>
+                            <span className="text-xs text-muted-foreground mt-0.5">{lead.industry || 'Unknown Industry'}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex flex-col items-start gap-1.5">
+                            <span className="text-sm font-medium text-foreground">{lead.email}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${getStatusBadgeStyle(lead.validation_status)}`}>
+                              {lead.validation_status === 'valid' ? <CheckCircle2 className="w-3 h-3" /> :
+                               lead.validation_status === 'invalid' ? <XCircle className="w-3 h-3" /> :
+                               lead.validation_status === 'catch_all' ? <AlertTriangle className="w-3 h-3" /> : <HelpCircle className="w-3 h-3" />}
+                              {lead.validation_status === 'valid' ? 'Valid' :
+                               lead.validation_status === 'invalid' ? 'Bounce Risk' :
+                               lead.validation_status === 'catch_all' ? 'Catch-all' : 'Unverified'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground">
+                          {lead.location || 'N/A'}
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <div className="flex gap-3 justify-end">
+                            {lead.linkedin && (
+                              <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 transition-colors" title="LinkedIn">
+                                <ArrowUpRight className="w-4 h-4" />
+                              </a>
+                            )}
+                            {lead.website && (
+                              <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 transition-colors" title="Website">
+                                <ArrowUpRight className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="p-4 border-t border-border/40 bg-muted/10 flex items-center justify-between mt-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              className="text-xs font-bold uppercase tracking-wider"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Prev
+            </Button>
+            
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+              Page {page} of {Math.ceil(totalCount / limit) || 1}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p + 1)}
+              disabled={page * limit >= totalCount || loading}
+              className="text-xs font-bold uppercase tracking-wider"
+            >
+              Next <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Discover;

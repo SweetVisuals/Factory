@@ -199,7 +199,7 @@ export async function runProcessCampaign() {
         `,
       )
       .eq("status", "scheduled")
-      .in("campaigns.status", ["in_progress", "email_only"])
+      .in("campaigns.status", ["in_progress", "email_only", "active"])
       .eq("campaigns.businesses.status", "active");
     if (x) throw (console.error("Database query error:", x), x);
     if (!q || q.length === 0)

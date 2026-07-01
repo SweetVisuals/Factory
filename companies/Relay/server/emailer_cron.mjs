@@ -18,7 +18,7 @@ async function runAutoResearch() {
     const { data: rows, error } = await supabase
       .from('campaign_leads')
       .select('lead_id, campaigns!inner(id, status), leads!inner(id, name, company, website, summary)')
-      .in('campaigns.status', ['in_progress', 'email_only'])
+      .in('campaigns.status', ['in_progress', 'email_only', 'active'])
       .limit(30);
 
     if (error || !rows || rows.length === 0) return;
