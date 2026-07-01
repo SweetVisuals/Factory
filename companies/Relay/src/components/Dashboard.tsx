@@ -412,13 +412,17 @@ export const Dashboard = () => {
                     ) : (
                       <div className="divide-y divide-white/5">
                         {sentEmails.map(sent => (
-                          <div key={sent.id} className="p-4 flex flex-col gap-2 hover:bg-white/[0.02] transition-colors group">
+                          <div 
+                            key={sent.id} 
+                            onClick={() => navigate('/inbox', { state: { focusEmailFrom: sent.lead?.email } })}
+                            className="p-4 flex flex-col gap-2 hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-400">
                                   <ArrowRight size={14} />
                                 </div>
-                                <span className="font-bold text-sm text-white">To: {sent.lead?.name || sent.lead?.email}</span>
+                                <span className="font-bold text-sm text-white group-hover:text-primary transition-colors">To: {sent.lead?.name || sent.lead?.email}</span>
                               </div>
                               <span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{format(new Date(sent.sent_at || sent.created_at), 'MMM d, h:mm a')}</span>
                             </div>
