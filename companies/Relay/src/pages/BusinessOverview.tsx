@@ -94,7 +94,7 @@ export default function BusinessOverviewPage() {
       .select('id, sent_at, status, campaign_id, lead:leads(name, email)')
       .in('campaign_id', cIds)
       .in('status', ['sent', 'replied'])
-      .order('created_at', { ascending: false })
+      .order('sent_at', { ascending: false })
       .limit(15);
       
     if (data) {

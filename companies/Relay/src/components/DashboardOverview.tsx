@@ -55,7 +55,7 @@ const DashboardOverview = ({ selectedBusinessId = 'all', themeHue = 260 }: Dashb
       }
 
       // Fetch Recent Sent
-      let sentQuery = supabase.from('campaign_progress').select('id, created_at, status, campaign_id, campaign:campaigns(name), email_account:email_accounts(health_score)').eq('status', 'sent').order('created_at', { ascending: false }).limit(20);
+      let sentQuery = supabase.from('campaign_progress').select('id, created_at, sent_at, status, campaign_id, campaign:campaigns(name), email_account:email_accounts(health_score)').eq('status', 'sent').order('sent_at', { ascending: false }).limit(20);
       let receivedQuery = supabase.from('inbox_emails').select('id, received_at, subject, from, to, body_text, campaign:campaigns(name), email_account:email_accounts(health_score)').eq('folder', 'inbox').order('received_at', { ascending: false }).limit(10);
       let scraperQuery = supabase.from('scraper_logs').select('*').order('timestamp', { ascending: false }).limit(20);
 
@@ -72,7 +72,7 @@ const DashboardOverview = ({ selectedBusinessId = 'all', themeHue = 260 }: Dashb
       const sentItems: ActivityItem[] = (sentData || []).map(item => ({
         id: `sent-${item.id}`,
         type: 'sent',
-        timestamp: item.created_at,
+        timestamp: item.sent_at || item.created_at,
         subject: `Outgoing Email Sent`,
         from: 'System',
         to: 'Lead',

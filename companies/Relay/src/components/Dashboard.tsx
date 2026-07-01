@@ -33,6 +33,7 @@ interface InboxEmail {
 interface SentEmail {
   id: string;
   created_at: string;
+  sent_at: string;
   status: string;
   campaign_id: string;
   lead: { id: string; name: string; email: string; company: string };
@@ -50,7 +51,7 @@ export const Dashboard = () => {
   const [businesses, setBusinesses] = useState<{ id: string; name: string; status: string }[]>([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
   
-  const [globalStats, setGlobalStats] = useState({ totalSent: 0, bounceRate: 0, opportunities: 0, conversions: 0, health: 98.4 });
+  const [globalStats, setGlobalStats] = useState({ totalSent: 0, bounceRate: 0, opportunities: 0, conversions: 0, totalScraped: 0, health: 98.4 });
   const [engineStatus, setEngineStatus] = useState<{ status: string; reason?: string } | null>(null);
 
   const [activeTab, setActiveTab] = useState<'inbox' | 'outgoing'>('inbox');
@@ -106,11 +107,12 @@ export const Dashboard = () => {
       const campaignIds = (bCampaigns || []).map(c => c.id);
       const campIds = campaignIds.length > 0 ? campaignIds : ['00000000-0000-0000-0000-000000000000'];
 
-      const [{ count: totalSent }, { count: totalBounced }, { count: opps }, { count: convs }] = await Promise.all([
+      const [{ count: totalSent }, { count: totalBounced }, { count: opps }, { count: convs }, { count: totalScraped }] = await Promise.all([
         supabase.from('campaign_progress').select('id', { count: 'exact', head: true }).eq('status', 'sent').in('campaign_id', campIds),
         supabase.from('campaign_progress').select('id', { count: 'exact', head: true }).eq('status', 'bounced').in('campaign_id', campIds),
         supabase.from('leads').select('id', { count: 'exact', head: true }).in('status', ['Opportunity', 'Active', 'Interested', 'Meeting Booked']),
-        supabase.from('leads').select('id', { count: 'exact', head: true }).in('status', ['Converted', 'Closed', 'Client', 'Deal Won'])
+        supabase.from('leads').select('id', { count: 'exact', head: true }).in('status', ['Converted', 'Closed', 'Client', 'Deal Won']),
+        supabase.from('campaign_leads').select('lead_id', { count: 'exact', head: true }).in('campaign_id', campIds)
       ]);
       const bounceRate = totalSent && totalSent > 0 ? Math.round(((totalBounced || 0) / ((totalSent || 0) + (totalBounced || 0))) * 100) : 0;
       setGlobalStats(prev => ({ 
@@ -118,7 +120,8 @@ export const Dashboard = () => {
         totalSent: totalSent || 0, 
         bounceRate,
         opportunities: opps || 0,
-        conversions: convs || 0 
+        conversions: convs || 0,
+        totalScraped: totalScraped || 0
       }));
 
       // Fetch Scraper Logs
@@ -134,7 +137,7 @@ export const Dashboard = () => {
       if (iEmails) setInboxEmails(iEmails as any);
 
       // Fetch Sent
-      const { data: sEmails } = await supabase.from('campaign_progress').select('id, created_at, status, campaign_id, campaign:campaigns(name), lead:leads(id, name, email, company)').eq('status', 'sent').in('campaign_id', campIds).order('created_at', { ascending: false }).limit(50);
+      const { data: sEmails } = await supabase.from('campaign_progress').select('id, created_at, sent_at, status, campaign_id, campaign:campaigns(name), lead:leads(id, name, email, company)').eq('status', 'sent').in('campaign_id', campIds).order('sent_at', { ascending: false }).limit(50);
       if (sEmails) setSentEmails(sEmails as any);
     };
 
@@ -270,9 +273,10 @@ export const Dashboard = () => {
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
           
           {/* Top Metrics Row */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
             {[
               { label: 'Active Campaigns', val: activeCampaignsCount.toString(), icon: Activity, color: 'text-blue-400' },
+              { label: 'Prospects Scraped', val: globalStats.totalScraped.toLocaleString(), icon: Users, color: 'text-amber-400' },
               { label: 'Total Emails Sent', val: globalStats.totalSent.toLocaleString(), icon: Mail, color: 'text-emerald-400' },
               { label: 'Estimated Pipeline', val: `$${(globalStats.opportunities * 1500 + globalStats.conversions * 5000).toLocaleString()}`, icon: TrendingUp, color: 'text-purple-400' },
               { label: 'Bounce Rate', val: `${globalStats.bounceRate}%`, icon: AlertCircle, color: globalStats.bounceRate > 5 ? 'text-destructive' : 'text-muted-foreground' }
@@ -416,7 +420,7 @@ export const Dashboard = () => {
                                 </div>
                                 <span className="font-bold text-sm text-white">To: {sent.lead?.name || sent.lead?.email}</span>
                               </div>
-                              <span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{format(new Date(sent.created_at), 'MMM d, h:mm a')}</span>
+                              <span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">{format(new Date(sent.sent_at || sent.created_at), 'MMM d, h:mm a')}</span>
                             </div>
                             <div className="ml-9 flex flex-col gap-1">
                               <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Briefcase size={12}/> {sent.lead?.company || 'Unknown Company'}</span>

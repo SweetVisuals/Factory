@@ -38,8 +38,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // ─── SMTP ────────────────────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
   host: 'mail.privateemail.com',
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false, // Use STARTTLS on port 587
   auth: { user: SENDER_EMAIL, pass: 'Longlonglong1!' },
   tls: { rejectUnauthorized: false },
   pool: true,
@@ -169,6 +169,49 @@ async function processCampaign(campaign) {
         const info = await sendEmail(lead);
         log(`  ✅ SENT — ${info.messageId}`);
         sent++;
+
+        const emailAccountId = 'a150822b-e79c-4128-a32f-52aa3ef4e5ff';
+        const { data: schedData } = await supabase
+          .from('scheduled_emails')
+          .select('id')
+          .eq('campaign_id', campaign.id)
+          .limit(1)
+          .maybeSingle();
+        const scheduleId = schedData?.id;
+
+        if (scheduleId) {
+          await supabase.from('campaign_progress').upsert({
+            campaign_id: campaign.id,
+            schedule_id: scheduleId,
+            lead_id: lead.id,
+            email_account_id: emailAccountId,
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'campaign_id,schedule_id,lead_id' });
+
+          const { data: currentStats } = await supabase
+            .from('scheduled_emails').select('sent_emails').eq('id', scheduleId).single();
+          if (currentStats) {
+            await supabase.from('scheduled_emails')
+              .update({ sent_emails: (currentStats.sent_emails || 0) + 1 }).eq('id', scheduleId);
+          }
+        }
+
+        await supabase.from('inbox_emails').insert({
+          email_account_id: emailAccountId,
+          folder: 'sent',
+          uid: Math.floor(Math.random() * 1000000000),
+          from: SENDER_EMAIL,
+          to: lead.email,
+          subject: lead.personalized_subject,
+          body_text: lead.personalized_email,
+          body_html: lead.personalized_email.replace(/\n/g, '<br/>'),
+          snippet: lead.personalized_email.substring(0, 100),
+          received_at: new Date().toISOString(),
+          is_read: true,
+          campaign_id: campaign.id
+        });
 
         await supabase.from('campaign_leads')
           .update({ status: 'sent', last_sent_at: new Date().toISOString() })

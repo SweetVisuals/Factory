@@ -58,7 +58,7 @@ const CampaignCard = ({
   useEffect(() => {
     if (!id) return;
     const fetchRecentSent = async () => {
-      const { data } = await supabase.from('campaign_progress').select('id, sent_at, lead:leads(name, email)').eq('campaign_id', id).eq('status', 'sent').order('created_at', { ascending: false }).limit(2);
+      const { data } = await supabase.from('campaign_progress').select('id, sent_at, lead:leads(name, email)').eq('campaign_id', id).eq('status', 'sent').order('sent_at', { ascending: false }).limit(2);
       if (data) setRecentSent(data);
     };
     fetchRecentSent();
