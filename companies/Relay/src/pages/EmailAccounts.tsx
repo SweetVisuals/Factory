@@ -71,57 +71,57 @@ const EmailAccounts = () => {
 
   return (
     <Layout>
-      <div className="w-full flex flex-col h-full bg-background overflow-y-auto text-foreground animate-in fade-in duration-500">
+      <div className="w-full flex flex-col h-full bg-background overflow-y-auto text-foreground animate-in fade-in duration-200">
         
-        {/* Clean Header */}
-        <div className="px-8 py-6 bg-background border-b border-border/50 shrink-0">
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 max-w-[1400px] mx-auto">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-muted/50 rounded-lg">
-                <AtSign size={20} className="text-muted-foreground" />
+        {/* Dynamic Header Section */}
+        <div className="p-8 pb-4 shrink-0 border-b border-border/20">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 max-w-[1600px] mx-auto w-full">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+                <h1 className="text-4xl font-black text-white tracking-tighter">Email Accounts</h1>
               </div>
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">Email Accounts</h1>
-                <p className="text-sm text-muted-foreground">Manage your connected sender domains and warmup health.</p>
-              </div>
+              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
+                Manage your connected sender domains
+              </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={14} />
                 <input
                   type="text"
                   placeholder="Search domains..."
-                  className="pl-9 pr-4 py-2 w-64 text-sm rounded-lg bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="pl-9 pr-4 py-2 w-48 text-xs font-medium rounded-lg bg-black/40 border border-white/5 focus:outline-none focus:ring-1 focus:ring-primary text-white"
                 />
               </div>
               <button
                 onClick={handleCleanup}
-                className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                className="p-2 rounded-lg text-white/50 hover:bg-white/5 hover:text-white transition-colors"
                 title="Cleanup Invalid"
               >
                 <Trash2 size={16} />
               </button>
               <button
                 onClick={() => setShowTestDesignModal(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-black/40 border border-white/5 hover:bg-white/5 hover:border-white/10 rounded-lg text-xs font-bold uppercase tracking-wider text-white transition-all shadow-sm"
               >
-                <Send size={14} className="text-muted-foreground" />
+                <Send size={14} className="text-white/50" />
                 Test Engine
               </button>
               <button
                 onClick={handleForceWarmup}
                 disabled={isForcingWarmup}
-                className="flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-black/40 border border-white/5 hover:bg-white/5 hover:border-white/10 rounded-lg text-xs font-bold uppercase tracking-wider text-white transition-all shadow-sm disabled:opacity-50"
               >
-                <Zap size={14} className="text-muted-foreground" />
+                <Zap size={14} className="text-white/50" />
                 {isForcingWarmup ? 'Forcing...' : 'Force Warmup'}
               </button>
               <button
                 onClick={() => setShowAddEmailModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-all"
+                className="flex items-center gap-2 bg-white text-black px-6 py-2 hover:bg-gray-200 transition-all rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] font-black uppercase tracking-widest text-[10px]"
               >
-                <Plus size={16} />
+                <Plus size={14} />
                 Add Account
               </button>
             </div>

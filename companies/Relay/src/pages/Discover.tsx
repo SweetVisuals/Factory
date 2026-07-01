@@ -196,24 +196,32 @@ const Discover: React.FC = () => {
 
   return (
     <Layout fullHeight>
-      <div className="flex flex-col h-full bg-background text-foreground font-sans relative">
-        
-        {/* Minimal Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-border/20">
-          <div className="flex items-center gap-6">
-            <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
-              <Search className="text-primary w-4 h-4" /> Discovery Engine
-            </h1>
-            <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground/80">
-              <div className="flex items-center gap-1.5"><Users className="w-3 h-3"/> {metrics.totalLeads.toLocaleString()} Leads</div>
-              <div className="w-1 h-1 rounded-full bg-border" />
-              <div className="flex items-center gap-1.5 text-emerald-500/80"><MailCheck className="w-3 h-3"/> {metrics.verifiedEmails.toLocaleString()} Valid</div>
-              <div className="w-1 h-1 rounded-full bg-border" />
-              <div className="flex items-center gap-1.5"><Activity className="w-3 h-3"/> {metrics.verificationRate}% Health</div>
+      <div className="flex flex-col h-full bg-background text-foreground font-sans relative animate-in fade-in duration-200">
+        {/* Dynamic Header Section */}
+        <div className="p-8 pb-4 shrink-0 border-b border-border/20">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 max-w-[1600px] mx-auto w-full">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+                <h1 className="text-4xl font-black text-white tracking-tighter">Discovery Engine</h1>
+              </div>
+              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
+                Global B2B Lead Searcher
+              </p>
             </div>
-          </div>
-          <div className="text-xs text-muted-foreground font-medium">
-            Showing {leads.length} of {totalCount}
+            
+            <div className="flex flex-col items-end gap-2">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                Showing {leads.length} of {totalCount}
+              </div>
+              <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground/80">
+                <div className="flex items-center gap-1.5"><Users className="w-3 h-3"/> {metrics.totalLeads.toLocaleString()} Leads</div>
+                <div className="w-1 h-1 rounded-full bg-border" />
+                <div className="flex items-center gap-1.5 text-emerald-500/80"><MailCheck className="w-3 h-3"/> {metrics.verifiedEmails.toLocaleString()} Valid</div>
+                <div className="w-1 h-1 rounded-full bg-border" />
+                <div className="flex items-center gap-1.5"><Activity className="w-3 h-3"/> {metrics.verificationRate}% Health</div>
+              </div>
+            </div>
           </div>
         </div>
 

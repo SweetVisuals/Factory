@@ -227,14 +227,19 @@ export const Dashboard = () => {
 
   return (
     <Layout fullHeight>
-      <div className="w-full h-full bg-[#111111] text-foreground flex flex-col overflow-hidden">
+      <div className="w-full h-full bg-[#111111] text-foreground flex flex-col overflow-hidden animate-in fade-in duration-200">
         
-        {/* Header Section */}
-        <div className="px-6 py-6 border-b border-white/5 shrink-0 bg-black/20">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 max-w-[1600px] mx-auto w-full">
-            <div className="flex flex-col gap-1">
-              <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard</h1>
-              <p className="text-muted-foreground text-sm">Professional overview of your automated outreach pipeline.</p>
+        {/* Dynamic Header Section */}
+        <div className="p-8 pb-4 shrink-0">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 max-w-[1600px] mx-auto w-full">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+                <h1 className="text-4xl font-black text-white tracking-tighter">Dashboard</h1>
+              </div>
+              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
+                Overview of automated outreach pipeline
+              </p>
             </div>
             
             {/* Business Selection Tabs */}

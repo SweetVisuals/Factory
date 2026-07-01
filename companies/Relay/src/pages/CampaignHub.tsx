@@ -123,7 +123,7 @@ export const CampaignHub = () => {
 
   return (
     <Layout>
-      <div className="w-full flex flex-col h-full bg-background overflow-y-auto">
+      <div className="w-full flex flex-col h-full bg-background overflow-y-auto animate-in fade-in duration-200">
         {/* Dynamic Header Section */}
         <div className="p-8 pb-0">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-8">
