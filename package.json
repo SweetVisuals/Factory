@@ -2,6 +2,7 @@
   "name": "openclaw-factory",
   "version": "1.0.0",
   "scripts": {
+    "build": "npm run build --prefix frontend",
     "dev:factory": "cd frontend && npm run dev",
     "dev:agents": "cd backend && node agent_engine.js",
     "dev:relay-fe": "cd companies/Relay && npx vite",
