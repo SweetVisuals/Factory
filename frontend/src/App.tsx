@@ -18,8 +18,15 @@ import AgentSprite from './components/AgentSprite';
 import JobQueue from './components/JobQueue';
 
 import Inbox from './components/Inbox';
+import LandingPage from './components/LandingPage';
+import TopupModal from './components/TopupModal';
 
 function App() {
+  const [session, setSession] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [balance, setBalance] = useState<number>(100);
+  const [isTopupOpen, setIsTopupOpen] = useState(false);
+
   const [activeOverlay, setActiveOverlay] = useState<'none' | 'discover' | 'dashboard' | 'profile' | 'employees' | 'queue' | 'business' | 'logs' | 'inbox'>('none');
   const [activeRoom, setActiveRoom] = useState<'hq' | 'relay' | 'scheduler'>(() => {
     const path = window.location.pathname.replace('/', '');
@@ -53,17 +60,93 @@ function App() {
   });
 
   useEffect(() => {
-    const initAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        await supabase.auth.signInWithPassword({
-          email: 'ptnmgmt@gmail.com',
-          password: 'Longlonglong1!'
+    const handleUrlSession = async () => {
+      // 1. Check hash parameters
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token=') && hash.includes('refresh_token=')) {
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          if (!error && data.session) {
+            window.location.hash = '';
+            setSession(data.session);
+            emitToast('Session synchronized successfully!', 'success');
+          }
+        }
+      }
+
+      // 2. Check search parameters
+      const searchParams = new URLSearchParams(window.location.search);
+      const accessTokenSearch = searchParams.get('access_token');
+      const refreshTokenSearch = searchParams.get('refresh_token');
+      if (accessTokenSearch && refreshTokenSearch) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessTokenSearch,
+          refresh_token: refreshTokenSearch
         });
+        if (!error && data.session) {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('access_token');
+          url.searchParams.delete('refresh_token');
+          window.history.replaceState({}, document.title, url.pathname + url.search);
+          setSession(data.session);
+          emitToast('Session synchronized successfully!', 'success');
+        }
       }
     };
-    initAuth();
+
+    handleUrlSession();
+
+    // Check initial auth state and subscribe to changes
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const getRelayUrl = () => {
+    const baseUrl = import.meta.env.VITE_RELAY_URL || "http://localhost:5174";
+    if (session?.access_token && session?.refresh_token) {
+      return `${baseUrl}#access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
+    }
+    return baseUrl;
+  };
+
+  const getSchedulerUrl = () => {
+    const baseUrl = import.meta.env.VITE_SCHEDULER_URL || "https://thelabel.vercel.app";
+    if (session?.access_token && session?.refresh_token) {
+      return `${baseUrl}#access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
+    }
+    return baseUrl;
+  };
+
+  useEffect(() => {
+    if (session?.user) {
+      const userCredits = session.user.user_metadata?.credits;
+      if (typeof userCredits === 'number') {
+        setBalance(userCredits);
+      } else {
+        const local = localStorage.getItem('ptn-factory-credits');
+        if (local) {
+          setBalance(parseFloat(local));
+        } else {
+          setBalance(100);
+          localStorage.setItem('ptn-factory-credits', '100.00');
+        }
+      }
+    }
+  }, [session]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -142,11 +225,107 @@ function App() {
       setActiveOverlay(prev => prev === view ? 'none' : view);
     }
   };
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      emitToast('Sign out error: ' + error.message, 'error');
+    } else {
+      emitToast('Signed out successfully!', 'success');
+    }
+  };
+
+  if (isAuthLoading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#090d16',
+        color: '#f8fafc',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontFamily: "'Inter', sans-serif"
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid rgba(59, 130, 246, 0.1)',
+          borderTopColor: '#3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <>
+        <ToastContainer />
+        <LandingPage onSignInSuccess={() => {}} />
+      </>
+    );
+  }
 
   return (
     <div className="fullscreen-container">
       <ToastContainer />
       <AgentModal />
+      <TopupModal isOpen={isTopupOpen} onClose={() => setIsTopupOpen(false)} onBalanceUpdated={(b) => setBalance(b)} />
+
+      {/* Top Left User Status Panel */}
+      <div style={{
+        position: 'absolute',
+        top: '2rem',
+        left: '2rem',
+        backgroundColor: 'var(--panel-bg)',
+        padding: '0.6rem 1.2rem',
+        borderRadius: '12px',
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        zIndex: 100,
+        border: '1px solid rgba(255,255,255,0.05)'
+      }}>
+        <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontFamily: 'Inter, sans-serif' }}>
+          Credits: <strong style={{ color: '#10b981' }}>${balance.toFixed(2)}</strong>
+        </span>
+        <button 
+          onClick={() => setIsTopupOpen(true)}
+          style={{ 
+            fontSize: '0.8rem', 
+            padding: '0.4rem 0.8rem', 
+            backgroundColor: '#3b82f6', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '6px', 
+            cursor: 'pointer',
+            fontWeight: 600
+          }}
+        >
+          Topup
+        </button>
+        <button 
+          onClick={handleSignOut}
+          style={{ 
+            fontSize: '0.8rem', 
+            padding: '0.4rem 0.8rem', 
+            backgroundColor: '#ef4444', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '6px', 
+            cursor: 'pointer',
+            fontWeight: 600
+          }}
+        >
+          Sign Out
+        </button>
+      </div>
 
       {/* Transition Overlay */}
       <div className={`transition-overlay ${isTransitioning ? 'active' : ''}`}>
@@ -187,7 +366,7 @@ function App() {
         {/* Relay Solutions Room */}
         <div className={`room-container relay ${activeRoom === 'relay' ? 'active' : ''}`}>
           <a 
-            href={import.meta.env.VITE_RELAY_URL || "http://localhost:5174"} 
+            href={getRelayUrl()} 
             target="_blank" 
             rel="noopener noreferrer"
             className="pixel-btn"
@@ -227,7 +406,7 @@ function App() {
         {/* Scheduler Room */}
         <div className={`room-container scheduler ${activeRoom === 'scheduler' ? 'active' : ''}`}>
           <a 
-            href={import.meta.env.VITE_SCHEDULER_URL || "https://thelabel.vercel.app"} 
+            href={getSchedulerUrl()} 
             target="_blank" 
             rel="noopener noreferrer"
             className="pixel-btn"
