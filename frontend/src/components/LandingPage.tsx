@@ -192,7 +192,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignInSuccess }) => {
         }}>
           <div>
             <h2 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, letterSpacing: '-0.5px' }}>Sign in to Factory</h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.5rem', margin: 0 }}>Enter your credentials below to access the command deck.</p>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.5rem', margin: 0 }}>
+              Enter your credentials below to access the command deck. <span style={{ color: '#3b82f6', fontSize: '0.8rem' }}>(Build v1.0.4 - Active)</span>
+            </p>
           </div>
 
           <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
