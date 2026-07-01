@@ -3,13 +3,13 @@ import { supabase } from '../lib/supabase';
 import { toast } from '../components/ui/use-toast';
 import { Lead } from '../types';
 import Layout from '../components/layout/Layout';
+import { CustomCheckbox } from '../components/ui/CustomCheckbox';
 import { 
   Search, Users, MailCheck, AlertTriangle, 
   ChevronLeft, ChevronRight, CheckCircle2, 
-  XCircle, HelpCircle, Activity, Filter, Loader2, Sparkles, Plus, RefreshCw, X, ArrowUpRight
+  XCircle, HelpCircle, Activity, Filter, Loader2, Sparkles, Plus, X, ArrowUpRight
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 
 interface Campaign {
   id: string;
@@ -34,6 +34,12 @@ const Discover: React.FC = () => {
   const [titleFilter, setTitleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Debounce search state
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const [debouncedIndustry, setDebouncedIndustry] = useState(industryFilter);
+  const [debouncedLocation, setDebouncedLocation] = useState(locationFilter);
+  const [debouncedTitle, setDebouncedTitle] = useState(titleFilter);
+
   // Selection & bulk action states
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
@@ -48,12 +54,23 @@ const Discover: React.FC = () => {
     verificationRate: 0,
   });
 
+  // Debounce effects
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setDebouncedIndustry(industryFilter);
+      setDebouncedLocation(locationFilter);
+      setDebouncedTitle(titleFilter);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search, industryFilter, locationFilter, titleFilter]);
+
   // Load initial data
   useEffect(() => {
     fetchCampaigns();
     fetchMetrics();
 
-    // Subscribe to changes in the leads table to update searcher dynamically
     const leadsSubscription = supabase
       .channel('public:leads_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
@@ -70,93 +87,52 @@ const Discover: React.FC = () => {
   // Fetch leads when page or filters change
   useEffect(() => {
     fetchLeads();
-  }, [page, industryFilter, statusFilter]);
-
-  // Handle manual trigger for search query changes to prevent over-fetching on keystroke
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    fetchLeads();
-  };
+  }, [page, debouncedSearch, debouncedIndustry, debouncedLocation, debouncedTitle, statusFilter]);
 
   const fetchCampaigns = async () => {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('id, name')
-        .order('name', { ascending: true });
-      if (error) throw error;
-      setCampaigns(data || []);
+      const { data } = await supabase.from('campaigns').select('id, name').order('name', { ascending: true });
+      if (data) setCampaigns(data);
     } catch (err) {
-      console.error('Error fetching campaigns:', err);
+      console.error(err);
     }
   };
 
   const fetchMetrics = async () => {
     try {
       const { count: total } = await supabase.from('leads').select('*', { count: 'exact', head: true });
-      const { count: verified } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('validation_status', 'valid');
-      const { count: invalid } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('validation_status', 'invalid');
+      const { count: verified } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'valid');
+      const { count: invalid } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'invalid');
 
       const totalNum = total || 0;
       const verifiedNum = verified || 0;
       const rate = totalNum > 0 ? Math.round((verifiedNum / totalNum) * 100) : 0;
 
-      setMetrics({
-        totalLeads: totalNum,
-        verifiedEmails: verifiedNum,
-        invalidEmails: invalid || 0,
-        verificationRate: rate,
-      });
+      setMetrics({ totalLeads: totalNum, verifiedEmails: verifiedNum, invalidEmails: invalid || 0, verificationRate: rate });
     } catch (err) {
-      console.error('Error fetching metrics:', err);
+      console.error(err);
     }
   };
 
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('leads')
-        .select('*', { count: 'exact' });
+      let query = supabase.from('leads').select('*', { count: 'exact' });
 
-      // Apply Filters
-      if (search.trim()) {
-        query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%,title.ilike.%${search}%`);
-      }
-      if (industryFilter.trim()) {
-        query = query.ilike('industry', `%${industryFilter}%`);
-      }
-      if (locationFilter.trim()) {
-        query = query.ilike('location', `%${locationFilter}%`);
-      }
-      if (titleFilter.trim()) {
-        query = query.ilike('title', `%${titleFilter}%`);
-      }
-      if (statusFilter !== 'all') {
-        query = query.eq('validation_status', statusFilter);
-      }
+      if (debouncedSearch.trim()) query = query.or(`name.ilike.%${debouncedSearch}%,company.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%`);
+      if (debouncedIndustry.trim()) query = query.ilike('industry', `%${debouncedIndustry}%`);
+      if (debouncedLocation.trim()) query = query.ilike('location', `%${debouncedLocation}%`);
+      if (debouncedTitle.trim()) query = query.ilike('title', `%${debouncedTitle}%`);
+      if (statusFilter !== 'all') query = query.eq('validation_status', statusFilter);
 
-      // Pagination
       const from = (page - 1) * limit;
-      const to = from + limit - 1;
-
-      const { data, count, error } = await query
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      const { data, count, error } = await query.order('created_at', { ascending: false }).range(from, from + limit - 1);
 
       if (error) throw error;
-
       setLeads((data as unknown as Lead[]) || []);
       setTotalCount(count || 0);
     } catch (err) {
-      console.error('Error fetching leads:', err);
+      console.error(err);
       toast({ title: 'Error', description: 'Failed to fetch leads', variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -164,442 +140,285 @@ const Discover: React.FC = () => {
   };
 
   // Bulk Actions
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedLeadIds(leads.map(l => l.id));
-    } else {
+  const handleSelectAll = () => {
+    if (selectedLeadIds.length === leads.length && leads.length > 0) {
       setSelectedLeadIds([]);
+    } else {
+      setSelectedLeadIds(leads.map(l => l.id));
     }
   };
 
-  const handleSelectRow = (id: string) => {
-    setSelectedLeadIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+  const handleSelectRow = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedLeadIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const handleBulkAddToCampaign = async () => {
-    if (selectedLeadIds.length === 0) {
-      toast({ title: 'Notice', description: 'Select at least one lead first', variant: 'default' });
-      return;
-    }
-    if (!selectedCampaignId) {
-      toast({ title: 'Notice', description: 'Please select a target campaign', variant: 'default' });
-      return;
-    }
-
+    if (!selectedCampaignId) return toast({ title: 'Notice', description: 'Please select a campaign' });
     setAddingToCampaign(true);
     try {
-      // Upsert rows into campaign_leads junction table
-      const insertions = selectedLeadIds.map(leadId => ({
-        campaign_id: selectedCampaignId,
-        lead_id: leadId,
-        status: 'pending',
-      }));
-
-      const { error } = await supabase
-        .from('campaign_leads')
-        .upsert(insertions, { onConflict: 'campaign_id,lead_id' });
-
+      const insertions = selectedLeadIds.map(leadId => ({ campaign_id: selectedCampaignId, lead_id: leadId, status: 'pending' }));
+      const { error } = await supabase.from('campaign_leads').upsert(insertions, { onConflict: 'campaign_id,lead_id' });
       if (error) throw error;
-
-      toast({ title: 'Success', description: `Successfully added ${selectedLeadIds.length} leads to campaign!` });
+      toast({ title: 'Success', description: `Added ${selectedLeadIds.length} leads to campaign!` });
       setSelectedLeadIds([]);
       setSelectedCampaignId('');
     } catch (err: any) {
-      console.error('Error adding leads to campaign:', err);
-      toast({ title: 'Error', description: err.message || 'Failed to add leads to campaign', variant: 'destructive' });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setAddingToCampaign(false);
     }
   };
 
   const handleBulkVerifyEmails = async () => {
-    if (selectedLeadIds.length === 0) {
-      toast({ title: 'Notice', description: 'Select leads to verify' });
-      return;
-    }
-
     setVerifying(true);
     try {
       const selectedLeadsDetails = leads.filter(l => selectedLeadIds.includes(l.id));
-      
-      // Perform email verification simulation / validation check
       const updates = selectedLeadsDetails.map(async (lead) => {
         let status = 'invalid';
         if (lead.email && lead.email.includes('@') && lead.email.includes('.')) {
           const isGeneric = lead.email.endsWith('.temp') || lead.email.includes('example');
           status = isGeneric ? 'catch_all' : 'valid';
         }
-
-        return supabase
-          .from('leads')
-          .update({
-            validation_status: status,
-            validation_details: JSON.stringify({ verified_at: new Date().toISOString(), method: 'MX_Record_Lookup' })
-          })
-          .eq('id', lead.id);
+        return supabase.from('leads').update({ validation_status: status }).eq('id', lead.id);
       });
-
       await Promise.all(updates);
-      toast({ title: 'Success', description: `Completed email verification check for ${selectedLeadIds.length} leads!` });
+      toast({ title: 'Success', description: `Verified ${selectedLeadIds.length} leads!` });
       setSelectedLeadIds([]);
       fetchLeads();
       fetchMetrics();
-    } catch (err: any) {
-      console.error('Error verifying emails:', err);
-      toast({ title: 'Error', description: 'Failed to run verification job', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to verify', variant: 'destructive' });
     } finally {
       setVerifying(false);
     }
   };
 
-  const getStatusBadgeStyle = (status: string) => {
-    switch (status) {
-      case 'valid':
-        return 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
-      case 'invalid':
-        return 'bg-rose-500/15 text-rose-500 border border-rose-500/20';
-      case 'catch_all':
-        return 'bg-amber-500/15 text-amber-500 border border-amber-500/20';
-      default:
-        return 'bg-slate-500/15 text-slate-400 border border-slate-500/20';
-    }
-  };
-
   return (
     <Layout fullHeight>
-    <div className="flex flex-col h-full overflow-hidden p-4 animate-in fade-in zoom-in-95 duration-500 w-full">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3">
-            <Search className="text-primary w-8 h-8" />
-            Lead Searcher
-          </h1>
-          <p className="text-sm font-medium text-muted-foreground/60 uppercase tracking-widest mt-1">
-            Search, filter, and prospect globally.
-          </p>
-        </div>
-      </div>
-
-      {/* Top metrics dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total Leads Found', value: metrics.totalLeads.toLocaleString(), icon: <Users className="w-6 h-6 text-blue-500" /> },
-          { label: 'Verified Deliverable', value: metrics.verifiedEmails.toLocaleString(), icon: <MailCheck className="w-6 h-6 text-emerald-500" /> },
-          { label: 'Deliverability Score', value: `${metrics.verificationRate}%`, icon: <Activity className="w-6 h-6 text-purple-500" /> },
-          { label: 'Bounce Risk', value: metrics.invalidEmails.toLocaleString(), icon: <AlertTriangle className="w-6 h-6 text-rose-500" /> }
-        ].map((item, idx) => (
-          <div key={idx} className="bg-card border border-border/40 rounded-xl p-5 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-primary/20 transition-all">
-            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 group-hover:opacity-10 transition-all duration-500">
-              {React.cloneElement(item.icon, { className: "w-32 h-32" })}
-            </div>
-            <div className="relative z-10 flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{item.label}</span>
-              {item.icon}
-            </div>
-            <div className="relative z-10 text-3xl font-black text-foreground">{item.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-1 gap-4 min-h-0">
+      <div className="flex flex-col h-full bg-background text-foreground font-sans relative">
         
-        {/* Sidebar Filters */}
-        <div className="w-64 bg-card border border-border/40 rounded-xl p-4 flex flex-col gap-4 overflow-y-auto shadow-sm">
-          <div>
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4 uppercase tracking-wider">
-              <Filter className="w-4 h-4 text-primary" /> Filters
-            </h3>
-            <form onSubmit={handleSearchSubmit} className="flex flex-col gap-3">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Keywords</label>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Name, company..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="pl-9 bg-background/50 border-border/50 text-sm"
-                  />
-                </div>
-              </div>
-              <Button type="submit" variant="secondary" className="w-full text-xs font-bold uppercase tracking-wider mt-1">
-                Apply Search
-              </Button>
-            </form>
+        {/* Minimal Header */}
+        <div className="flex items-center justify-between px-8 py-5 border-b border-border/20">
+          <div className="flex items-center gap-6">
+            <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+              <Search className="text-primary w-4 h-4" /> Discovery Engine
+            </h1>
+            <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground/80">
+              <div className="flex items-center gap-1.5"><Users className="w-3 h-3"/> {metrics.totalLeads.toLocaleString()} Leads</div>
+              <div className="w-1 h-1 rounded-full bg-border" />
+              <div className="flex items-center gap-1.5 text-emerald-500/80"><MailCheck className="w-3 h-3"/> {metrics.verifiedEmails.toLocaleString()} Valid</div>
+              <div className="w-1 h-1 rounded-full bg-border" />
+              <div className="flex items-center gap-1.5"><Activity className="w-3 h-3"/> {metrics.verificationRate}% Health</div>
+            </div>
           </div>
-
-          <div className="h-px bg-border/40 w-full" />
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Industry</label>
-            <Input
-              type="text"
-              placeholder="e.g. Software, Real Estate"
-              value={industryFilter}
-              onChange={e => { setIndustryFilter(e.target.value); setPage(1); }}
-              className="bg-background/50 border-border/50 text-sm"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Location</label>
-            <Input
-              type="text"
-              placeholder="e.g. London, NY"
-              value={locationFilter}
-              onChange={e => setLocationFilter(e.target.value)}
-              onBlur={() => { setPage(1); fetchLeads(); }}
-              className="bg-background/50 border-border/50 text-sm"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Title / Role</label>
-            <Input
-              type="text"
-              placeholder="e.g. CEO, Founder"
-              value={titleFilter}
-              onChange={e => setTitleFilter(e.target.value)}
-              onBlur={() => { setPage(1); fetchLeads(); }}
-              className="bg-background/50 border-border/50 text-sm"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Verification Status</label>
-            <select
-              value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-              className="w-full h-10 px-3 rounded-md border border-border/50 bg-background/50 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
-            >
-              <option value="all">All Statuses</option>
-              <option value="valid">Verified Valid</option>
-              <option value="catch_all">Catch All / Warning</option>
-              <option value="invalid">Invalid / Bounce Risk</option>
-              <option value="unverified">Unverified</option>
-            </select>
-          </div>
-
-          <div className="mt-auto pt-4">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setSearch('');
-                setIndustryFilter('');
-                setLocationFilter('');
-                setTitleFilter('');
-                setStatusFilter('all');
-                setPage(1);
-              }}
-              className="w-full text-xs font-bold text-muted-foreground hover:text-foreground uppercase tracking-wider"
-            >
-              <X className="w-3 h-3 mr-2" /> Reset Filters
-            </Button>
+          <div className="text-xs text-muted-foreground font-medium">
+            Showing {leads.length} of {totalCount}
           </div>
         </div>
 
-        {/* Lead Table Container */}
-        <div className="flex-1 bg-card border border-border/40 rounded-xl flex flex-col overflow-hidden shadow-sm relative">
+        {/* Seamless Filter Bar */}
+        <div className="flex items-center px-8 py-2.5 border-b border-border/20 bg-muted/5 gap-6 text-sm overflow-x-auto">
+          <div className="flex items-center gap-2 text-muted-foreground shrink-0 uppercase tracking-widest text-[10px] font-bold">
+            <Filter size={12} /> Filters
+          </div>
           
-          {/* Action Toolbar */}
-          <div className="p-4 border-b border-border/40 bg-muted/10 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-medium text-muted-foreground">
-                Selected: <strong className="text-primary">{selectedLeadIds.length}</strong>
-              </span>
+          <input
+            type="text"
+            placeholder="Search keywords..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-48 bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50 font-medium"
+          />
+          <div className="w-px h-4 bg-border/40 shrink-0" />
+          
+          <input
+            type="text"
+            placeholder="Title / Role..."
+            value={titleFilter}
+            onChange={e => setTitleFilter(e.target.value)}
+            className="w-36 bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50 font-medium"
+          />
+          <div className="w-px h-4 bg-border/40 shrink-0" />
 
-              {selectedLeadIds.length > 0 && (
-                <>
-                  <div className="h-5 w-px bg-border/60" />
-                  
-                  <Button
-                    onClick={handleBulkVerifyEmails}
-                    disabled={verifying}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider h-8 px-4"
-                  >
-                    {verifying ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Sparkles className="w-3 h-3 mr-2" />}
-                    Bulk Verify
-                  </Button>
+          <input
+            type="text"
+            placeholder="Industry..."
+            value={industryFilter}
+            onChange={e => setIndustryFilter(e.target.value)}
+            className="w-36 bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50 font-medium"
+          />
+          <div className="w-px h-4 bg-border/40 shrink-0" />
 
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={selectedCampaignId}
-                      onChange={e => setSelectedCampaignId(e.target.value)}
-                      className="h-8 px-2 rounded-md border border-border/50 bg-background/50 text-xs text-foreground focus:outline-none"
-                    >
-                      <option value="">Select Campaign...</option>
-                      {campaigns.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+          <input
+            type="text"
+            placeholder="Location..."
+            value={locationFilter}
+            onChange={e => setLocationFilter(e.target.value)}
+            className="w-32 bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50 font-medium"
+          />
+          <div className="w-px h-4 bg-border/40 shrink-0" />
 
-                    <Button
-                      onClick={handleBulkAddToCampaign}
-                      disabled={addingToCampaign || !selectedCampaignId}
-                      variant="secondary"
-                      className="text-xs font-bold uppercase tracking-wider h-8 px-4"
-                    >
-                      {addingToCampaign ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Plus className="w-3 h-3 mr-2" />}
-                      Add to Campaign
-                    </Button>
-                  </div>
-                </>
-              )}
+          <select
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+            className="bg-transparent border-none outline-none text-foreground font-medium text-sm focus:ring-0 cursor-pointer"
+          >
+            <option value="all">Any Status</option>
+            <option value="valid">Verified Valid</option>
+            <option value="catch_all">Catch All</option>
+            <option value="invalid">Invalid</option>
+            <option value="unverified">Unverified</option>
+          </select>
+          
+          {(search || industryFilter || locationFilter || titleFilter || statusFilter !== 'all') && (
+            <button 
+              onClick={() => { setSearch(''); setIndustryFilter(''); setLocationFilter(''); setTitleFilter(''); setStatusFilter('all'); }}
+              className="ml-auto text-xs font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider flex items-center gap-1"
+            >
+              <X size={12}/> Clear
+            </button>
+          )}
+        </div>
+
+        {/* Minimalist Data Table */}
+        <div className="flex-1 overflow-y-auto relative custom-scrollbar">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mb-3" />
+              <div className="text-xs font-bold uppercase tracking-widest">Loading Records...</div>
             </div>
+          ) : leads.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <Search className="w-8 h-8 text-muted-foreground/30 mb-3" />
+              <div className="text-sm font-bold">No leads matched your query</div>
+            </div>
+          ) : (
+            <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+              <thead className="bg-background sticky top-0 z-10">
+                <tr className="border-b border-border/20">
+                  <th className="pl-8 pr-4 py-3 w-14">
+                    <div onClick={handleSelectAll} className="w-max cursor-pointer">
+                      <CustomCheckbox checked={selectedLeadIds.length === leads.length && leads.length > 0} onChange={() => {}} />
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Name & Title</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Company</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Contact Detail</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Location</th>
+                  <th className="px-8 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Social</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/10">
+                {leads.map((lead) => {
+                  const isSelected = selectedLeadIds.includes(lead.id);
+                  return (
+                    <tr
+                      key={lead.id}
+                      onClick={() => handleSelectRow(lead.id)}
+                      className={`group transition-all cursor-pointer ${isSelected ? 'bg-primary/5' : 'hover:bg-muted/10'}`}
+                    >
+                      <td className="pl-8 pr-4 py-3 w-14">
+                        <CustomCheckbox checked={isSelected} onChange={() => {}} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-foreground">{lead.name || 'Unknown'}</div>
+                        <div className="text-xs text-muted-foreground">{lead.title || 'No Role'}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-foreground">{lead.company || lead.website || 'N/A'}</div>
+                        <div className="text-xs text-muted-foreground">{lead.industry || 'General'}</div>
+                      </td>
+                      <td className="px-4 py-3 flex flex-col gap-1">
+                        <div className="font-medium text-foreground">{lead.email}</div>
+                        <div className="flex items-center gap-1.5">
+                          {lead.validation_status === 'valid' ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> :
+                           lead.validation_status === 'invalid' ? <XCircle className="w-3 h-3 text-rose-500" /> :
+                           lead.validation_status === 'catch_all' ? <AlertTriangle className="w-3 h-3 text-amber-500" /> : <HelpCircle className="w-3 h-3 text-muted-foreground" />}
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                            lead.validation_status === 'valid' ? 'text-emerald-500' :
+                            lead.validation_status === 'invalid' ? 'text-rose-500' :
+                            lead.validation_status === 'catch_all' ? 'text-amber-500' : 'text-muted-foreground'
+                          }`}>
+                            {lead.validation_status || 'Unverified'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{lead.location || '—'}</td>
+                      <td className="px-8 py-3 text-right">
+                        <div className="flex gap-3 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                          {lead.linkedin && (
+                            <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-muted-foreground hover:text-blue-500 transition-colors">
+                              <ArrowUpRight className="w-4 h-4" />
+                            </a>
+                          )}
+                          {lead.website && (
+                            <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-muted-foreground hover:text-emerald-500 transition-colors">
+                              <ArrowUpRight className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Minimal Pagination Footer */}
+        <div className="flex items-center justify-between px-8 py-3 border-t border-border/20 bg-background text-xs">
+          <div className="text-muted-foreground font-bold uppercase tracking-widest">
+            Page {page} of {Math.ceil(totalCount / limit) || 1}
+          </div>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading} className="text-foreground hover:text-primary font-bold uppercase tracking-widest disabled:opacity-50 disabled:hover:text-foreground transition-colors flex items-center gap-1">
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </button>
+            <button onClick={() => setPage(p => p + 1)} disabled={page * limit >= totalCount || loading} className="text-foreground hover:text-primary font-bold uppercase tracking-widest disabled:opacity-50 disabled:hover:text-foreground transition-colors flex items-center gap-1">
+              Next <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Floating Action Toolbar */}
+        {selectedLeadIds.length > 0 && (
+          <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 bg-card border border-border shadow-2xl shadow-black/50 rounded-full px-6 py-3 flex items-center gap-6 animate-in slide-in-from-bottom-10 fade-in duration-300">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">{selectedLeadIds.length}</div>
+              <span className="text-sm font-bold text-foreground">Selected</span>
+            </div>
+            
+            <div className="h-5 w-px bg-border" />
+            
+            <button onClick={handleBulkVerifyEmails} disabled={verifying} className="text-sm font-bold text-foreground hover:text-emerald-500 transition-colors flex items-center gap-2 disabled:opacity-50">
+              {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Verify
+            </button>
+
+            <div className="h-5 w-px bg-border" />
 
             <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">
-                Showing {leads.length} of {totalCount} leads
-              </span>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={fetchLeads} 
-                className="w-8 h-8 text-muted-foreground hover:text-foreground"
-                title="Refresh leads list"
+              <select
+                value={selectedCampaignId}
+                onChange={e => setSelectedCampaignId(e.target.value)}
+                className="bg-transparent border-none outline-none text-sm font-medium text-foreground focus:ring-0 w-32 cursor-pointer truncate"
               >
-                <RefreshCw className="w-4 h-4" />
+                <option value="">Select Campaign...</option>
+                {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <Button onClick={handleBulkAddToCampaign} disabled={addingToCampaign || !selectedCampaignId} size="sm" className="h-8 rounded-full px-4 text-xs font-bold uppercase tracking-wider">
+                {addingToCampaign ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />} Add
               </Button>
             </div>
-          </div>
-
-          {/* Table */}
-          <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <div className="flex flex-col justify-center items-center h-full text-muted-foreground space-y-4">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <div className="text-center">
-                  <div className="text-sm font-bold uppercase tracking-wider text-foreground">Loading Leads</div>
-                  <div className="text-xs mt-1">Retrieving contacts from CRM database</div>
-                </div>
-              </div>
-            ) : leads.length === 0 ? (
-              <div className="flex flex-col justify-center items-center h-full text-muted-foreground p-8 text-center">
-                <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center mb-4">
-                  <Search className="w-8 h-8 text-muted-foreground/50" />
-                </div>
-                <div className="text-lg font-bold text-foreground mb-1">No leads found</div>
-                <div className="text-sm max-w-[300px]">Try relaxing your keyword filters or run a scrape in the dashboard to populate contacts.</div>
-              </div>
-            ) : (
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-muted/30 sticky top-0 z-10 backdrop-blur-md">
-                  <tr>
-                    <th className="px-3 py-2 w-10 border-b border-border/40">
-                      <input
-                        type="checkbox"
-                        checked={selectedLeadIds.length === leads.length && leads.length > 0}
-                        onChange={handleSelectAll}
-                        className="rounded border-border bg-background cursor-pointer focus:ring-primary focus:ring-offset-background"
-                      />
-                    </th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Contact</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Company & Industry</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Email & Status</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Location</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40 text-right">Links</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leads.map((lead) => {
-                    const isSelected = selectedLeadIds.includes(lead.id);
-                    return (
-                      <tr
-                        key={lead.id}
-                        className={`border-b border-border/20 transition-colors hover:bg-muted/20 ${isSelected ? 'bg-primary/5' : ''}`}
-                      >
-                        <td className="px-3 py-2">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleSelectRow(lead.id)}
-                            className="rounded border-border bg-background cursor-pointer focus:ring-primary focus:ring-offset-background"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-foreground text-sm">{lead.name || 'Unknown Contact'}</span>
-                            <span className="text-xs text-muted-foreground mt-0.5">{lead.title || 'Role Unassigned'}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-col">
-                            <span className="font-medium text-foreground text-sm">{lead.company || lead.website || 'N/A'}</span>
-                            <span className="text-xs text-muted-foreground mt-0.5">{lead.industry || 'Unknown Industry'}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-col items-start gap-1">
-                            <span className="text-sm font-medium text-foreground">{lead.email}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${getStatusBadgeStyle(lead.validation_status)}`}>
-                              {lead.validation_status === 'valid' ? <CheckCircle2 className="w-3 h-3" /> :
-                               lead.validation_status === 'invalid' ? <XCircle className="w-3 h-3" /> :
-                               lead.validation_status === 'catch_all' ? <AlertTriangle className="w-3 h-3" /> : <HelpCircle className="w-3 h-3" />}
-                              {lead.validation_status === 'valid' ? 'Valid' :
-                               lead.validation_status === 'invalid' ? 'Bounce Risk' :
-                               lead.validation_status === 'catch_all' ? 'Catch-all' : 'Unverified'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-sm text-muted-foreground">
-                          {lead.location || 'N/A'}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <div className="flex gap-2 justify-end">
-                            {lead.linkedin && (
-                              <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-muted text-blue-500 hover:text-blue-400 transition-colors" title="LinkedIn">
-                                <ArrowUpRight className="w-3 h-3" />
-                              </a>
-                            )}
-                            {lead.website && (
-                              <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-muted text-emerald-500 hover:text-emerald-400 transition-colors" title="Website">
-                                <ArrowUpRight className="w-3 h-3" />
-                              </a>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          {/* Pagination Footer */}
-          <div className="p-4 border-t border-border/40 bg-muted/10 flex items-center justify-between mt-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1 || loading}
-              className="text-xs font-bold uppercase tracking-wider"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" /> Prev
-            </Button>
             
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              Page {page} of {Math.ceil(totalCount / limit) || 1}
-            </span>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => p + 1)}
-              disabled={page * limit >= totalCount || loading}
-              className="text-xs font-bold uppercase tracking-wider"
-            >
-              Next <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
+            <button onClick={() => setSelectedLeadIds([])} className="absolute -top-2 -right-2 w-6 h-6 bg-muted border border-border rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm">
+              <X size={12}/>
+            </button>
           </div>
-        </div>
+        )}
+
       </div>
-    </div>
     </Layout>
   );
 };
