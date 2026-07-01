@@ -1086,5 +1086,22 @@
     "role": "",
     "name": "",
     "updated_at": "2026-06-28T23:41:52.114Z"
+  },
+  {
+    "user_id": "c5f44ad2-63d1-43c2-8e17-0333d12e8643",
+    "company": "Makes Sense Accountants",
+    "email": "info@msaccounts.co.uk",
+    "website": "http://msaccounts.co.uk/",
+    "location": "\n12 Summer Hill St, Birmingham B1 2PE, United Kingdom",
+    "phone": "\n+44 121 238 2206",
+    "summary": "",
+    "source": "Native Maps",
+    "status": "new",
+    "facebook": "https://www.facebook.com/makessenseaccounts",
+    "twitter": "https://twitter.com/MSAccountants",
+    "instagram": "https://www.instagram.com/makessenseca/",
+    "role": "",
+    "name": "",
+    "updated_at": "2026-06-28T23:45:42.609Z"
   }
 ]

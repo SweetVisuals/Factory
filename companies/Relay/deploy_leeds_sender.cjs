@@ -13,7 +13,7 @@ const { Client } = require('ssh2');
 
 const HETZNER_HOST = '5.75.252.100';
 const HETZNER_USER = 'root';
-const HETZNER_PASS = 'mjaXRVMmbMwC7xCbcLCE';
+const HETZNER_PASS = 'mjaXRVMmbMwC7xCbcLCE123';
 
 const DEPLOY_SCRIPT = `
 set -e
@@ -51,20 +51,25 @@ fi
 echo "📦 Installing dependencies..."
 npm install --production 2>&1 | tail -5
 
-# Stop existing leeds-sender if running
-echo "🔄 Stopping existing leeds-sender if running..."
-pm2 delete leeds-sender 2>/dev/null || true
+# Stop existing campaign-sender if running
+echo "🔄 Stopping existing campaign-sender if running..."
+pm2 delete campaign-sender 2>/dev/null || true
 
-# Start the sender under PM2
-echo "🚀 Starting Leeds Campaign Sender under PM2..."
-pm2 start server/leeds_campaign_sender.mjs \\
-  --name leeds-sender \\
+# Start the universal sender under PM2
+echo "🚀 Starting Campaign Sender under PM2..."
+pm2 start server/campaign_sender.mjs \\
+  --name campaign-sender \\
   --max-restarts 3 \\
   --restart-delay 60000 \\
   --log-date-format "YYYY-MM-DD HH:mm:ss" \\
   --merge-logs \\
-  --output /root/Factory/companies/Relay/leeds_sender.log \\
-  --error /root/Factory/companies/Relay/leeds_sender_error.log
+  --output /root/Factory/companies/Relay/campaign_sender.log \\
+  --error /root/Factory/companies/Relay/campaign_sender_error.log
+
+# Restart existing services to load the updated process_campaign_node file
+echo "🔄 Reloading backend services..."
+pm2 restart relay-backend 2>/dev/null || true
+pm2 restart relay-cron 2>/dev/null || true
 
 # Save PM2 config
 pm2 save
@@ -74,10 +79,10 @@ echo "════════════════════════�
 echo "  ✅ DEPLOYED SUCCESSFULLY"
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
-echo "  Monitor:  pm2 logs leeds-sender"
+echo "  Monitor:  pm2 logs campaign-sender"
 echo "  Status:   pm2 status"
-echo "  Stop:     pm2 stop leeds-sender"
-echo "  Restart:  pm2 restart leeds-sender"
+echo "  Stop:     pm2 stop campaign-sender"
+echo "  Restart:  pm2 restart campaign-sender"
 echo ""
 
 # Show current PM2 status
@@ -87,7 +92,7 @@ pm2 status
 echo ""
 echo "─── Initial logs ───"
 sleep 3
-pm2 logs leeds-sender --lines 10 --nostream 2>&1 || true
+pm2 logs campaign-sender --lines 10 --nostream 2>&1 || true
 `;
 
 console.log('🔗 Connecting to Hetzner server...');
