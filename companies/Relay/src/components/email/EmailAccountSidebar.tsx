@@ -7,6 +7,7 @@ import SettingsTab from './sidebar/SettingsTab';
 import CampaignsTab from './sidebar/CampaignsTab';
 import { toast } from '../ui/use-toast';
 import { fetchEmailAccounts, updateWarmupSettings } from '../../lib/api/email-accounts';
+import { cn } from '../../lib/utils';
 
 interface EmailAccountSidebarProps {
   account: EmailAccount;

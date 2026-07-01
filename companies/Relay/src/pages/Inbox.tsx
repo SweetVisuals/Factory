@@ -44,6 +44,7 @@ const Inbox = () => {
   const [replyContent, setReplyContent] = useState('');
   const [isDrafting, setIsDrafting] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [replyFromAccountId, setReplyFromAccountId] = useState('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -197,6 +198,9 @@ const Inbox = () => {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
+      setReplyFromAccountId(selectedThread.accountId);
+    }
+  }, [selectedThread]);
       
       // Mark as read if not read
       if (!selectedThread.isRead) {
@@ -318,7 +322,7 @@ const Inbox = () => {
       await api.post('/send-closing-reply', {
         leadId: 'unknown',
         campaignId: selectedThread.campaignId,
-        accountId: selectedThread.accountId,
+        accountId: replyFromAccountId || selectedThread.accountId,
         toEmail: selectedThread.contactEmail,
         subject,
         content: replyContent
@@ -564,6 +568,23 @@ const Inbox = () => {
                 <div className="p-4 border-t border-white/5 shrink-0">
                   <div className="max-w-3xl mx-auto">
                     <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden focus-within:border-primary/30 transition-colors">
+                      {/* From Selector */}
+                      <div className="flex items-center px-4 py-2.5 border-b border-white/5 bg-white/[0.01]">
+                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest mr-3">From:</span>
+                        <div className="relative flex-1 flex items-center">
+                          <select 
+                            className="w-full bg-transparent text-white/80 text-xs font-medium focus:outline-none cursor-pointer appearance-none z-10"
+                            value={replyFromAccountId}
+                            onChange={e => setReplyFromAccountId(e.target.value)}
+                          >
+                            {accounts.map(acc => (
+                              <option key={acc.id} value={acc.id} className="bg-[#111] text-white">{acc.email}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={12} className="text-white/30 absolute right-2 pointer-events-none" />
+                        </div>
+                      </div>
+
                       <textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
