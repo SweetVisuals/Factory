@@ -250,7 +250,7 @@ export async function runProcessCampaign() {
     for (const [e, o] of $)
       o.sort(
         (m, P) =>
-          new Date(m.start_date).getTime() - new Date(P.start_date).getTime(),
+          new Date(m.created_at).getTime() - new Date(P.created_at).getTime(),
       );
     // ═══ PARALLEL CAMPAIGN PROCESSING ═══
     // Process each campaign concurrently (all 5 at once) instead of sequentially
@@ -270,64 +270,7 @@ export async function runProcessCampaign() {
       const J = $.get(e.campaign_id) || [],
         v = J.findIndex((t) => t.id === e.id);
       if (v > 0) {
-        const t = J[v - 1];
-        // FIX: Use a proper completion check — count leads still pending for the previous step.
-        // The RPC now excludes all terminal statuses (sent, failed, bounced, replied, unsubscribed),
-        // so if it returns 0 results, the previous step is truly complete.
-        let prevStepPending = true;
-        try {
-          const { data: a, error: C } = await n
-            .rpc("get_pending_campaign_leads", {
-              campaign_id_param: e.campaign_id,
-              schedule_id_param: t.id,
-            })
-            .limit(1);
-          if (C) {
-            // FIX: On error, BLOCK this step (don't skip to next schedule).
-            // Previously `continue` would bypass the dependency guard entirely.
-            console.error(`Error checking dependency for step ${v + 1}, BLOCKING:`, C);
-            continue;
-          }
-          prevStepPending = a && a.length > 0;
-        } catch (depErr) {
-          console.error(`Exception checking dependency for step ${v + 1}, BLOCKING:`, depErr);
-          continue;
-        }
-        if (prevStepPending) {
-          console.log(
-            `Skipping step ${v + 1} (schedule ${e.id}): Previous step is not yet complete.`,
-          );
-          const j = 4320 * 60 * 1e3;
-          let h = new Date(t.start_date).getTime() + j;
-          if (
-            (h < o.getTime() + j && (h = o.getTime() + j),
-            new Date(e.start_date).getTime() < h)
-          ) {
-            const p = new Date(h),
-              N =
-                new Date(e.end_date).getTime() -
-                new Date(e.start_date).getTime(),
-              y = new Date(h + N);
-            (await n
-              .from("scheduled_emails")
-              .update({
-                start_date: p.toISOString(),
-                scheduled_for: p.toISOString(),
-                end_date: y.toISOString(),
-              })
-              .eq("id", e.id),
-              (e.start_date = p.toISOString()),
-              (e.scheduled_for = p.toISOString()),
-              (e.end_date = y.toISOString()),
-              console.log(
-                `Self-healed step ${v + 1}: pushed start date to ${p.toISOString()} to maintain gap.`,
-              ));
-          }
-          continue;
-        }
-        console.log(
-          `Step ${v + 1} (schedule ${e.id}): Previous step complete. Proceeding.`,
-        );
+        console.log(`Step ${v + 1} (schedule ${e.id}): Sequence enforcement enabled per-lead.`);
       }
       const K = Math.max(1, e.interval_minutes || 2),
         { data: Y } = await n
@@ -359,7 +302,7 @@ export async function runProcessCampaign() {
         console.log(`Schedule ${e.id}: No email accounts linked.`);
         continue;
       }
-      const { data: f, error: W } = await n
+      let { data: f, error: W } = await n
         .rpc("get_pending_campaign_leads", {
           campaign_id_param: e.campaign_id,
           schedule_id_param: e.id,
@@ -373,7 +316,69 @@ export async function runProcessCampaign() {
         console.log(`Schedule ${e.id}: No pending leads.`);
         continue;
       }
+
+      // Per-lead sequence check: if this is > Step 1, verify they completed the previous step
+      if (v > 0) {
+        const prevScheduleId = J[v - 1].id;
+        const leadIds = f.map(l => l.id);
+        const { data: prevProgress } = await n
+             .from("campaign_progress")
+             .select("lead_id, sent_at")
+             .eq("campaign_id", e.campaign_id)
+             .eq("schedule_id", prevScheduleId)
+             .eq("status", "sent")
+             .in("lead_id", leadIds);
+             
+        const requiredDelayMs = Math.max(1, e.interval_minutes || 0) * 60 * 1000;
+        const nowTime = new Date().getTime();
+        const validSequenceLeadIds = new Set();
+        
+        if (prevProgress) {
+             for (const p of prevProgress) {
+                 if (p.sent_at) {
+                     const timeSincePrev = nowTime - new Date(p.sent_at).getTime();
+                     if (timeSincePrev >= requiredDelayMs) {
+                         validSequenceLeadIds.add(p.lead_id);
+                     }
+                 }
+             }
+        }
+        
+        const validSequenceLeads = f.filter(l => validSequenceLeadIds.has(l.id));
+        if (validSequenceLeads.length < f.length) {
+             console.log(`Schedule ${e.id} (Step ${v+1}): Filtered ${f.length - validSequenceLeads.length} leads waiting for previous step completion or interval delay.`);
+        }
+        f = validSequenceLeads;
+      }
+
+      if (f.length === 0) {
+        console.log(`Schedule ${e.id} (Step ${v+1}): No pending leads after sequence delay filtering.`);
+        continue;
+      }
+      
       const H = f.map((t) => t.email).filter(Boolean);
+      let blockedSet = new Set();
+      if (H.length > 0) {
+          const { data: globalBlacklisted } = await n.from("global_blacklist").select("email").in("email", H);
+          if (globalBlacklisted) globalBlacklisted.forEach(b => blockedSet.add(b.email.toLowerCase()));
+          
+          const bId = e.campaigns?.business_id;
+          if (bId) {
+              const { data: businessOptOuts } = await n.from("business_opt_outs").select("email").eq("business_id", bId).in("email", H);
+              if (businessOptOuts) businessOptOuts.forEach(b => blockedSet.add(b.email.toLowerCase()));
+          }
+      }
+      
+      const validLeads = f.filter(l => l.email && !blockedSet.has(l.email.toLowerCase()));
+      if (validLeads.length < f.length) {
+          console.log(`Schedule ${e.id}: Filtered ${f.length - validLeads.length} leads due to global blacklist or business opt-out.`);
+      }
+      f = validLeads;
+
+      if (f.length === 0) {
+        console.log(`Schedule ${e.id}: No pending leads after blacklist filtering.`);
+        continue;
+      }
       let A = new Set();
       if (H.length > 0) {
         const { data: t } = await n
@@ -933,15 +938,6 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
           plainTextOe = plainTextOe.replace(/To opt out of future emails.*$/i, '').trim();
           re += "\n\n" + plainTextOe;
         }
-        // Append compliant dynamic plain text GDPR footer
-        const isMrMedic = e.campaigns?.businesses?.name?.toLowerCase().includes('medic');
-        let footer = "";
-        if (isMrMedic) {
-          footer = `\n\n---\nMrMedic Events Ltd · mrmedicevents.co.uk\nYou're receiving this because we believe MrMedic's services may be relevant to your events.\nUnsubscribe: https://relay-mailer.com/api/unsubscribe?leadId=${t.id}&campaignId=${e.campaign_id}`;
-        } else {
-          footer = `\n\n---\nRelay Solutions Ltd · relaysolutions.net\nYou're receiving this because we believe our automated lead systems are relevant to your business growth.\nUnsubscribe: https://relay-mailer.com/api/unsubscribe?leadId=${t.id}&campaignId=${e.campaign_id}`;
-        }
-        re += footer;
 
         let g = re,
           T = E;

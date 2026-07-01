@@ -87,6 +87,11 @@ export async function processBounces() {
                                 .update({ status: 'bounced' })
                                 .eq('email', originalRecipient);
 
+                            // Add to global blacklist
+                            await supabase
+                                .from('global_blacklist')
+                                .insert({ email: originalRecipient, reason: 'bounced' });
+
                             // Delete the bounce email so we don't process it again
                             await client.messageDelete(msg.uid);
                             bounceCount++;

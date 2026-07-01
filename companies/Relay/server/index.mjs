@@ -29,6 +29,7 @@ import { startAutoAssignCron } from './auto_assign_cron.mjs';
 import { startScraperSchedulerCron } from './scraper_scheduler_cron.mjs';
 import { startEmailerCron } from './emailer_cron.mjs';
 import { startBounceProcessorCron } from './bounce_processor_cron.mjs';
+import { startSyncEmailsCron } from './sync_emails_cron.mjs';
 
 // Prevent Puppeteer temp profile deletion errors (EBUSY unlink) from crashing the server
 process.on('unhandledRejection', (reason, promise) => {
@@ -1316,6 +1317,24 @@ app.post('/api/scrape-leads', async (req, res) => {
       const exists = results.some(r => (r.website && r.website === lead.website) || (r.email && r.email === lead.email));
 
       if (!exists) {
+        if (lead.email) {
+          try {
+            const { data: blacklisted } = await client.from('global_blacklist').select('id').ilike('email', lead.email).maybeSingle();
+            if (blacklisted) {
+                log(`[Filter] Dropped ${lead.company}: Email is globally blacklisted.`);
+                return;
+            }
+            
+            const { data: existingLead } = await client.from('leads').select('status').ilike('email', lead.email).maybeSingle();
+            if (existingLead && ['bounced', 'closed', 'interested', 'client', 'converted'].includes(existingLead.status.toLowerCase())) {
+                log(`[Filter] Dropped ${lead.company}: Lead already exists with terminal status (${existingLead.status}).`);
+                return;
+            }
+          } catch (e) {
+            console.error('[Scraper] DB check error:', e.message);
+          }
+        }
+        
         totalLeadsInThisRun++;
         results.push(lead);
         userResults.set(userId, results);
@@ -2234,57 +2253,90 @@ app.get('/api/emails', async (req, res) => {
                         senderAddr.includes('mailer-daemon') ||
                         senderAddr.includes('postmaster@');
 
-                      if (senderText.toLowerCase().includes('mailer-daemon') || isAutoReply || isNoReplySender) {
-                        // If it's an auto reply or bounce, mark lead as 'closed' if possible, and skip
-                        if (isAutoReply && folderType === 'inbox') {
-                          const autoSenderEmail = parsed.from?.value?.[0]?.address || senderText.match(/<([^>]+)>/)?.[1] || senderText;
-                          if (autoSenderEmail) {
-                            try {
-                              const { data: leadMatch } = await scopedSupabase
-                                .from('leads')
-                                .select('id')
-                                .ilike('email', autoSenderEmail.trim().toLowerCase())
-                                .limit(1)
-                                .maybeSingle();
-
-                              if (leadMatch) {
-                                // Stop the sequence by closing the lead
-                                await scopedSupabase.from('leads').update({ status: 'closed' }).eq('id', leadMatch.id);
-                              }
-                            } catch (e) { }
-                          }
-                        }
-                        continue; // Skip undeliverable and auto-replies
-                      }
-
                       let campaignIdMatch = parsed.headers && parsed.headers.get('x-campaign-id') ? parsed.headers.get('x-campaign-id') : null;
+                      let leadIdMatch = null;
+                      let businessIdMatch = null;
 
-                      // If it's an inbox email (reply), try to match the sender's email to a campaign lead
-                      if (!campaignIdMatch && folderType === 'inbox') {
+                      // Try to match the sender's email to a campaign lead
+                      if (folderType === 'inbox') {
                         const senderEmail = parsed.from?.value?.[0]?.address || (parsed.from?.text || '').match(/<([^>]+)>/)?.[1] || parsed.from?.text;
                         if (senderEmail) {
                           const cleanSenderEmail = senderEmail.trim().toLowerCase();
                           try {
                             const { data: leadMatch } = await scopedSupabase
                               .from('leads')
-                              .select('id, status, campaign_leads!inner(campaign_id)')
+                              .select('id, status, campaign_leads(campaign_id)')
                               .ilike('email', cleanSenderEmail)
                               .limit(1)
                               .maybeSingle();
 
-                            if (leadMatch?.campaign_leads?.[0]?.campaign_id) {
-                              campaignIdMatch = leadMatch.campaign_leads[0].campaign_id;
-
-                              if (leadMatch.status !== 'closed' && leadMatch.status !== 'interested') {
-                                await scopedSupabase
-                                  .from('leads')
-                                  .update({ status: 'interested' })
-                                  .eq('id', leadMatch.id);
+                            if (leadMatch) {
+                              leadIdMatch = leadMatch.id;
+                              if (!campaignIdMatch && leadMatch.campaign_leads?.[0]?.campaign_id) {
+                                campaignIdMatch = leadMatch.campaign_leads[0].campaign_id;
                               }
                             }
                           } catch (e) {
                             console.warn("Could not match lead email to campaign:", e);
                           }
+                        }
+                      }
+
+                      if (campaignIdMatch) {
+                        try {
+                          const { data: campData } = await scopedSupabase.from('campaigns').select('business_id').eq('id', campaignIdMatch).maybeSingle();
+                          if (campData) businessIdMatch = campData.business_id;
+                        } catch (e) {}
+                      }
+
+                      const isOptOut =
+                        bodyText.includes('unsubscribe') ||
+                        bodyText.includes('take me off') ||
+                        bodyText.includes('remove me') ||
+                        bodyText.includes('stop sending') ||
+                        bodyText.includes('do not contact') ||
+                        bodyText.includes('opt out') ||
+                        bodyText.includes('opt-out');
+
+                      const isBounce = senderText.toLowerCase().includes('mailer-daemon') || isNoReplySender || /undeliverable/i.test(subjectText);
+
+                      if (isBounce) {
+                        const originalRecipientMatch = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+                        const bouncedEmail = originalRecipientMatch ? originalRecipientMatch.find(e => e.toLowerCase() !== account.email.toLowerCase())?.toLowerCase() : null;
+                        
+                        if (bouncedEmail) {
+                          try {
+                            const { data: bLead } = await scopedSupabase.from('leads').select('id, campaign_leads(campaign_id)').ilike('email', bouncedEmail).limit(1).maybeSingle();
+                            if (bLead) {
+                                leadIdMatch = bLead.id;
+                                if (!campaignIdMatch && bLead.campaign_leads?.[0]?.campaign_id) {
+                                    campaignIdMatch = bLead.campaign_leads[0].campaign_id;
+                                }
+                            }
+                          } catch (e) {}
+
+                          await scopedSupabase.from('leads').update({ status: 'bounced' }).ilike('email', bouncedEmail);
+                          await scopedSupabase.from('global_blacklist').insert({ email: bouncedEmail, reason: 'bounced' });
+                        } else if (leadIdMatch) {
+                          await scopedSupabase.from('leads').update({ status: 'bounced' }).eq('id', leadIdMatch);
+                        }
+                      }
+
+                      if (isOptOut && folderType === 'inbox') {
+                        const senderEmail = parsed.from?.value?.[0]?.address || (parsed.from?.text || '').match(/<([^>]+)>/)?.[1] || parsed.from?.text;
+                        if (senderEmail && businessIdMatch) {
+                           await scopedSupabase.from('business_opt_outs').insert({ business_id: businessIdMatch, email: senderEmail.trim().toLowerCase() });
+                        }
+                        if (leadIdMatch) {
+                           await scopedSupabase.from('leads').update({ status: 'closed' }).eq('id', leadIdMatch);
+                        }
+                      } else if (isAutoReply && folderType === 'inbox' && leadIdMatch) {
+                        await scopedSupabase.from('leads').update({ status: 'closed' }).eq('id', leadIdMatch);
+                      } else if (folderType === 'inbox' && leadIdMatch) {
+                        // Normal reply
+                        const { data: currentLead } = await scopedSupabase.from('leads').select('status').eq('id', leadIdMatch).maybeSingle();
+                        if (currentLead && currentLead.status !== 'closed' && currentLead.status !== 'interested' && currentLead.status !== 'bounced') {
+                          await scopedSupabase.from('leads').update({ status: 'interested' }).eq('id', leadIdMatch);
                         }
                       }
 
@@ -3041,6 +3093,7 @@ if (process.env.ENABLE_CRONS !== 'false') {
   startScraperSchedulerCron();
   startEmailerCron();
   startBounceProcessorCron();
+  startSyncEmailsCron();
 } else {
   console.log('[SYSTEM] Background services (crons) are DISABLED via ENABLE_CRONS=false.');
 }
