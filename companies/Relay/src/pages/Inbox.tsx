@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
-import { Search, Mail, RefreshCw, Trash2, Archive, Inbox as InboxIcon, ChevronDown, ChevronRight, Briefcase, Folder, Send, Bot, X } from 'lucide-react';
+import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { EmailMessage, EmailAccount, Campaign } from '../types';
 import { fetchEmailAccounts } from '../lib/api/email-accounts';
@@ -365,7 +365,7 @@ const Inbox = () => {
         <div className="flex flex-1 overflow-hidden border-t border-white/5">
 
           {/* Sidebar */}
-          <div className="w-60 border-r border-white/5 flex flex-col bg-white/[0.01] shrink-0">
+          <div className="hidden lg:flex w-60 border-r border-white/5 flex-col bg-white/[0.01] shrink-0">
             <div className="p-4 border-b border-white/5">
               <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Navigation</span>
             </div>
@@ -427,7 +427,7 @@ const Inbox = () => {
           </div>
 
           {/* Threads List Column */}
-          <div className="w-80 border-r border-white/5 flex flex-col bg-white/[0.01] relative z-10 shrink-0">
+          <div className={cn("border-r border-white/5 flex flex-col bg-white/[0.01] relative z-10 shrink-0", selectedThread ? "hidden md:flex w-80" : "flex-1 w-full lg:w-80")}>
             <div className="p-3 border-b border-white/5">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={13} />
@@ -490,12 +490,18 @@ const Inbox = () => {
           </div>
 
           {/* Thread Reading & Reply Pane */}
-          <div className="flex-1 bg-background flex flex-col min-w-0 relative">
+          <div className={cn("bg-background flex flex-col min-w-0 relative", selectedThread ? "flex-1 w-full" : "hidden md:flex flex-1")}>
             {selectedThread ? (
               <>
-                <div className="h-14 flex items-center px-6 justify-between border-b border-white/5 bg-background sticky top-0 z-10 shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-black text-sm border border-primary/20">
+                <div className="h-14 flex items-center px-4 md:px-6 justify-between border-b border-white/5 bg-background sticky top-0 z-10 shrink-0">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <button 
+                      onClick={() => setSelectedThread(null)} 
+                      className="md:hidden p-1.5 -ml-1 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-black text-sm border border-primary/20 shrink-0">
                       {selectedThread.contactName.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex flex-col">

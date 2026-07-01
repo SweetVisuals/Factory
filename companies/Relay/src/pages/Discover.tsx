@@ -285,7 +285,7 @@ const Discover: React.FC = () => {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="flex items-center gap-3 px-8 py-2 shrink-0 border-y border-white/5 bg-white/[0.01]">
+        <div className="flex items-center gap-3 px-8 py-3 shrink-0 border-y border-white/5 bg-white/[0.01] overflow-x-auto custom-scrollbar w-full">
           {/* Search */}
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
@@ -354,7 +354,7 @@ const Discover: React.FC = () => {
         </div>
 
         {/* Data Table */}
-        <div className="flex-1 overflow-y-auto relative">
+        <div className="flex-1 overflow-auto relative custom-scrollbar w-full">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full">
               <Loader2 className="w-5 h-5 animate-spin text-primary mb-2" />
@@ -367,7 +367,7 @@ const Discover: React.FC = () => {
               <button onClick={clearAllFilters} className="mt-4 text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider">Clear Filters</button>
             </div>
           ) : (
-            <table className="w-full text-left text-[13px] border-collapse">
+            <table className="w-full min-w-[1000px] text-left text-[13px] border-collapse">
               <thead className="bg-background sticky top-0 z-10">
                 <tr>
                   <th className="pl-8 pr-2 py-2.5 w-10">

@@ -157,7 +157,7 @@ const EmailAccountsList: React.FC = () => {
       </div>
 
       {showSidebar && selectedAccount && (
-        <div className="w-[500px] shrink-0 animate-in slide-in-from-right-8 duration-200">
+        <div className="w-0 xl:w-[500px] shrink-0 animate-in slide-in-from-right-8 duration-200">
           <EmailAccountSidebar
             account={selectedAccount}
             onClose={() => setShowSidebar(false)}

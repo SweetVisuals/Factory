@@ -300,7 +300,7 @@ export const Dashboard = () => {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex flex-1 gap-6 min-h-0 h-[600px] pb-6">
+          <div className="flex flex-col lg:flex-row flex-1 gap-6 min-h-0 lg:h-[600px] h-auto pb-6">
             
             {/* Left/Middle Column (Inbox & Sent) */}
             <div className="flex-[2] flex flex-col gap-4 min-w-0">
@@ -445,7 +445,7 @@ export const Dashboard = () => {
             </div>
 
             {/* Right Column: Scraper Feed */}
-            <div className={cn("flex flex-col transition-all duration-300", isScraperOpen ? "flex-1 max-w-[400px]" : "w-12")}>
+            <div className={cn("flex flex-col transition-all duration-300", isScraperOpen ? "flex-1 lg:max-w-[400px] h-[400px] lg:h-auto" : "w-full lg:w-12 h-[52px] lg:h-auto shrink-0")}>
               <div className="flex items-center justify-between bg-[#1a1a1a] p-2 rounded-xl border border-white/5 mb-4">
                 {isScraperOpen ? (
                   <>

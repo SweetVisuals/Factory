@@ -95,7 +95,7 @@ export default function ProfilePage() {
             </div>
             
             {/* Elegant Tabs */}
-            <div className="flex gap-2 p-1.5 bg-black/20 border border-white/5 rounded-2xl w-fit">
+            <div className="flex gap-2 p-1.5 bg-black/20 border border-white/5 rounded-2xl w-full md:w-fit overflow-x-auto custom-scrollbar">
               {[
                 { id: 'profile', label: 'My Profile' },
                 { id: 'subscription', label: 'Subscription & Billing' },
@@ -105,7 +105,7 @@ export default function ProfilePage() {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all",
+                    "px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap",
                     activeTab === tab.id 
                       ? "bg-white/10 text-white shadow-sm" 
                       : "text-white/40 hover:text-white hover:bg-white/5"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Compass, Target, Inbox, AtSign, UserCircle, MessageSquare, LogOut, Zap, Clock, Activity, Cpu, HardDrive, Bell, BellRing, Settings, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Compass, Target, Inbox, AtSign, UserCircle, MessageSquare, LogOut, Zap, Clock, Activity, Cpu, HardDrive, Bell, BellRing, Settings, Sparkles, Menu, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { openclawSupabase } from '../lib/openclaw';
 import { ThemeToggle } from './ThemeToggle';
@@ -15,6 +15,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   const [isPaused, setIsPaused] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [balance, setBalance] = useState<number>(10);
   const [apiLimit, setApiLimit] = useState<number>(0);
   const [dbSpace, setDbSpace] = useState<number>(0);
@@ -128,7 +129,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
         </div>
         
         {/* Main OS Menu */}
-        <nav className="hidden md:flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
+        <nav className="hidden xl:flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
           {navItems.map(item => (
             <button
               key={item.path}
@@ -268,13 +269,102 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           </button>
 
           <div className="flex items-center gap-1">
-            <button onClick={() => signOut()} className="p-2 text-foreground/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors" title="Log Out">
+            <button onClick={signOut} className="p-2 text-foreground/50 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors" title="Sign Out">
               <LogOut size={16} />
             </button>
-          </div>
 
+            {/* Mobile Menu Toggle */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+              className="xl:hidden p-2 text-foreground/50 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+            >
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Mobile Slide-out Menu */}
+      {isMobileMenuOpen && (
+        <div className="xl:hidden fixed inset-0 top-12 z-[90] bg-background border-t border-white/5 flex flex-col animate-in slide-in-from-top-2 duration-200">
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <nav className="flex flex-col gap-1">
+              {navItems.map(item => (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+                    isActive(item.path) || location.pathname.startsWith(item.path) && item.path !== '/dashboard' 
+                      ? "bg-primary/20 text-primary" 
+                      : "text-foreground/50 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <item.icon size={18} />
+                  {item.name}
+                </button>
+              ))}
+            </nav>
+
+            <div className="h-px bg-white/5 w-full" />
+
+            <div className="space-y-4 px-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground/50 uppercase tracking-widest">Engine Status</span>
+                <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/5">
+                  <button 
+                    onClick={() => toggleEngine('active')}
+                    className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5", !isPaused ? "bg-emerald-500/20 text-emerald-400" : "text-foreground/40 hover:text-white")}
+                  >
+                    <Zap size={12} className={cn(!isPaused && "fill-emerald-400")} /> Running
+                  </button>
+                  <button 
+                    onClick={() => toggleEngine('paused')}
+                    className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5", isPaused ? "bg-amber-500/20 text-amber-400" : "text-foreground/40 hover:text-white")}
+                  >
+                    <Clock size={12} /> Paused
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-foreground/50">
+                    <span className="flex items-center gap-1.5"><Sparkles size={12} /> Balance</span>
+                    <span className="text-white/90 font-mono">${balance.toFixed(4)}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-purple-500/50 to-purple-400" style={{ width: `${Math.max(0, (balance / STARTING_BALANCE) * 100)}%` }} />
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-foreground/50">
+                    <span className="flex items-center gap-1.5"><Cpu size={12} /> API Limit</span>
+                    <span>{((apiLimit / MAX_API_LIMIT) * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (apiLimit / MAX_API_LIMIT) * 100)}%` }} />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-foreground/50">
+                    <span className="flex items-center gap-1.5"><HardDrive size={12} /> DB Space</span>
+                    <span>{dbSpace.toFixed(1)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, dbSpace)}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

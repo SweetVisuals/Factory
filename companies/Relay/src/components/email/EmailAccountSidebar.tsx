@@ -134,7 +134,7 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
       />
 
       {/* Sidebar */}
-      <div className="fixed inset-y-0 right-0 w-[500px] bg-[#0A0A0A] border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col">
+      <div className="fixed inset-y-0 right-0 w-full sm:w-[500px] bg-[#0A0A0A] border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col">
         <div className="p-8 pb-0 flex-shrink-0">
           <div className="flex justify-between items-start mb-8">
             <div className="flex flex-col gap-1">
