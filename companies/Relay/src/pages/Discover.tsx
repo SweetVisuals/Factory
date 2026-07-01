@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/ui/use-toast';
 import { Lead } from '../types';
+import Layout from '../components/layout/Layout';
 import { 
   Search, Users, MailCheck, AlertTriangle, 
   ChevronLeft, ChevronRight, CheckCircle2, 
@@ -267,6 +268,7 @@ const Discover: React.FC = () => {
   };
 
   return (
+    <Layout fullHeight>
     <div className="flex flex-col h-full overflow-hidden p-6 lg:p-8 animate-in fade-in zoom-in-95 duration-500 max-w-screen-2xl mx-auto w-full">
       
       {/* Header */}
@@ -598,6 +600,7 @@ const Discover: React.FC = () => {
         </div>
       </div>
     </div>
+    </Layout>
   );
 };
 
