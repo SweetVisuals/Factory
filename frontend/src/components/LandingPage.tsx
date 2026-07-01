@@ -19,8 +19,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignInSuccess }) => {
     }
 
     setIsLoading(true);
-    // Map "admin" to "ptnmgmt@gmail.com"
-    const email = username.toLowerCase() === 'admin' ? 'ptnmgmt@gmail.com' : username;
+    // Map "admin" and "admin@factory.com" to "ptnmgmt@gmail.com"
+    const normalizedUsername = username.toLowerCase().trim();
+    const email = (normalizedUsername === 'admin' || normalizedUsername === 'admin@factory.com') 
+      ? 'ptnmgmt@gmail.com' 
+      : username;
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
