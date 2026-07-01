@@ -26,8 +26,9 @@ echo "════════════════════════�
 cd /root/Factory
 
 # Pull latest code
-echo "📥 Pulling latest code..."
-git pull origin main 2>&1 || git pull origin master 2>&1 || echo "Git pull skipped"
+echo "📥 Syncing latest code with git fetch and hard reset..."
+git fetch --all
+git reset --hard origin/main || git reset --hard origin/master
 
 # Navigate to Relay project
 cd /root/Factory/companies/Relay
@@ -47,9 +48,9 @@ ENVEOF
   echo "✅ .env created"
 fi
 
-# Install dependencies
+# Install dependencies (ignoring errors as dependencies are already present)
 echo "📦 Installing dependencies..."
-npm install --production 2>&1 | tail -5
+npm install --production --legacy-peer-deps 2>&1 || echo "npm install warnings ignored"
 
 # Stop existing campaign-sender if running
 echo "🔄 Stopping existing campaign-sender if running..."
