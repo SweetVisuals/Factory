@@ -192,15 +192,13 @@ const Inbox = () => {
     }
   }, [threads, location.state]);
 
-  // Scroll to bottom of thread when opened
+  // Scroll to bottom of thread when opened and mark as read
   useEffect(() => {
     if (selectedThread) {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       setReplyFromAccountId(selectedThread.accountId);
-    }
-  }, [selectedThread]);
       
       // Mark as read if not read
       if (!selectedThread.isRead) {
