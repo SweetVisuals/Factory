@@ -16,6 +16,125 @@ const Te =
     "process.env.OPENROUTER_API_KEY",
     "process.env.OPENROUTER_API_KEY",
   ].filter(Boolean);
+const PERSONAL_DOMAINS = [
+  'gmail.com', 'yahoo.com', 'yahoo.co.uk', 'hotmail.com', 'hotmail.co.uk',
+  'outlook.com', 'outlook.co.uk', 'aol.com', 'icloud.com', 'live.com',
+  'live.co.uk', 'btinternet.com', 'sky.com', 'googlemail.com', 'nhs.net',
+  'macmillan.org.uk'
+];
+
+function extractFirstName(fullName) {
+  if (!fullName || fullName.trim() === '') return null;
+  const cleaned = fullName.replace(/,?\s*Dr\.?$/i, '').replace(/^Dr\.?\s*/i, '').trim();
+  if (!cleaned) return null;
+  if (cleaned.includes(',')) {
+    const parts = cleaned.split(',').map(p => p.trim());
+    if (parts[1]) {
+      const firstName = parts[1].split(/\s+/)[0];
+      return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+    }
+  }
+  const parts = cleaned.trim().split(/\s+/);
+  for (const part of parts) {
+    if (part !== part.toUpperCase() && part.length > 1) {
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    }
+  }
+  return parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+}
+
+function cleanCompanyName(company) {
+  if (!company) return '';
+  return company
+    .replace(/\s*[-–—]\s*(?:Leeds|London|Glasgow|Edinburgh|Birmingham|Manchester|Liverpool|Bristol|Sheffield|Nottingham|Cardiff|Belfast|Coventry|Aylsham|Yeovil|Shrewsbury|Caernarfon|Somerset|Property Management|Letting|Lettings|Sales\s*(?:&|and)\s*Lettings?|Residential|SALES ONLY).*$/i, '')
+    .replace(/\s*\([^)]*\)\s*/g, '')
+    .replace(/\s+(?:Ltd|Limited|PLC|LLP)\.?\s*$/i, '')
+    .replace(/\s+(?:Sales\s*(?:&|and)\s*Lettings?)\s*$/i, '')
+    .replace(/\s+(?:Formerly\s+.*)$/i, '')
+    .trim();
+}
+
+function cleanLocation(location) {
+  if (!location) return 'the UK';
+  const cleaned = location.replace(/^[\s\\n]+/, '').trim();
+  if (!cleaned) return 'the UK';
+  const parts = cleaned.split(',').map(p => p.trim()).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i].trim();
+    if (part === 'United Kingdom' || part === 'UK') continue;
+    if (/^[A-Z]{1,2}\d/i.test(part)) continue;
+    const cityPostcode = part.match(/^([A-Za-z\s\-'.]+?)\s+[A-Z]{1,2}\d/);
+    if (cityPostcode) return cityPostcode[1].trim();
+    if (/^\d/.test(part)) continue;
+    if (/^(Head Office|Suite|Unit|Floor|House|Building|Centre|Business|Park|Ground|c\/o|WeWork)/i.test(part)) continue;
+    return part;
+  }
+  return parts[0] || 'the UK';
+}
+
+function shortName(company) {
+  if (company.length <= 35) return company;
+  const truncated = company.substring(0, 35).replace(/\s+\S*$/, '');
+  return truncated || company.substring(0, 35);
+}
+
+const accountingTemplates = [
+  (g, cn, sn, loc, hn) => ({ subject: `Quick one for ${sn}`, body: `Hi ${g},\n\nNoticed you're running ${cn} in ${loc} — most accountancy practices I speak to are losing hours a week to manual data entry, client chasing, and report formatting.\n\nI run Relay, we build small automation systems that handle that kind of admin in the background. I'd like to offer a free audit — no cost, no obligation, just a quick look at where automation could save you time.\n\nWorth a 10 minute call this week?` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `${g} — quick accounting question` : `${sn} — quick question`, body: `Hi ${g},\n\nRunning an accounting practice in ${loc} usually means chasing clients for documents, manually reconciling entries, and formatting reports at month-end.\n\nWe build lightweight automation for firms like ${cn} — things like automated client reminders, document collection workflows, and report generation that run in the background.\n\nHappy to do a quick free audit if you're curious — just reply to this email.` }),
+  (g, cn, sn, loc, hn) => ({ subject: `Scaling ${sn} without hiring`, body: `Hi ${g},\n\nMost accountants I talk to in ${loc} hit the same ceiling — more clients means more admin, and hiring to keep up eats into margins.\n\nAt Relay we build custom systems that handle the repetitive stuff (client onboarding, document chasing, deadline tracking) so you can take on more without adding headcount.\n\nIf you're interested, I'll do a free 10-minute audit. Just reply here.` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `${g}, quick question about ${sn}` : `Quick question for ${sn}`, body: `Hi ${g},\n\nCurious — how much time does your team at ${cn} spend chasing clients for missing documents and receipts each month?\n\nMost accounting firms in ${loc} I've spoken with are surprised how much of that can run on autopilot. We build small, tailored systems that handle it.\n\nI'd like to offer a free audit — no strings, just a quick look. Reply if you're open to it.` }),
+  (g, cn, sn, loc, hn) => ({ subject: `${sn} — quick thought`, body: `Hi ${g},\n\nA lot of accounting practices in ${loc} are still running on spreadsheets and manual emails for client reminders, document collection, and deadline tracking.\n\nAt Relay we build simple automation that replaces that admin overhead — custom-built for how ${cn} actually works.\n\nWorth a quick 10-minute call? No pressure, just a free audit to see if there's anything worth automating.` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `For ${g} at ${sn}` : `Quick intro for ${sn}`, body: `Hi ${g},\n\nI work with accounting firms around ${loc} — most are burning hours on admin that could easily be automated (client reminders, document workflows, deadline tracking).\n\nI'd like to offer ${cn} a free, no-obligation audit to see where you could save time.\n\nInterested? Just reply and we'll find 10 minutes.` }),
+];
+
+const dentalTemplates = [
+  (g, cn, sn, loc, hn) => ({ subject: `Quick one for ${sn}`, body: `Hi ${g},\n\nNoticed you're running ${cn} in ${loc} — most dental practices I speak to are losing hours a week to appointment no-shows, manual patient reminders, and booking admin.\n\nI run Relay, we build small automation systems that handle that kind of admin in the background. I'd like to offer a free audit — no cost, no obligation, just a quick look at where automation could save you time.\n\nWorth a 10 minute call this week?` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `${g} — practice admin question` : `${sn} — practice admin question`, body: `Hi ${g},\n\nRunning a dental practice in ${loc} usually means chasing patients for appointments, fielding booking calls, and managing recall lists manually.\n\nWe build lightweight automation for practices like ${cn} — things like automated appointment reminders, recall workflows, and patient onboarding that run in the background.\n\nHappy to do a quick free audit if you're curious — just reply to this email.` }),
+  (g, cn, sn, loc, hn) => ({ subject: `Scaling ${sn} without hiring`, body: `Hi ${g},\n\nMost dental practices I talk to in ${loc} hit the same ceiling — more patients means more admin, and hiring to keep up eats into margins.\n\nAt Relay we build custom systems that handle the repetitive stuff (appointment reminders, patient comms, recall tracking) so you can take on more without adding headcount.\n\nIf you're interested, I'll do a free 10-minute audit. Just reply here.` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `${g}, quick question about ${sn}` : `Quick question for ${sn}`, body: `Hi ${g},\n\nCurious — how much time does your team at ${cn} spend on appointment confirmations, no-show follow-ups, and recall reminders each week?\n\nMost dental practices in ${loc} I've spoken with are surprised how much of that can run on autopilot. We build small, tailored systems that handle it.\n\nI'd like to offer a free audit — no strings, just a quick look. Reply if you're open to it.` }),
+  (g, cn, sn, loc, hn) => ({ subject: `${sn} — quick thought`, body: `Hi ${g},\n\nA lot of dental practices in ${loc} are still running on phone calls and manual emails for appointment reminders, patient recalls, and booking confirmations.\n\nAt Relay we build simple automation that replaces that admin overhead — custom-built for how ${cn} actually works.\n\nWorth a quick 10-minute call? No pressure, just a free audit to see if there's anything worth automating.` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `For ${g} at ${sn}` : `Quick intro for ${sn}`, body: `Hi ${g},\n\nI work with dental practices around ${loc} — most are burning hours on admin that could easily be automated (appointment reminders, recall workflows, patient onboarding).\n\nI'd like to offer ${cn} a free, no-obligation audit to see where you could save time.\n\nInterested? Just reply and we'll find 10 minutes.` }),
+];
+
+const legalTemplates = [
+  (g, cn, sn, loc, hn) => ({ subject: `Quick one for ${sn}`, body: `Hi ${g},\n\nNoticed you're running ${cn} in ${loc} — most law firms I speak to are losing hours a week to manual client intake, document chasing, and case file admin.\n\nI run Relay, we build small automation systems that handle that kind of admin in the background. I'd like to offer a free audit — no cost, no obligation, just a quick look at where automation could save you time.\n\nWorth a 10 minute call this week?` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `${g} — legal admin question` : `${sn} — legal admin question`, body: `Hi ${g},\n\nRunning a law firm in ${loc} usually means chasing clients for documents, manually logging case updates, and juggling intake forms across systems.\n\nWe build lightweight automation for firms like ${cn} — things like automated client intake, document collection workflows, and deadline reminders that run in the background.\n\nHappy to do a quick free audit if you're curious — just reply to this email.` }),
+  (g, cn, sn, loc, hn) => ({ subject: `Scaling ${sn} without hiring`, body: `Hi ${g},\n\nMost law firms I talk to in ${loc} hit the same ceiling — more clients means more admin, and hiring to keep up eats into margins.\n\nAt Relay we build custom systems that handle the repetitive stuff (client intake, document chasing, deadline tracking) so you can take on more without adding headcount.\n\nIf you're interested, I'll do a free 10-minute audit. Just reply here.` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `${g}, quick question about ${sn}` : `Quick question for ${sn}`, body: `Hi ${g},\n\nCurious — how much time does your team at ${cn} spend chasing clients for documents, logging case updates, and managing intake forms each week?\n\nMost law firms in ${loc} I've spoken with are surprised how much of that can run on autopilot. We build small, tailored systems that handle it.\n\nI'd like to offer a free audit — no strings, just a quick look. Reply if you're open to it.` }),
+  (g, cn, sn, loc, hn) => ({ subject: `${sn} — quick thought`, body: `Hi ${g},\n\nA lot of law firms in ${loc} are still running on manual emails and spreadsheets for client intake, document tracking, and deadline management.\n\nAt Relay we build simple automation that replaces that admin overhead — custom-built for how ${cn} actually works.\n\nWorth a quick 10-minute call? No pressure, just a free audit to see if there's anything worth automating.` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `For ${g} at ${sn}` : `Quick intro for ${sn}`, body: `Hi ${g},\n\nI work with law firms around ${loc} — most are burning hours on admin that could easily be automated (client intake, document workflows, deadline tracking).\n\nI'd like to offer ${cn} a free, no-obligation audit to see where you could save time.\n\nInterested? Just reply and we'll find 10 minutes.` }),
+];
+
+const propertyTemplates = [
+  (g, cn, sn, loc, hn) => ({ subject: `Quick one for ${sn}`, body: `Hi ${g},\n\nNoticed you're running ${cn} in ${loc} — most property management firms I speak to are losing hours a week to manual scheduling, tenant follow-ups, or chasing maintenance requests.\n\nI run Relay, we build small automation systems that handle that kind of admin in the background. I'd like to offer a free audit — no cost, no obligation, just a quick look at where automation could save you time.\n\nWorth a 10 minute call this week?` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `${g} — property admin question` : `${sn} — property admin question`, body: `Hi ${g},\n\nRunning a property management operation in ${loc} usually means chasing rent arrears, fielding maintenance calls, and juggling tenant comms manually.\n\nWe build lightweight automation for firms like ${cn} — things like automated rent reminders, maintenance tracking, and tenant onboarding that run in the background.\n\nHappy to do a quick free audit if you're curious — just reply to this email.` }),
+  (g, cn, sn, loc, hn) => ({ subject: `Scaling ${sn} without hiring`, body: `Hi ${g},\n\nMost property managers I talk to in ${loc} hit the same ceiling — more properties means more admin, and hiring to keep up eats into margins.\n\nAt Relay we build custom systems that handle the repetitive stuff (tenant comms, scheduling, payment tracking) so you can take on more without adding headcount.\n\nIf you're interested, I'll do a free 10-minute audit. Just reply here.` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `${g}, quick question about ${sn}` : `Quick question for ${sn}`, body: `Hi ${g},\n\nCurious — how much time does your team at ${cn} spend fielding tenant queries and maintenance requests each week?\n\nMost property firms in ${loc} I've spoken with are surprised how much of that can run on autopilot. We build small, tailored systems that handle it.\n\nI'd like to offer a free audit — no strings, just a quick look. Reply if you're open to it.` }),
+  (g, cn, sn, loc, hn) => ({ subject: `${sn} — quick thought`, body: `Hi ${g},\n\nA lot of property management firms in ${loc} are still running on spreadsheets and manual emails for tenant comms, rent chasing, and maintenance logs.\n\nAt Relay we build simple automation that replaces that admin overhead — custom-built for how ${cn} actually works.\n\nWorth a quick 10-minute call? No pressure, just a free audit to see if there's anything worth automating.` }),
+  (g, cn, sn, loc, hn) => ({ subject: hn ? `For ${g} at ${sn}` : `Quick intro for ${sn}`, body: `Hi ${g},\n\nI work with property management firms around ${loc} — most are burning hours on admin that could easily be automated (rent reminders, maintenance workflows, tenant onboarding).\n\nI'd like to offer ${cn} a free, no-obligation audit to see where you could save time.\n\nInterested? Just reply and we'll find 10 minutes.` }),
+];
+
+const NICHE_TEMPLATES = {
+  'Accounting Firms in Birmingham': accountingTemplates,
+  'Dental/Healthcare': dentalTemplates,
+  'Legal Services': legalTemplates,
+  'Property Management': propertyTemplates,
+};
+
+function generateFallbackEmail(lead, niche) {
+  const greeting = extractFirstName(lead.name) || 'there';
+  const companyName = cleanCompanyName(lead.company) || 'your firm';
+  const sn = shortName(companyName);
+  const location = cleanLocation(lead.location);
+  const hasName = greeting !== 'there';
+  const templates = NICHE_TEMPLATES[niche] || accountingTemplates;
+
+  const hash = lead.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const templateIndex = hash % templates.length;
+
+  return templates[templateIndex](greeting, companyName, sn, location, hasName);
+}
+
 export async function runProcessCampaign() {
   let qe = null;
   try {
@@ -71,7 +190,7 @@ export async function runProcessCampaign() {
         `
             *,
             campaigns!scheduled_emails_campaign_id_fkey!inner (
-                id, name, status, company_name, contact_number, primary_email, business_id,
+                id, name, status, company_name, contact_number, primary_email, business_id, niche,
                 businesses!inner (
                     id, name, status, signature_template
                 )
@@ -596,46 +715,17 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
               });
             if (r.status === 402 || r.status === 429 || !r.ok) {
               const c = await r.text();
+              console.error(`DeepSeek API Error (status ${r.status}):`, c);
               if (
-                (console.error(`DeepSeek API Error (status ${r.status}):`, c),
                 r.status === 402 ||
-                  c.toLowerCase().includes("balance") ||
-                  c.toLowerCase().includes("credit") ||
-                  c.toLowerCase().includes("insufficient"))
-              )
-                return (
-                  console.log(
-                    "Credit exhaustion detected! Pausing factory engine.",
-                  ),
-                  await n
-                    .from("agent_memory")
-                    .upsert(
-                      {
-                        key_name: "factory_status",
-                        value: {
-                          status: "paused",
-                          reason: "insufficient_credits",
-                        },
-                      },
-                      { onConflict: "key_name" },
-                    ),
-                  await n
-                    .from("debug_logs")
-                    .insert({
-                      level: "error",
-                      message:
-                        "DeepSeek personalizer paused sequence engine due to insufficient AI credits",
-                      context: {
-                        status: r.status,
-                        error: c,
-                        campaign_id: e.campaign_id,
-                      },
-                    }),
-                  JSON.stringify({ success: false, error: "Engine paused due to insufficient AI credits" })
-                );
-              throw new Error(
-                `DeepSeek API non-ok response (${r.status}): ${c}`,
-              );
+                c.toLowerCase().includes("balance") ||
+                c.toLowerCase().includes("credit") ||
+                c.toLowerCase().includes("insufficient")
+              ) {
+                console.log("Credit exhaustion detected! Triggering rule-based fallback...");
+                throw new Error("AI_CREDITS_EXHAUSTED");
+              }
+              throw new Error(`DeepSeek API non-ok response (${r.status}): ${c}`);
             } else {
               const c = await r.json();
               if (c.choices && c.choices[0]) {
@@ -660,9 +750,21 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
               }
             }
           } catch (s) {
-            console.error("AI Personalization Failed", s);
-            console.log(`[AI Retry Queue] Skipping lead ${t.email} due to AI error. Will retry on next run.`);
-            continue;
+            console.error("AI Personalization Failed, attempting fallback:", s.message || s);
+            try {
+              const fallback = generateFallbackEmail(t, e.campaigns?.niche || "");
+              S = fallback.body;
+              E = fallback.subject;
+              console.log(`[Fallback Personalizer] Personalization succeeded for ${t.email}`);
+              await n
+                .from("leads")
+                .update({ personalized_email: S, personalized_subject: E })
+                .eq("id", t.id);
+            } catch (fallbackErr) {
+              console.error("Fallback personalization failed:", fallbackErr);
+              console.log(`[AI Retry Queue] Skipping lead ${t.email} due to fallback failure.`);
+              continue;
+            }
           }
         (S || (S = e.templates.content), E || (E = e.templates.subject));
         let b = "Sender";
