@@ -132,9 +132,26 @@ export const Dashboard = () => {
         }
       } catch(e) {}
 
-      // Fetch Inbox
-      const { data: iEmails } = await supabase.from('inbox_emails').select('id, received_at, subject, from, to, body_text, body_html, campaign_id, email_account_id, is_read, campaign:campaigns(name)').eq('folder', 'inbox').in('campaign_id', campIds).order('received_at', { ascending: false }).limit(50);
-      if (iEmails) setInboxEmails(iEmails as any);
+      // Get email accounts for this business's campaigns
+      const { data: campaignEmailLinks } = await supabase.from('campaign_email_accounts').select('email_account_id').in('campaign_id', campIds);
+      const accountIds = Array.from(new Set((campaignEmailLinks || []).map(link => link.email_account_id)));
+      const safeAccountIds = accountIds.length > 0 ? accountIds : ['00000000-0000-0000-0000-000000000000'];
+
+      // Fetch Inbox (include emails matched by campaign OR sent to the business's accounts)
+      const { data: iEmails } = await supabase
+        .from('inbox_emails')
+        .select('id, received_at, subject, from, to, body_text, body_html, campaign_id, email_account_id, is_read, is_archived, campaign:campaigns(name)')
+        .eq('folder', 'inbox')
+        .eq('is_archived', false)
+        .or(`campaign_id.in.(${campIds.join(',')}),email_account_id.in.(${safeAccountIds.join(',')})`)
+        .order('received_at', { ascending: false })
+        .limit(50);
+
+      if (iEmails) {
+        // Dedup if an email matched both
+        const uniqueEmails = Array.from(new Map(iEmails.map(item => [item.id, item])).values());
+        setInboxEmails(uniqueEmails as any);
+      }
 
       // Fetch Sent
       const { data: sEmails } = await supabase.from('campaign_progress').select('id, created_at, sent_at, status, campaign_id, campaign:campaigns(name), lead:leads(id, name, email, company)').eq('status', 'sent').in('campaign_id', campIds).order('sent_at', { ascending: false }).limit(50);
@@ -390,13 +407,21 @@ export const Dashboard = () => {
                               className="w-full bg-transparent p-4 text-sm resize-none focus:outline-none min-h-[100px] text-white"
                             />
                             <div className="flex items-center justify-between p-3 border-t border-white/5 bg-white/[0.02]">
-                              <button
-                                onClick={handleAIDraft}
-                                disabled={isDrafting}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 text-xs font-bold transition-colors disabled:opacity-50"
-                              >
-                                <Bot size={14} /> {isDrafting ? 'Drafting...' : 'AI Draft'}
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={handleArchiveEmail}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 hover:text-white text-xs font-bold transition-colors"
+                                >
+                                  <Archive size={14} /> Archive
+                                </button>
+                                <button
+                                  onClick={handleAIDraft}
+                                  disabled={isDrafting}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 text-xs font-bold transition-colors disabled:opacity-50"
+                                >
+                                  <Bot size={14} /> {isDrafting ? 'Drafting...' : 'AI Draft'}
+                                </button>
+                              </div>
                               <button
                                 onClick={handleSendReply}
                                 disabled={!replyContent.trim() || isSending}

@@ -7,8 +7,11 @@ export function startSyncEmailsCron() {
         isSyncRunning = true;
         try {
             const port = process.env.PORT || 3000;
+            const token = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
             console.log(`[Email Sync] Triggering background sync via /api/emails...`);
-            const res = await fetch(`http://localhost:${port}/api/emails?sync=true`);
+            const res = await fetch(`http://localhost:${port}/api/emails?syncNew=true`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             if (!res.ok) {
                 console.error(`[Email Sync] API returned ${res.status}`);
             } else {
@@ -26,8 +29,11 @@ export function startSyncEmailsCron() {
         if (!isSyncRunning) {
             isSyncRunning = true;
             const port = process.env.PORT || 3000;
+            const token = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
             console.log(`[Email Sync] Triggering initial startup background sync...`);
-            fetch(`http://localhost:${port}/api/emails?sync=true`)
+            fetch(`http://localhost:${port}/api/emails?syncNew=true`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
               .then(res => console.log(`[Email Sync] Initial sync status: ${res.status}`))
               .catch(e => console.error('[Email Sync] Startup sync error:', e.message))
               .finally(() => { isSyncRunning = false; });

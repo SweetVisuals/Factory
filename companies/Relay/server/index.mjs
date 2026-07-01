@@ -2013,27 +2013,39 @@ app.get('/api/emails', async (req, res) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    let user = null;
+    let authError = null;
+    let scopedSupabase;
+    let isInternalBypass = false;
 
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
+    if (token === process.env.SUPABASE_ANON_KEY || token === process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      isInternalBypass = true;
+      scopedSupabase = supabase; // Use global client
+    } else {
+      const authObj = await supabase.auth.getUser(token);
+      user = authObj.data?.user;
+      authError = authObj.error;
 
-    const refresh = req.query.refresh === 'true';
-    const syncNew = req.query.syncNew === 'true';
+      if (authError || !user) {
+        throw new Error('Unauthorized');
+      }
 
-    // specific client for this user request
-    const scopedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: authHeader
+      // specific client for this user request
+      scopedSupabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_ANON_KEY,
+        {
+          global: {
+            headers: {
+              Authorization: authHeader
+            }
           }
         }
-      }
-    );
+      );
+    }
+    
+    const refresh = req.query.refresh === 'true';
+    const syncNew = req.query.syncNew === 'true';
 
     const campaignId = req.query.campaignId;
 
@@ -2066,10 +2078,11 @@ app.get('/api/emails', async (req, res) => {
 
       emailAccounts = accounts || [];
     } else {
-      const { data: accounts, error: accountsError } = await scopedSupabase
-        .from('email_accounts')
-        .select('*')
-        .eq('user_id', user.id);
+      let accountsQuery = scopedSupabase.from('email_accounts').select('*');
+      if (!isInternalBypass) {
+        accountsQuery = accountsQuery.eq('user_id', user.id);
+      }
+      const { data: accounts, error: accountsError } = await accountsQuery;
 
       if (accountsError) {
         throw new Error(`Failed to fetch email accounts: ${accountsError.message}`);

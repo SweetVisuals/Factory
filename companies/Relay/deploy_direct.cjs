@@ -16,24 +16,20 @@ const PASS = 'mjaXRVMmbMwC7xCbcLCE123';
 
 const FILES_TO_UPLOAD = [
   {
+    local: path.resolve(__dirname, 'server/index.mjs'),
+    remote: '/root/Factory/companies/Relay/server/index.mjs'
+  },
+  {
     local: path.resolve(__dirname, 'server/process_campaign_node.mjs'),
     remote: '/root/Factory/companies/Relay/server/process_campaign_node.mjs'
   },
   {
-    local: path.resolve(__dirname, 'server/campaign_sender.mjs'),
-    remote: '/root/Factory/companies/Relay/server/campaign_sender.mjs'
+    local: path.resolve(__dirname, 'server/bounce_processor_cron.mjs'),
+    remote: '/root/Factory/companies/Relay/server/bounce_processor_cron.mjs'
   },
   {
-    local: path.resolve(__dirname, 'draft_all_campaigns.mjs'),
-    remote: '/root/Factory/companies/Relay/draft_all_campaigns.mjs'
-  },
-  {
-    local: path.resolve(__dirname, 'supabase/functions/process-campaign/index.ts'),
-    remote: '/root/Factory/companies/Relay/supabase/functions/process-campaign/index.ts'
-  },
-  {
-    local: path.resolve(__dirname, 'smtp_port_test.mjs'),
-    remote: '/root/Factory/companies/Relay/smtp_port_test.mjs'
+    local: path.resolve(__dirname, 'server/sync_emails_cron.mjs'),
+    remote: '/root/Factory/companies/Relay/server/sync_emails_cron.mjs'
   }
 ];
 
