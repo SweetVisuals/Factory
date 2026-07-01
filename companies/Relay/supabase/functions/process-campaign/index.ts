@@ -749,16 +749,7 @@ Deno.serve(async (req) => {
              // Strip common sign-off words + names
              for (const name of combinedNames) {
                  if (!name || name.length < 3) continue; // Skip very short names
-                 const safeName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\// Strip sender names/companies explicitly to prevent double sign-off
-             const senderFullName = account.name || senderFirstName;
-             const namesToStrip = [senderFullName, senderFirstName, senderCompany, account.email?.split('@')[0]].filter(Boolean);
-             
-             // Strip common sign-off words + names
-             for (const name of namesToStrip) {
-                 if (!name || name.length < 3) continue; // Skip very short names
-                 const safeName = name.replace(/[.*+?^${}');
-                 // Match optional sign-off word followed by the name at the end of the email
-                 const nameStripRegex = new RegExp('\\n*\\s*(?:Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward|Yours|Ender)[,:]?\\s*\\n*\\s*' + safeName + '[\\s\\S]{0,200}()|[\]\\]/g, '\\$&');
+                 const safeName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                  // Match optional sign-off word followed by the name at the end of the email
                  const nameStripRegex = new RegExp(`\\n*\\s*(?:Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward|Yours)[,:]?\\s*\\n*\\s*${safeName}[\\s\\S]{0,200}$`, 'i');
                  strippedBody = strippedBody.replace(nameStripRegex, '').trimEnd();

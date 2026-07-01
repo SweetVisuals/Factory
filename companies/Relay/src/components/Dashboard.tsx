@@ -44,6 +44,9 @@ export const Dashboard = () => {
   const { campaigns } = useApp();
   const { toast } = useToast();
   
+  const logsEndRef = useRef<HTMLDivElement>(null);
+  const scraperLogsEndRef = useRef<HTMLDivElement>(null);
+  
   const [businesses, setBusinesses] = useState<{ id: string; name: string; status: string }[]>([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
   
@@ -64,6 +67,10 @@ export const Dashboard = () => {
   const [replyContent, setReplyContent] = useState('');
   const [isDrafting, setIsDrafting] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  const scrollToBottom = () => {
+    scraperLogsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     if (isScraperOpen) scrollToBottom();
