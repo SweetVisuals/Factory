@@ -3,11 +3,66 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import Logo from '../Logo';
 import { useAuth } from '../../context/AuthContext';
-import { toast } from 'react-toastify';
+import { useToast } from '../ui/use-toast';
+
+export const customTheme = {
+  default: {
+    colors: {
+      brand: 'rgb(37, 99, 235)',
+      brandAccent: 'rgb(29, 78, 216)',
+      brandButtonText: 'white',
+      defaultButtonBackground: '#27272a', // zinc-800
+      defaultButtonBackgroundHover: '#3f3f46', // zinc-700
+      defaultButtonBorder: 'transparent',
+      defaultButtonText: 'white',
+      dividerBackground: '#3f3f46', // zinc-700
+      inputBackground: '#18181b', // zinc-900
+      inputBorder: 'transparent',
+      inputBorderHover: 'transparent',
+      inputBorderFocus: 'transparent',
+      inputText: 'white',
+      inputLabelText: '#a1a1aa', // zinc-400
+      inputPlaceholder: '#52525b', // zinc-600
+    },
+    space: {
+      spaceSmall: '4px',
+      spaceMedium: '8px',
+      spaceLarge: '16px',
+      labelBottomMargin: '8px',
+      anchorBottomMargin: '4px',
+      emailInputSpacing: '4px',
+      socialAuthSpacing: '4px',
+      buttonPadding: '8px',
+      inputPadding: '8px',
+    },
+    borderWidths: {
+      buttonBorderWidth: '0px',
+      inputBorderWidth: '0px',
+    },
+    radii: {
+      borderRadiusButton: '6px',
+      buttonBorderRadius: '6px',
+      inputBorderRadius: '6px',
+    },
+    fonts: {
+      bodyFontFamily: `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`,
+      buttonFontFamily: `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`,
+      inputFontFamily: `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`,
+    },
+    fontSizes: {
+      baseBodySize: '14px',
+      baseInputSize: '14px',
+      baseLabelSize: '14px',
+      baseButtonSize: '14px',
+    },
+  },
+};
+
 
 const AuthLayout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +76,7 @@ const AuthLayout = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
-      toast.error('Please enter both username and password.');
+      toast({ title: 'Error', description: 'Please enter both username and password.', variant: 'destructive' });
       return;
     }
 
@@ -38,13 +93,13 @@ const AuthLayout = () => {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
       } else {
-        toast.success('Signed in successfully!');
+        toast({ title: 'Success', description: 'Signed in successfully!' });
         navigate('/dashboard');
       }
     } catch (err: any) {
-      toast.error(err.message || 'An error occurred during sign in.');
+      toast({ title: 'Error', description: err.message || 'An error occurred during sign in.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
