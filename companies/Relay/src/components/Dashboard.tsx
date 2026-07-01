@@ -64,7 +64,6 @@ export const Dashboard = () => {
   const [replyContent, setReplyContent] = useState('');
   const [isDrafting, setIsDrafting] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  };
 
   useEffect(() => {
     if (isScraperOpen) scrollToBottom();
