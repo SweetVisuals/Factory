@@ -269,7 +269,7 @@ const Discover: React.FC = () => {
 
   return (
     <Layout fullHeight>
-    <div className="flex flex-col h-full overflow-hidden p-6 lg:p-8 animate-in fade-in zoom-in-95 duration-500 max-w-screen-2xl mx-auto w-full">
+    <div className="flex flex-col h-full overflow-hidden p-4 animate-in fade-in zoom-in-95 duration-500 w-full">
       
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -305,10 +305,10 @@ const Discover: React.FC = () => {
         ))}
       </div>
 
-      <div className="flex flex-1 gap-6 min-h-0">
+      <div className="flex flex-1 gap-4 min-h-0">
         
         {/* Sidebar Filters */}
-        <div className="w-72 bg-card border border-border/40 rounded-xl p-5 flex flex-col gap-6 overflow-y-auto shadow-sm">
+        <div className="w-64 bg-card border border-border/40 rounded-xl p-4 flex flex-col gap-4 overflow-y-auto shadow-sm">
           <div>
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4 uppercase tracking-wider">
               <Filter className="w-4 h-4 text-primary" /> Filters
@@ -490,7 +490,7 @@ const Discover: React.FC = () => {
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-muted/30 sticky top-0 z-10 backdrop-blur-md">
                   <tr>
-                    <th className="px-5 py-3 w-12 border-b border-border/40">
+                    <th className="px-3 py-2 w-10 border-b border-border/40">
                       <input
                         type="checkbox"
                         checked={selectedLeadIds.length === leads.length && leads.length > 0}
@@ -498,11 +498,11 @@ const Discover: React.FC = () => {
                         className="rounded border-border bg-background cursor-pointer focus:ring-primary focus:ring-offset-background"
                       />
                     </th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Contact</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Company & Industry</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Email & Status</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Location</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40 text-right">Links</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Contact</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Company & Industry</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Email & Status</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40">Location</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/40 text-right">Links</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -513,7 +513,7 @@ const Discover: React.FC = () => {
                         key={lead.id}
                         className={`border-b border-border/20 transition-colors hover:bg-muted/20 ${isSelected ? 'bg-primary/5' : ''}`}
                       >
-                        <td className="px-5 py-3">
+                        <td className="px-3 py-2">
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -521,20 +521,20 @@ const Discover: React.FC = () => {
                             className="rounded border-border bg-background cursor-pointer focus:ring-primary focus:ring-offset-background"
                           />
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="px-3 py-2">
                           <div className="flex flex-col">
                             <span className="font-semibold text-foreground text-sm">{lead.name || 'Unknown Contact'}</span>
                             <span className="text-xs text-muted-foreground mt-0.5">{lead.title || 'Role Unassigned'}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="px-3 py-2">
                           <div className="flex flex-col">
                             <span className="font-medium text-foreground text-sm">{lead.company || lead.website || 'N/A'}</span>
                             <span className="text-xs text-muted-foreground mt-0.5">{lead.industry || 'Unknown Industry'}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-3">
-                          <div className="flex flex-col items-start gap-1.5">
+                        <td className="px-3 py-2">
+                          <div className="flex flex-col items-start gap-1">
                             <span className="text-sm font-medium text-foreground">{lead.email}</span>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${getStatusBadgeStyle(lead.validation_status)}`}>
                               {lead.validation_status === 'valid' ? <CheckCircle2 className="w-3 h-3" /> :
@@ -546,19 +546,19 @@ const Discover: React.FC = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="px-5 py-3 text-sm text-muted-foreground">
+                        <td className="px-3 py-2 text-sm text-muted-foreground">
                           {lead.location || 'N/A'}
                         </td>
-                        <td className="px-5 py-3 text-right">
-                          <div className="flex gap-3 justify-end">
+                        <td className="px-3 py-2 text-right">
+                          <div className="flex gap-2 justify-end">
                             {lead.linkedin && (
-                              <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 transition-colors" title="LinkedIn">
-                                <ArrowUpRight className="w-4 h-4" />
+                              <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-muted text-blue-500 hover:text-blue-400 transition-colors" title="LinkedIn">
+                                <ArrowUpRight className="w-3 h-3" />
                               </a>
                             )}
                             {lead.website && (
-                              <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 transition-colors" title="Website">
-                                <ArrowUpRight className="w-4 h-4" />
+                              <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-muted text-emerald-500 hover:text-emerald-400 transition-colors" title="Website">
+                                <ArrowUpRight className="w-3 h-3" />
                               </a>
                             )}
                           </div>
