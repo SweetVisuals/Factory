@@ -68,6 +68,7 @@ export const Dashboard = () => {
   const [replyContent, setReplyContent] = useState('');
   const [isDrafting, setIsDrafting] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
 
   const scrollToBottom = () => {
     scraperLogsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -216,6 +217,43 @@ export const Dashboard = () => {
       setIsDrafting(false);
     }
   };
+  const handleArchiveEmail = async (id: string = selectedInboxEmail?.id || '') => {
+    if (!id) return;
+    try {
+      await supabase.from('inbox_emails').update({ is_archived: true }).eq('id', id);
+      setInboxEmails(prev => prev.filter(e => e.id !== id));
+      if (selectedInboxEmail?.id === id) setSelectedInboxEmail(null);
+      toast({ title: 'Archived', description: 'Email removed from Needs Reply.' });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Failed to archive email', variant: 'destructive' });
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    if (selectedEmails.size === 0) return;
+    try {
+      const ids = Array.from(selectedEmails);
+      await supabase.from('inbox_emails').update({ is_archived: true }).in('id', ids);
+      setInboxEmails(prev => prev.filter(e => !selectedEmails.has(e.id)));
+      if (selectedInboxEmail && selectedEmails.has(selectedInboxEmail.id)) {
+        setSelectedInboxEmail(null);
+      }
+      setSelectedEmails(new Set());
+      toast({ title: 'Archived', description: `${ids.length} emails removed.` });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Failed to archive emails', variant: 'destructive' });
+    }
+  };
+
+  const toggleEmailSelection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = new Set(selectedEmails);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedEmails(next);
+  };
 
   const handleSendReply = async () => {
     if (!selectedInboxEmail || !replyContent) return;
@@ -339,6 +377,30 @@ export const Dashboard = () => {
                     <Send size={16} /> Outgoing Stream
                   </button>
                 </div>
+                {activeTab === 'inbox' && inboxEmails.length > 0 && (
+                  <div className="flex items-center gap-3 pr-2">
+                    <button
+                      onClick={() => {
+                        if (selectedEmails.size === inboxEmails.length) setSelectedEmails(new Set());
+                        else setSelectedEmails(new Set(inboxEmails.map(e => e.id)));
+                      }}
+                      className="text-xs font-bold text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors"
+                    >
+                      <div className={cn("w-4 h-4 rounded border flex items-center justify-center transition-colors", selectedEmails.size === inboxEmails.length ? "bg-primary border-primary text-white" : "border-white/20")}>
+                        {selectedEmails.size === inboxEmails.length && <CheckCircle2 size={12} />}
+                      </div>
+                      Select All
+                    </button>
+                    {selectedEmails.size > 0 && (
+                      <button
+                        onClick={handleBulkArchive}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition-colors"
+                      >
+                        <Archive size={14} /> Archive Selected
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 bg-[#1a1a1a] border border-white/5 rounded-2xl flex overflow-hidden">
@@ -352,23 +414,49 @@ export const Dashboard = () => {
                           Inbox zero. You're all caught up.
                         </div>
                       ) : (
-                        inboxEmails.map((email) => (
+                        inboxEmails.map((email) => {
+                          const isBounce = email.from.toLowerCase().includes('mailer-daemon') || email.from.toLowerCase().includes('postmaster');
+                          let displayBody = email.body_text?.substring(0, 100);
+                          let originalEmail = '';
+                          if (isBounce) {
+                            const match = email.body_text?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                            if (match) originalEmail = match[0];
+                            displayBody = `Email: ${originalEmail || 'Unknown'} was blacklisted and invalid.`;
+                          }
+                          return (
                           <div 
                             key={email.id}
                             onClick={() => setSelectedInboxEmail(email)}
                             className={cn(
-                              "p-4 border-b border-white/5 cursor-pointer transition-all hover:bg-white/[0.02]",
+                              "p-4 border-b border-white/5 cursor-pointer transition-all hover:bg-white/[0.02] flex gap-3 group",
                               selectedInboxEmail?.id === email.id ? "bg-white/[0.04] border-l-2 border-l-primary" : "border-l-2 border-l-transparent"
                             )}
                           >
-                            <div className="flex justify-between items-start gap-2 mb-1">
-                              <span className={cn("text-sm truncate", !email.is_read ? "font-bold text-white" : "font-medium text-white/70")}>{email.from.split('<')[0]}</span>
-                              <span className="text-[10px] text-muted-foreground whitespace-nowrap">{format(new Date(email.received_at), 'MMM d, h:mm a')}</span>
+                            <div 
+                              onClick={(e) => toggleEmailSelection(email.id, e)}
+                              className={cn(
+                                "w-4 h-4 rounded border flex flex-shrink-0 items-center justify-center transition-colors mt-0.5", 
+                                selectedEmails.has(email.id) ? "bg-primary border-primary text-white" : "border-white/20 group-hover:border-white/40"
+                              )}
+                            >
+                              {selectedEmails.has(email.id) && <CheckCircle2 size={12} />}
                             </div>
-                            <div className={cn("text-xs truncate mb-1", !email.is_read ? "font-semibold text-white/90" : "text-white/60")}>{email.subject}</div>
-                            <div className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">{email.body_text?.substring(0, 100)}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start gap-2 mb-1">
+                                <span className={cn("text-sm truncate", !email.is_read ? "font-bold text-white" : "font-medium text-white/70")}>
+                                  {isBounce ? 'System Bounce' : email.from.split('<')[0]}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">{format(new Date(email.received_at), 'MMM d, h:mm a')}</span>
+                              </div>
+                              <div className={cn("text-xs truncate mb-1", !email.is_read ? "font-semibold text-white/90" : "text-white/60")}>
+                                {isBounce ? 'Undeliverable Mail' : email.subject}
+                              </div>
+                              <div className={cn("text-[10px] line-clamp-2 leading-relaxed", isBounce ? "text-red-400 font-medium" : "text-muted-foreground")}>
+                                {displayBody}
+                              </div>
+                            </div>
                           </div>
-                        ))
+                        )})
                       )}
                     </div>
                     
@@ -393,7 +481,14 @@ export const Dashboard = () => {
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                           <div className="bg-[#111111] border border-white/5 rounded-xl p-5 shadow-sm">
                             <div className="prose prose-invert prose-sm max-w-none font-medium leading-relaxed text-white/80 whitespace-pre-wrap">
-                              {selectedInboxEmail.body_text}
+                              {(() => {
+                                 const isBounce = selectedInboxEmail.from.toLowerCase().includes('mailer-daemon') || selectedInboxEmail.from.toLowerCase().includes('postmaster');
+                                 if (isBounce) {
+                                   const match = selectedInboxEmail.body_text?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                                   return <span className="text-red-400 font-bold">Email: {match ? match[0] : 'Unknown'} was blacklisted and invalid.</span>;
+                                 }
+                                 return selectedInboxEmail.body_text;
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -409,7 +504,7 @@ export const Dashboard = () => {
                             <div className="flex items-center justify-between p-3 border-t border-white/5 bg-white/[0.02]">
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={handleArchiveEmail}
+                                  onClick={() => handleArchiveEmail()}
                                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 hover:text-white text-xs font-bold transition-colors"
                                 >
                                   <Archive size={14} /> Archive
