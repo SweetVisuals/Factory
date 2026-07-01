@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle, AlertCircle, Zap, Mail, TrendingUp, Users, ChevronRight, Activity, Send, Inbox as InboxIcon, Bot, ArrowRight, CornerDownRight, X, User, Briefcase } from 'lucide-react';
+import { PlusCircle, AlertCircle, Zap, Mail, TrendingUp, Users, ChevronRight, Activity, Send, Inbox as InboxIcon, Bot, ArrowRight, CornerDownRight, X, User, Briefcase, Archive, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Layout from './layout/Layout';
 import { supabase } from '../lib/supabase';
