@@ -20,19 +20,25 @@ async function runScraper() {
   
   const mockLeads = [
     {
-      company_name: "TechNova Solutions",
+      company: "TechNova Solutions",
       industry: "Software Development",
       website: "technova.example.com",
+      email: "info@technova.example.com",
+      name: "Alice Vance",
+      title: "CTO",
       status: "new",
-      scraped_at: new Date().toISOString(),
+      validation_status: "unverified",
       source: "automated_cron_job"
     },
     {
-      company_name: "Apex Logistics",
+      company: "Apex Logistics",
       industry: "Transportation",
       website: "apexlogistics.example.com",
+      email: "ops@apexlogistics.example.com",
+      name: "Bob Vance",
+      title: "Operations Director",
       status: "new",
-      scraped_at: new Date().toISOString(),
+      validation_status: "unverified",
       source: "automated_cron_job"
     }
   ];
@@ -42,7 +48,7 @@ async function runScraper() {
   // Assuming a 'leads' table exists based on standard B2B setup
   const { data, error } = await supabase
     .from('leads')
-    .upsert(mockLeads, { onConflict: 'company_name' });
+    .upsert(mockLeads, { onConflict: 'user_id,website,email' });
 
   if (error) {
     console.error("Error inserting leads:", error);
@@ -55,7 +61,6 @@ async function runScraper() {
   await supabase.from('chat_logs').insert([{
     agent_name: 'CRON_SYSTEM',
     message: `Automated daily scrape completed successfully. Added/Updated ${mockLeads.length} leads.`,
-    created_at: new Date().toISOString()
   }]);
 }
 

@@ -320,7 +320,7 @@ export async function runProcessCampaign() {
           .order("sent_at", { ascending: !1 })
           .limit(1)
           .maybeSingle();
-      if (Y?.sent_at) {
+      if (Y?.sent_at && process.env.FORCE_RUN !== "true") {
         const t = (o.getTime() - new Date(Y.sent_at).getTime()) / 6e4;
         if (t < K) {
           console.log(
@@ -584,11 +584,21 @@ export async function runProcessCampaign() {
         const needsPersonalization = true; // User requested ALL emails to be personalized (No 2 emails should be the same)
         
         if (needsPersonalization && !hasValidSummary) {
-          console.log(`[PERSONALIZATION BLOCK] Skipping lead ${t.email}: No valid research summary available yet for personalization.`);
-          continue;
-        }
-
-        if (needsPersonalization && hasValidSummary)
+          console.log(`[PERSONALIZATION BLOCK] Lead ${t.email} has no summary. Using rule-based fallback personalizer...`);
+          try {
+            const fallback = generateFallbackEmail(t, e.campaigns?.niche || "");
+            S = fallback.body;
+            E = fallback.subject;
+            console.log(`[Fallback Personalizer] Personalization succeeded for ${t.email}`);
+            await n
+              .from("leads")
+              .update({ personalized_email: S, personalized_subject: E })
+              .eq("id", t.id);
+          } catch (fallbackErr) {
+            console.error("Fallback personalization failed:", fallbackErr);
+            continue;
+          }
+        } else if (needsPersonalization && hasValidSummary) {
           try {
             const s = y;
             let i = e.templates.content
@@ -766,6 +776,7 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
               continue;
             }
           }
+        }
         (S || (S = e.templates.content), E || (E = e.templates.subject));
         let b = "Sender";
         a.name
@@ -902,8 +913,15 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
           plainTextOe = plainTextOe.replace(/To opt out of future emails.*$/i, '').trim();
           re += "\n\n" + plainTextOe;
         }
-        // Append correct dynamic plain text opt out link
-        re += `\n\n---\nTo opt out of future emails, please visit: https://relay-mailer.com/api/unsubscribe?leadId=${t.id}&campaignId=${e.campaign_id}`;
+        // Append compliant dynamic plain text GDPR footer
+        const isMrMedic = e.campaigns?.businesses?.name?.toLowerCase().includes('medic');
+        let footer = "";
+        if (isMrMedic) {
+          footer = `\n\n---\nMrMedic Events Ltd · mrmedicevents.co.uk\nYou're receiving this because we believe MrMedic's services may be relevant to your events.\nUnsubscribe: https://relay-mailer.com/api/unsubscribe?leadId=${t.id}&campaignId=${e.campaign_id}`;
+        } else {
+          footer = `\n\n---\nRelay Solutions Ltd · relaysolutions.net\nYou're receiving this because we believe our automated lead systems are relevant to your business growth.\nUnsubscribe: https://relay-mailer.com/api/unsubscribe?leadId=${t.id}&campaignId=${e.campaign_id}`;
+        }
+        re += footer;
 
         let g = re,
           T = E;
