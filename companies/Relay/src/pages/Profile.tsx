@@ -79,23 +79,23 @@ export default function ProfilePage() {
 
   return (
     <Layout>
-      <div className="w-full flex flex-col h-full bg-background overflow-y-auto text-foreground animate-in fade-in duration-500">
+      <div className="w-full flex flex-col h-full bg-background overflow-y-auto text-foreground animate-in fade-in duration-200">
         
-        {/* Padded Header */}
-        <div className="px-10 py-10 bg-background border-b border-border/50 shrink-0">
-          <div className="flex flex-col gap-8 max-w-[1000px] mx-auto">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-card border border-border rounded-xl shadow-sm">
-                <User size={24} className="text-muted-foreground" />
+        {/* Dynamic Header Section */}
+        <div className="p-8 pb-4 shrink-0">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 max-w-[1600px] mx-auto w-full">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+                <h1 className="text-4xl font-black text-white tracking-tighter">Account Settings</h1>
               </div>
-              <div className="flex flex-col gap-1">
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">Account Settings</h1>
-                <p className="text-sm font-medium text-muted-foreground">Manage your profile, billing, and system intelligence.</p>
-              </div>
+              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
+                Manage your profile and system preferences
+              </p>
             </div>
             
             {/* Elegant Tabs */}
-            <div className="flex gap-2 p-1.5 bg-card border border-border rounded-2xl w-fit">
+            <div className="flex gap-2 p-1.5 bg-black/20 border border-white/5 rounded-2xl w-fit">
               {[
                 { id: 'profile', label: 'My Profile' },
                 { id: 'subscription', label: 'Subscription & Billing' },
@@ -105,10 +105,10 @@ export default function ProfilePage() {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
+                    "px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all",
                     activeTab === tab.id 
-                      ? "bg-background text-foreground shadow-sm border border-border" 
-                      : "text-muted-foreground hover:text-foreground border border-transparent hover:bg-muted/50"
+                      ? "bg-white/10 text-white shadow-sm" 
+                      : "text-white/40 hover:text-white hover:bg-white/5"
                   )}
                 >
                   {tab.label}
@@ -118,11 +118,11 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="flex-1 p-10 max-w-[1000px] mx-auto w-full">
+        <div className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
           
           {/* TAB: PROFILE */}
           {activeTab === 'profile' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-8 animate-in fade-in duration-200">
               <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
                 <h3 className="text-lg font-bold text-foreground mb-6">Personal Information</h3>
                 <form onSubmit={handleUpdateProfile} className="space-y-6">

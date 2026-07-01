@@ -74,7 +74,7 @@ const EmailAccounts = () => {
       <div className="w-full flex flex-col h-full bg-background overflow-y-auto text-foreground animate-in fade-in duration-200">
         
         {/* Dynamic Header Section */}
-        <div className="p-8 pb-4 shrink-0 border-b border-border/20">
+        <div className="p-8 pb-4 shrink-0">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 max-w-[1600px] mx-auto w-full">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
@@ -128,7 +128,7 @@ const EmailAccounts = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-10 max-w-[1400px] mx-auto w-full">
+        <div className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
           <EmailAccountsList />
         </div>
       </div>

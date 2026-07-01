@@ -156,7 +156,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
     switch (activeTab) {
       case 'analytics':
         return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-8 animate-in fade-in duration-200">
             {/* Stats Row */}
             <CampaignStats campaignId={campaign.id} />
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
@@ -248,7 +248,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
         );
       case 'sequences':
         return (
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in duration-200">
             <div className="xl:col-span-7 bg-card rounded-3xl p-8 shadow-sm">
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-6">Sequence Orchestrator</h3>
               <SequenceEditor />
@@ -295,12 +295,12 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
   return (
     <Layout fullHeight={activeTab === 'inbox'}>
       <div className={cn(
-        "w-full flex flex-col h-full bg-background overflow-y-auto text-foreground",
+        "w-full flex flex-col h-full bg-background overflow-y-auto text-foreground animate-in fade-in duration-200",
         activeTab === 'inbox' ? "overflow-hidden" : ""
       )}>
         
         {/* Premium Header Layout */}
-        <div className="relative px-10 py-10 shrink-0 border-b border-border bg-card/50 overflow-hidden">
+        <div className="relative p-8 pb-4 shrink-0 overflow-hidden">
           <div className="flex flex-col gap-8 max-w-none w-full relative z-10">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
               
@@ -314,7 +314,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                 </button>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-4">
-                    <h1 className="text-4xl font-bold tracking-tight text-foreground">{cleanName}</h1>
+                    <h1 className="text-4xl font-black text-white tracking-tighter">{cleanName}</h1>
                     {loc && (
                       <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
                         {loc}
@@ -322,11 +322,11 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                     )}
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{campaign.id.substring(0, 8)}</span>
+                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">{campaign.id.substring(0, 8)}</span>
                     <div className="h-4 w-px bg-border" />
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${hasScheduledEntries ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
-                      <span className="text-sm font-bold text-muted-foreground uppercase tracking-wide">
+                      <span className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">
                         {hasScheduledEntries ? 'Running' : campaign.status.replace('_', ' ')}
                       </span>
                     </div>
@@ -389,7 +389,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
 
         <div className={cn(
           "flex-1 p-10 max-w-none w-full",
-          activeTab === 'inbox' ? "overflow-hidden p-0 pt-6 px-10" : "animate-in fade-in duration-500"
+          activeTab === 'inbox' ? "overflow-hidden p-0 pt-6 px-10" : "animate-in fade-in duration-200"
         )}>
           {renderTabContent()}
         </div>

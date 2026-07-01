@@ -227,7 +227,7 @@ export const Dashboard = () => {
 
   return (
     <Layout fullHeight>
-      <div className="w-full h-full bg-[#111111] text-foreground flex flex-col overflow-hidden animate-in fade-in duration-200">
+      <div className="w-full h-full bg-background text-foreground flex flex-col overflow-hidden animate-in fade-in duration-200">
         
         {/* Dynamic Header Section */}
         <div className="p-8 pb-4 shrink-0">

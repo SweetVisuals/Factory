@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../components/ui/use-toast';
 import { Lead } from '../types';
 import Layout from '../components/layout/Layout';
 import { CustomCheckbox } from '../components/ui/CustomCheckbox';
+import { cn } from '../lib/utils';
 import { 
   Search, Users, MailCheck, AlertTriangle, 
   ChevronLeft, ChevronRight, CheckCircle2, 
-  XCircle, HelpCircle, Activity, Filter, Loader2, Sparkles, Plus, X, ArrowUpRight
+  XCircle, HelpCircle, Activity, Loader2, Sparkles, Plus, X, ArrowUpRight,
+  Globe, Linkedin, Phone, Building2, MapPin, Briefcase, ArrowUpDown, ArrowUp, ArrowDown,
+  Copy, ExternalLink, ChevronDown, Hash
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
@@ -16,37 +19,47 @@ interface Campaign {
   name: string;
 }
 
+type SortField = 'name' | 'company' | 'email' | 'location' | 'created_at';
+type SortDir = 'asc' | 'desc';
+
 const Discover: React.FC = () => {
-  // Leads & pagination
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const limit = 25;
+  const [limit, setLimit] = useState(50);
 
-  // Campaigns list
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
-  // Filter states
+  // Filters
   const [search, setSearch] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [titleFilter, setTitleFilter] = useState('');
+  const [companyFilter, setCompanyFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Debounce search state
+  // Debounced
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [debouncedIndustry, setDebouncedIndustry] = useState(industryFilter);
   const [debouncedLocation, setDebouncedLocation] = useState(locationFilter);
   const [debouncedTitle, setDebouncedTitle] = useState(titleFilter);
+  const [debouncedCompany, setDebouncedCompany] = useState(companyFilter);
 
-  // Selection & bulk action states
+  // Sort
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  // Selection
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [addingToCampaign, setAddingToCampaign] = useState(false);
 
-  // Global KPIs
+  // Expanded row
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+
+  // Metrics
   const [metrics, setMetrics] = useState({
     totalLeads: 0,
     verifiedEmails: 0,
@@ -54,80 +67,81 @@ const Discover: React.FC = () => {
     verificationRate: 0,
   });
 
-  // Debounce effects
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (search) count++;
+    if (industryFilter) count++;
+    if (locationFilter) count++;
+    if (titleFilter) count++;
+    if (companyFilter) count++;
+    if (statusFilter !== 'all') count++;
+    return count;
+  }, [search, industryFilter, locationFilter, titleFilter, companyFilter, statusFilter]);
+
+  // Debounce
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedSearch(search);
       setDebouncedIndustry(industryFilter);
       setDebouncedLocation(locationFilter);
       setDebouncedTitle(titleFilter);
+      setDebouncedCompany(companyFilter);
       setPage(1);
-    }, 400);
+    }, 350);
     return () => clearTimeout(t);
-  }, [search, industryFilter, locationFilter, titleFilter]);
+  }, [search, industryFilter, locationFilter, titleFilter, companyFilter]);
 
-  // Load initial data
   useEffect(() => {
     fetchCampaigns();
     fetchMetrics();
-
-    const leadsSubscription = supabase
+    const sub = supabase
       .channel('public:leads_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
         fetchLeads();
         fetchMetrics();
       })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(leadsSubscription);
-    };
+    return () => { supabase.removeChannel(sub); };
   }, []);
 
-  // Fetch leads when page or filters change
   useEffect(() => {
     fetchLeads();
-  }, [page, debouncedSearch, debouncedIndustry, debouncedLocation, debouncedTitle, statusFilter]);
+  }, [page, limit, debouncedSearch, debouncedIndustry, debouncedLocation, debouncedTitle, debouncedCompany, statusFilter, sortField, sortDir]);
 
   const fetchCampaigns = async () => {
-    try {
-      const { data } = await supabase.from('campaigns').select('id, name').order('name', { ascending: true });
-      if (data) setCampaigns(data);
-    } catch (err) {
-      console.error(err);
-    }
+    const { data } = await supabase.from('campaigns').select('id, name').order('name', { ascending: true });
+    if (data) setCampaigns(data);
   };
 
   const fetchMetrics = async () => {
-    try {
-      const { count: total } = await supabase.from('leads').select('*', { count: 'exact', head: true });
-      const { count: verified } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'valid');
-      const { count: invalid } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'invalid');
-
-      const totalNum = total || 0;
-      const verifiedNum = verified || 0;
-      const rate = totalNum > 0 ? Math.round((verifiedNum / totalNum) * 100) : 0;
-
-      setMetrics({ totalLeads: totalNum, verifiedEmails: verifiedNum, invalidEmails: invalid || 0, verificationRate: rate });
-    } catch (err) {
-      console.error(err);
-    }
+    const { count: total } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+    const { count: verified } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'valid');
+    const { count: invalid } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'invalid');
+    const totalNum = total || 0;
+    const verifiedNum = verified || 0;
+    setMetrics({
+      totalLeads: totalNum,
+      verifiedEmails: verifiedNum,
+      invalidEmails: invalid || 0,
+      verificationRate: totalNum > 0 ? Math.round((verifiedNum / totalNum) * 100) : 0,
+    });
   };
 
   const fetchLeads = async () => {
     setLoading(true);
     try {
       let query = supabase.from('leads').select('*', { count: 'exact' });
-
       if (debouncedSearch.trim()) query = query.or(`name.ilike.%${debouncedSearch}%,company.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%`);
       if (debouncedIndustry.trim()) query = query.ilike('industry', `%${debouncedIndustry}%`);
       if (debouncedLocation.trim()) query = query.ilike('location', `%${debouncedLocation}%`);
       if (debouncedTitle.trim()) query = query.ilike('title', `%${debouncedTitle}%`);
+      if (debouncedCompany.trim()) query = query.ilike('company', `%${debouncedCompany}%`);
       if (statusFilter !== 'all') query = query.eq('validation_status', statusFilter);
 
       const from = (page - 1) * limit;
-      const { data, count, error } = await query.order('created_at', { ascending: false }).range(from, from + limit - 1);
-
+      const { data, count, error } = await query
+        .order(sortField, { ascending: sortDir === 'asc' })
+        .range(from, from + limit - 1);
       if (error) throw error;
       setLeads((data as unknown as Lead[]) || []);
       setTotalCount(count || 0);
@@ -139,13 +153,9 @@ const Discover: React.FC = () => {
     }
   };
 
-  // Bulk Actions
+  // Selection
   const handleSelectAll = () => {
-    if (selectedLeadIds.length === leads.length && leads.length > 0) {
-      setSelectedLeadIds([]);
-    } else {
-      setSelectedLeadIds(leads.map(l => l.id));
-    }
+    setSelectedLeadIds(prev => prev.length === leads.length && leads.length > 0 ? [] : leads.map(l => l.id));
   };
 
   const handleSelectRow = (id: string, e?: React.MouseEvent) => {
@@ -153,6 +163,31 @@ const Discover: React.FC = () => {
     setSelectedLeadIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  const handleCopyEmail = (e: React.MouseEvent, email: string) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(email);
+    toast({ title: 'Copied', description: email });
+  };
+
+  const handleExpandRow = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setExpandedLeadId(prev => prev === id ? null : id);
+  };
+
+  const clearAllFilters = () => {
+    setSearch(''); setIndustryFilter(''); setLocationFilter(''); setTitleFilter(''); setCompanyFilter(''); setStatusFilter('all');
+  };
+
+  // Bulk Actions
   const handleBulkAddToCampaign = async () => {
     if (!selectedCampaignId) return toast({ title: 'Notice', description: 'Please select a campaign' });
     setAddingToCampaign(true);
@@ -160,7 +195,7 @@ const Discover: React.FC = () => {
       const insertions = selectedLeadIds.map(leadId => ({ campaign_id: selectedCampaignId, lead_id: leadId, status: 'pending' }));
       const { error } = await supabase.from('campaign_leads').upsert(insertions, { onConflict: 'campaign_id,lead_id' });
       if (error) throw error;
-      toast({ title: 'Success', description: `Added ${selectedLeadIds.length} leads to campaign!` });
+      toast({ title: 'Success', description: `Added ${selectedLeadIds.length} leads to campaign` });
       setSelectedLeadIds([]);
       setSelectedCampaignId('');
     } catch (err: any) {
@@ -173,17 +208,16 @@ const Discover: React.FC = () => {
   const handleBulkVerifyEmails = async () => {
     setVerifying(true);
     try {
-      const selectedLeadsDetails = leads.filter(l => selectedLeadIds.includes(l.id));
-      const updates = selectedLeadsDetails.map(async (lead) => {
+      const selected = leads.filter(l => selectedLeadIds.includes(l.id));
+      const updates = selected.map(async (lead) => {
         let status = 'invalid';
         if (lead.email && lead.email.includes('@') && lead.email.includes('.')) {
-          const isGeneric = lead.email.endsWith('.temp') || lead.email.includes('example');
-          status = isGeneric ? 'catch_all' : 'valid';
+          status = (lead.email.endsWith('.temp') || lead.email.includes('example')) ? 'catch_all' : 'valid';
         }
         return supabase.from('leads').update({ validation_status: status }).eq('id', lead.id);
       });
       await Promise.all(updates);
-      toast({ title: 'Success', description: `Verified ${selectedLeadIds.length} leads!` });
+      toast({ title: 'Success', description: `Verified ${selectedLeadIds.length} leads` });
       setSelectedLeadIds([]);
       fetchLeads();
       fetchMetrics();
@@ -194,180 +228,291 @@ const Discover: React.FC = () => {
     }
   };
 
+  const totalPages = Math.ceil(totalCount / limit) || 1;
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-muted-foreground/40" />;
+    return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />;
+  };
+
+  const StatusDot = ({ status }: { status?: string }) => {
+    const color = status === 'valid' ? 'bg-emerald-500' : status === 'invalid' ? 'bg-rose-500' : status === 'catch_all' ? 'bg-amber-500' : 'bg-white/20';
+    return <div className={`w-1.5 h-1.5 rounded-full ${color}`} />;
+  };
+
   return (
     <Layout fullHeight>
-      <div className="flex flex-col h-full bg-background text-foreground font-sans relative animate-in fade-in duration-200">
-        {/* Dynamic Header Section */}
-        <div className="p-8 pb-4 shrink-0 border-b border-border/20">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 max-w-[1600px] mx-auto w-full">
+      <div className="flex flex-col h-full bg-background text-foreground relative animate-in fade-in duration-200">
+        
+        {/* Header */}
+        <div className="p-8 pb-4 shrink-0">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 w-full">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
-                <h1 className="text-4xl font-black text-white tracking-tighter">Discovery Engine</h1>
+                <h1 className="text-4xl font-black text-white tracking-tighter">Lead Searcher</h1>
               </div>
               <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
-                Global B2B Lead Searcher
+                B2B prospect database · {metrics.totalLeads.toLocaleString()} records
               </p>
             </div>
             
-            <div className="flex flex-col items-end gap-2">
-              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                Showing {leads.length} of {totalCount}
-              </div>
-              <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground/80">
-                <div className="flex items-center gap-1.5"><Users className="w-3 h-3"/> {metrics.totalLeads.toLocaleString()} Leads</div>
-                <div className="w-1 h-1 rounded-full bg-border" />
-                <div className="flex items-center gap-1.5 text-emerald-500/80"><MailCheck className="w-3 h-3"/> {metrics.verifiedEmails.toLocaleString()} Valid</div>
-                <div className="w-1 h-1 rounded-full bg-border" />
-                <div className="flex items-center gap-1.5"><Activity className="w-3 h-3"/> {metrics.verificationRate}% Health</div>
+            <div className="flex items-center gap-6">
+              {/* Inline KPIs */}
+              <div className="flex items-center gap-5 bg-white/[0.03] border border-white/5 rounded-xl px-5 py-2.5">
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Total</span>
+                  <span className="text-lg font-black text-white tabular-nums">{metrics.totalLeads.toLocaleString()}</span>
+                </div>
+                <div className="h-8 w-px bg-white/10" />
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest">Valid</span>
+                  <span className="text-lg font-black text-emerald-400 tabular-nums">{metrics.verifiedEmails.toLocaleString()}</span>
+                </div>
+                <div className="h-8 w-px bg-white/10" />
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-rose-500/60 uppercase tracking-widest">Invalid</span>
+                  <span className="text-lg font-black text-rose-400 tabular-nums">{metrics.invalidEmails.toLocaleString()}</span>
+                </div>
+                <div className="h-8 w-px bg-white/10" />
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Health</span>
+                  <span className="text-lg font-black text-white tabular-nums">{metrics.verificationRate}%</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Seamless Filter Bar */}
-        <div className="flex items-center px-8 py-2.5 border-b border-border/20 bg-muted/5 gap-6 text-sm overflow-x-auto">
-          <div className="flex items-center gap-2 text-muted-foreground shrink-0 uppercase tracking-widest text-[10px] font-bold">
-            <Filter size={12} /> Filters
+        {/* Filter Toolbar */}
+        <div className="flex items-center gap-3 px-8 py-2 shrink-0 border-y border-white/5 bg-white/[0.01]">
+          {/* Search */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
+            <input
+              type="text"
+              placeholder="Search name, email, company..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors"
+            />
           </div>
-          
-          <input
-            type="text"
-            placeholder="Search keywords..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-48 bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50 font-medium"
-          />
-          <div className="w-px h-4 bg-border/40 shrink-0" />
-          
-          <input
-            type="text"
-            placeholder="Title / Role..."
-            value={titleFilter}
-            onChange={e => setTitleFilter(e.target.value)}
-            className="w-36 bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50 font-medium"
-          />
-          <div className="w-px h-4 bg-border/40 shrink-0" />
 
-          <input
-            type="text"
-            placeholder="Industry..."
-            value={industryFilter}
-            onChange={e => setIndustryFilter(e.target.value)}
-            className="w-36 bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50 font-medium"
-          />
-          <div className="w-px h-4 bg-border/40 shrink-0" />
+          {/* Pill filters */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Briefcase className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
+              <input type="text" placeholder="Role" value={titleFilter} onChange={e => setTitleFilter(e.target.value)}
+                className="w-24 pl-7 pr-2 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+            </div>
+            <div className="relative">
+              <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
+              <input type="text" placeholder="Company" value={companyFilter} onChange={e => setCompanyFilter(e.target.value)}
+                className="w-28 pl-7 pr-2 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+            </div>
+            <div className="relative">
+              <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
+              <input type="text" placeholder="Industry" value={industryFilter} onChange={e => setIndustryFilter(e.target.value)}
+                className="w-28 pl-7 pr-2 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+            </div>
+            <div className="relative">
+              <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
+              <input type="text" placeholder="Location" value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
+                className="w-28 pl-7 pr-2 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+            </div>
 
-          <input
-            type="text"
-            placeholder="Location..."
-            value={locationFilter}
-            onChange={e => setLocationFilter(e.target.value)}
-            className="w-32 bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50 font-medium"
-          />
-          <div className="w-px h-4 bg-border/40 shrink-0" />
-
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            className="bg-transparent border-none outline-none text-foreground font-medium text-sm focus:ring-0 cursor-pointer"
-          >
-            <option value="all">Any Status</option>
-            <option value="valid">Verified Valid</option>
-            <option value="catch_all">Catch All</option>
-            <option value="invalid">Invalid</option>
-            <option value="unverified">Unverified</option>
-          </select>
-          
-          {(search || industryFilter || locationFilter || titleFilter || statusFilter !== 'all') && (
-            <button 
-              onClick={() => { setSearch(''); setIndustryFilter(''); setLocationFilter(''); setTitleFilter(''); setStatusFilter('all'); }}
-              className="ml-auto text-xs font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider flex items-center gap-1"
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+              className="py-1.5 px-3 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer transition-colors appearance-none"
             >
-              <X size={12}/> Clear
+              <option value="all">Any Status</option>
+              <option value="valid">Valid</option>
+              <option value="catch_all">Catch-all</option>
+              <option value="invalid">Invalid</option>
+              <option value="unverified">Unverified</option>
+            </select>
+          </div>
+
+          {activeFilterCount > 0 && (
+            <button onClick={clearAllFilters} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-white/50 hover:text-white bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all">
+              <X size={10} /> Clear {activeFilterCount}
             </button>
           )}
+
+          <div className="ml-auto flex items-center gap-2">
+            <select
+              value={limit}
+              onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
+              className="py-1.5 px-2 bg-white/[0.03] border border-white/5 rounded-lg text-[10px] font-bold text-white/60 focus:outline-none cursor-pointer transition-colors appearance-none uppercase tracking-wider"
+            >
+              <option value={25}>25 rows</option>
+              <option value={50}>50 rows</option>
+              <option value={100}>100 rows</option>
+            </select>
+          </div>
         </div>
 
-        {/* Minimalist Data Table */}
-        <div className="flex-1 overflow-y-auto relative custom-scrollbar">
+        {/* Data Table */}
+        <div className="flex-1 overflow-y-auto relative">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <Loader2 className="w-6 h-6 animate-spin text-primary mb-3" />
-              <div className="text-xs font-bold uppercase tracking-widest">Loading Records...</div>
+            <div className="flex flex-col items-center justify-center h-full">
+              <Loader2 className="w-5 h-5 animate-spin text-primary mb-2" />
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/30">Querying database...</div>
             </div>
           ) : leads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <Search className="w-8 h-8 text-muted-foreground/30 mb-3" />
-              <div className="text-sm font-bold">No leads matched your query</div>
+            <div className="flex flex-col items-center justify-center h-full">
+              <Search className="w-8 h-8 text-white/10 mb-3" />
+              <div className="text-sm font-bold text-white/40">No records match your filters</div>
+              <button onClick={clearAllFilters} className="mt-4 text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider">Clear Filters</button>
             </div>
           ) : (
-            <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+            <table className="w-full text-left text-[13px] border-collapse">
               <thead className="bg-background sticky top-0 z-10">
-                <tr className="border-b border-border/20">
-                  <th className="pl-8 pr-4 py-3 w-14">
-                    <div onClick={handleSelectAll} className="w-max cursor-pointer">
+                <tr>
+                  <th className="pl-8 pr-2 py-2.5 w-10">
+                    <div onClick={handleSelectAll} className="cursor-pointer w-max">
                       <CustomCheckbox checked={selectedLeadIds.length === leads.length && leads.length > 0} onChange={() => {}} />
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Name & Title</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Company</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Contact Detail</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Location</th>
-                  <th className="px-8 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">Social</th>
+                  <th onClick={() => handleSort('name')} className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
+                    <div className="flex items-center gap-1.5">Contact <SortIcon field="name" /></div>
+                  </th>
+                  <th onClick={() => handleSort('company')} className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
+                    <div className="flex items-center gap-1.5">Company <SortIcon field="company" /></div>
+                  </th>
+                  <th onClick={() => handleSort('email')} className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
+                    <div className="flex items-center gap-1.5">Email <SortIcon field="email" /></div>
+                  </th>
+                  <th onClick={() => handleSort('location')} className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
+                    <div className="flex items-center gap-1.5">Location <SortIcon field="location" /></div>
+                  </th>
+                  <th className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest">Status</th>
+                  <th className="pr-8 pl-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest text-right">Links</th>
                 </tr>
+                <tr><td colSpan={7}><div className="h-px bg-white/5" /></td></tr>
               </thead>
-              <tbody className="divide-y divide-border/10">
+              <tbody>
                 {leads.map((lead) => {
                   const isSelected = selectedLeadIds.includes(lead.id);
+                  const isExpanded = expandedLeadId === lead.id;
                   return (
-                    <tr
-                      key={lead.id}
-                      onClick={() => handleSelectRow(lead.id)}
-                      className={`group transition-all cursor-pointer ${isSelected ? 'bg-primary/5' : 'hover:bg-muted/10'}`}
-                    >
-                      <td className="pl-8 pr-4 py-3 w-14">
-                        <CustomCheckbox checked={isSelected} onChange={() => {}} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-foreground">{lead.name || 'Unknown'}</div>
-                        <div className="text-xs text-muted-foreground">{lead.title || 'No Role'}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-foreground">{lead.company || lead.website || 'N/A'}</div>
-                        <div className="text-xs text-muted-foreground">{lead.industry || 'General'}</div>
-                      </td>
-                      <td className="px-4 py-3 flex flex-col gap-1">
-                        <div className="font-medium text-foreground">{lead.email}</div>
-                        <div className="flex items-center gap-1.5">
-                          {lead.validation_status === 'valid' ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> :
-                           lead.validation_status === 'invalid' ? <XCircle className="w-3 h-3 text-rose-500" /> :
-                           lead.validation_status === 'catch_all' ? <AlertTriangle className="w-3 h-3 text-amber-500" /> : <HelpCircle className="w-3 h-3 text-muted-foreground" />}
-                          <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                            lead.validation_status === 'valid' ? 'text-emerald-500' :
-                            lead.validation_status === 'invalid' ? 'text-rose-500' :
-                            lead.validation_status === 'catch_all' ? 'text-amber-500' : 'text-muted-foreground'
-                          }`}>
-                            {lead.validation_status || 'Unverified'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">{lead.location || '—'}</td>
-                      <td className="px-8 py-3 text-right">
-                        <div className="flex gap-3 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                          {lead.linkedin && (
-                            <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-muted-foreground hover:text-blue-500 transition-colors">
-                              <ArrowUpRight className="w-4 h-4" />
-                            </a>
-                          )}
-                          {lead.website && (
-                            <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-muted-foreground hover:text-emerald-500 transition-colors">
-                              <ArrowUpRight className="w-4 h-4" />
-                            </a>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                    <React.Fragment key={lead.id}>
+                      <tr
+                        onClick={() => handleSelectRow(lead.id)}
+                        className={cn(
+                          "group cursor-pointer transition-colors border-b border-white/[0.03]",
+                          isSelected ? 'bg-primary/[0.06]' : 'hover:bg-white/[0.02]'
+                        )}
+                      >
+                        <td className="pl-8 pr-2 py-2.5 w-10">
+                          <CustomCheckbox checked={isSelected} onChange={() => {}} />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-[10px] font-black text-white/40 uppercase shrink-0">
+                              {(lead.name || '?')[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-white truncate max-w-[180px]">{lead.name || 'Unknown'}</div>
+                              <div className="text-[11px] text-white/30 truncate max-w-[180px]">{lead.title || '—'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="font-medium text-white/80 truncate max-w-[160px]">{lead.company || '—'}</div>
+                          <div className="text-[11px] text-white/25 truncate max-w-[160px]">{lead.industry || '—'}</div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2 group/email">
+                            <span className="font-mono text-[12px] text-white/70 truncate max-w-[200px]">{lead.email}</span>
+                            <button onClick={(e) => handleCopyEmail(e, lead.email)} className="opacity-0 group-hover/email:opacity-100 text-white/20 hover:text-white transition-all" title="Copy">
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="text-white/40 text-xs">{lead.location || '—'}</span>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-1.5">
+                            <StatusDot status={lead.validation_status} />
+                            <span className={cn("text-[10px] font-bold uppercase tracking-wider",
+                              lead.validation_status === 'valid' ? 'text-emerald-400' :
+                              lead.validation_status === 'invalid' ? 'text-rose-400' :
+                              lead.validation_status === 'catch_all' ? 'text-amber-400' : 'text-white/25'
+                            )}>
+                              {lead.validation_status || 'Unknown'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="pr-8 pl-3 py-2.5 text-right">
+                          <div className="flex gap-1.5 justify-end items-center">
+                            {lead.phone && (
+                              <span className="text-white/15 group-hover:text-white/40 transition-colors" title={lead.phone}>
+                                <Phone className="w-3.5 h-3.5" />
+                              </span>
+                            )}
+                            {lead.linkedin && (
+                              <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/15 hover:text-blue-400 transition-colors" title="LinkedIn">
+                                <Linkedin className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            {lead.website && (
+                              <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/15 hover:text-emerald-400 transition-colors" title="Website">
+                                <Globe className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            <button onClick={(e) => handleExpandRow(e, lead.id)} className={cn("text-white/15 hover:text-white/50 transition-all ml-1", isExpanded && "text-primary rotate-180")} title="Details">
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Expanded Detail Row */}
+                      {isExpanded && (
+                        <tr className="bg-white/[0.015]">
+                          <td colSpan={7} className="px-8 py-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs animate-in fade-in duration-150">
+                              <div>
+                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Full Name</div>
+                                <div className="text-white/70 font-medium">{lead.name || '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Job Title</div>
+                                <div className="text-white/70 font-medium">{lead.title || '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Phone</div>
+                                <div className="text-white/70 font-medium">{lead.phone || '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Employees</div>
+                                <div className="text-white/70 font-medium">{lead.employees || '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Industry</div>
+                                <div className="text-white/70 font-medium">{lead.industry || '—'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Website</div>
+                                {lead.website ? (
+                                  <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium flex items-center gap-1">
+                                    {lead.website.replace(/https?:\/\//, '').substring(0, 30)} <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                ) : <span className="text-white/70 font-medium">—</span>}
+                              </div>
+                              {lead.summary && (
+                                <div className="col-span-2">
+                                  <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Summary</div>
+                                  <div className="text-white/50 font-medium leading-relaxed">{lead.summary}</div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -375,53 +520,84 @@ const Discover: React.FC = () => {
           )}
         </div>
 
-        {/* Minimal Pagination Footer */}
-        <div className="flex items-center justify-between px-8 py-3 border-t border-border/20 bg-background text-xs">
-          <div className="text-muted-foreground font-bold uppercase tracking-widest">
-            Page {page} of {Math.ceil(totalCount / limit) || 1}
-          </div>
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between px-8 py-2.5 border-t border-white/5 bg-background text-xs shrink-0">
           <div className="flex items-center gap-4">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading} className="text-foreground hover:text-primary font-bold uppercase tracking-widest disabled:opacity-50 disabled:hover:text-foreground transition-colors flex items-center gap-1">
-              <ChevronLeft className="w-4 h-4" /> Prev
+            <span className="text-white/30 font-bold uppercase tracking-widest text-[10px]">
+              {((page - 1) * limit) + 1}–{Math.min(page * limit, totalCount)} of {totalCount.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage(1)} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
+              First
             </button>
-            <button onClick={() => setPage(p => p + 1)} disabled={page * limit >= totalCount || loading} className="text-foreground hover:text-primary font-bold uppercase tracking-widest disabled:opacity-50 disabled:hover:text-foreground transition-colors flex items-center gap-1">
-              Next <ChevronRight className="w-4 h-4" />
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            
+            {/* Page Numbers */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (page <= 3) {
+                pageNum = i + 1;
+              } else if (page >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = page - 2 + i;
+              }
+              return (
+                <button key={pageNum} onClick={() => setPage(pageNum)} className={cn(
+                  "w-7 h-7 rounded text-xs font-bold transition-all",
+                  page === pageNum ? "bg-primary/20 text-primary" : "text-white/30 hover:text-white hover:bg-white/5"
+                )}>
+                  {pageNum}
+                </button>
+              );
+            })}
+            
+            <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button onClick={() => setPage(totalPages)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
+              Last
             </button>
           </div>
         </div>
 
         {/* Floating Action Toolbar */}
         {selectedLeadIds.length > 0 && (
-          <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 bg-card border border-border shadow-2xl shadow-black/50 rounded-full px-6 py-3 flex items-center gap-6 animate-in slide-in-from-bottom-10 fade-in duration-300">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">{selectedLeadIds.length}</div>
-              <span className="text-sm font-bold text-foreground">Selected</span>
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a1a] border border-white/10 shadow-2xl shadow-black/60 rounded-2xl px-6 py-3 flex items-center gap-5 animate-in slide-in-from-bottom-8 fade-in duration-200">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center text-[11px] font-black">{selectedLeadIds.length}</div>
+              <span className="text-xs font-bold text-white uppercase tracking-wider">Selected</span>
             </div>
             
-            <div className="h-5 w-px bg-border" />
+            <div className="h-6 w-px bg-white/10" />
             
-            <button onClick={handleBulkVerifyEmails} disabled={verifying} className="text-sm font-bold text-foreground hover:text-emerald-500 transition-colors flex items-center gap-2 disabled:opacity-50">
-              {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Verify
+            <button onClick={handleBulkVerifyEmails} disabled={verifying} className="text-xs font-bold text-white/70 hover:text-emerald-400 transition-colors flex items-center gap-2 disabled:opacity-40 uppercase tracking-wider">
+              {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Verify
             </button>
 
-            <div className="h-5 w-px bg-border" />
+            <div className="h-6 w-px bg-white/10" />
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <select
                 value={selectedCampaignId}
                 onChange={e => setSelectedCampaignId(e.target.value)}
-                className="bg-transparent border-none outline-none text-sm font-medium text-foreground focus:ring-0 w-32 cursor-pointer truncate"
+                className="bg-transparent border border-white/10 rounded-lg outline-none text-xs font-medium text-white focus:ring-0 w-36 cursor-pointer truncate px-2 py-1.5"
               >
-                <option value="">Select Campaign...</option>
+                <option value="">Campaign...</option>
                 {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <Button onClick={handleBulkAddToCampaign} disabled={addingToCampaign || !selectedCampaignId} size="sm" className="h-8 rounded-full px-4 text-xs font-bold uppercase tracking-wider">
+              <Button onClick={handleBulkAddToCampaign} disabled={addingToCampaign || !selectedCampaignId} size="sm" className="h-7 rounded-lg px-4 text-[10px] font-black uppercase tracking-wider">
                 {addingToCampaign ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />} Add
               </Button>
             </div>
             
-            <button onClick={() => setSelectedLeadIds([])} className="absolute -top-2 -right-2 w-6 h-6 bg-muted border border-border rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm">
-              <X size={12}/>
+            <button onClick={() => setSelectedLeadIds([])} className="ml-2 w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all">
+              <X size={11}/>
             </button>
           </div>
         )}
