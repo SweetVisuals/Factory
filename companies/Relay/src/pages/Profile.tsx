@@ -194,7 +194,7 @@ export default function ProfilePage() {
 
           {/* TAB: SUBSCRIPTION */}
           {activeTab === 'subscription' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-8 animate-in fade-in duration-200">
               
               {/* Current Plan Card */}
               <div className="bg-card border border-border rounded-3xl p-8 shadow-sm relative overflow-hidden">
@@ -288,7 +288,7 @@ export default function ProfilePage() {
 
           {/* TAB: BUSINESS AI PROFILES */}
           {activeTab === 'business' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-8 animate-in fade-in duration-200">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-muted-foreground max-w-xl">
                   Business profiles act as the core intelligence source for the AI. Upload markdown documents describing products, tone of voice, and value propositions.

@@ -128,25 +128,25 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Sidebar */}
-      <div className="fixed inset-y-0 right-0 w-[500px] bg-background shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col">
-        <div className="p-6 flex-shrink-0">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-foreground">{currentAccount.email}</h2>
-              <p className="text-sm text-muted-foreground mt-1">{currentAccount.name || 'No name set'}</p>
+      <div className="fixed inset-y-0 right-0 w-[500px] bg-[#0A0A0A] border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col">
+        <div className="p-8 pb-0 flex-shrink-0">
+          <div className="flex justify-between items-start mb-8">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-2xl font-black text-white tracking-tight">{currentAccount.email}</h2>
+              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">{currentAccount.name || 'No name set'}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsDeleteDialogOpen(true)}
-                className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-none transition-colors"
+                className="p-2.5 text-white/40 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
                 title="Delete account"
               >
-                <Trash2 size={20} />
+                <Trash2 size={16} />
               </button>
               <ConfirmationDialog
                 isOpen={isDeleteDialogOpen}
@@ -157,31 +157,33 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
               />
               <button
                 onClick={onClose}
-                className="p-2 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-none transition-colors"
+                className="p-2.5 text-white/40 hover:text-white hover:bg-white/10 rounded-xl transition-all"
               >
-                <X size={24} />
+                <X size={16} />
               </button>
             </div>
           </div>
 
-          <div className="flex justify-start space-x-1 bg-white/5 p-1 rounded-none">
+          <div className="flex gap-2 p-1.5 bg-white/[0.03] border border-white/5 rounded-2xl w-full mb-8">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-none text-sm font-medium transition-all ${activeTab === tab.id
-                  ? 'bg-primary text-primary-foreground shadow-lg'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                  }`}
+                className={cn(
+                  "flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                  activeTab === tab.id
+                    ? "bg-white/10 text-white shadow-sm"
+                    : "text-white/40 hover:text-white hover:bg-white/5"
+                )}
               >
-                <tab.icon size={18} />
+                <tab.icon size={14} />
                 <span>{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 pt-0">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-0">
           {renderTabContent()}
         </div>
       </div>

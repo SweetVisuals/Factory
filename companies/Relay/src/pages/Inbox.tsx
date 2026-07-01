@@ -336,70 +336,83 @@ const Inbox = () => {
 
   return (
     <Layout fullHeight>
-      <div className="flex flex-col h-full bg-background p-0">
+      <div className="flex flex-col h-full bg-background animate-in fade-in duration-200">
         
-        {/* Main Inbox Application Shell */}
-        <div className="flex flex-1 overflow-hidden bg-card border-none">
-
-          {/* Sidebar */}
-          <div className="w-64 border-r border-border flex flex-col bg-card/50">
-            <div className="p-6 flex items-center justify-between border-b border-border/50 bg-background/50">
-              <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <Mail className="text-primary" size={20} /> Inbox
-              </h2>
-              <button onClick={handleRefresh} className={cn("p-2 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all", refreshing && "animate-spin text-primary")}>
-                <RefreshCw size={16} />
+        {/* Canonical Header */}
+        <div className="px-8 py-5 pb-3 shrink-0">
+          <div className="flex items-end justify-between w-full">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+                <h1 className="text-4xl font-black text-white tracking-tighter">Inbox</h1>
+              </div>
+              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
+                Unified conversation threads
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{threads.filter(t => t.folder !== 'archive').length} active threads</span>
+              <button onClick={handleRefresh} className={cn("p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all", refreshing && "animate-spin text-primary")}>
+                <RefreshCw size={14} />
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Main Inbox Application Shell */}
+        <div className="flex flex-1 overflow-hidden border-t border-white/5">
+
+          {/* Sidebar */}
+          <div className="w-60 border-r border-white/5 flex flex-col bg-white/[0.01] shrink-0">
+            <div className="p-4 border-b border-white/5">
+              <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Navigation</span>
+            </div>
             
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-8">
-              <div className="space-y-1">
-                <span className="px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Mailboxes</span>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-6">
+              <div className="space-y-0.5">
+                <span className="px-2 text-[10px] font-bold text-white/20 uppercase tracking-widest">Mailboxes</span>
                 <button
                   onClick={() => { setFilter({ type: 'all' }); setSelectedThread(null); }}
-                  className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all", filter.type === 'all' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
+                  className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'all' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
                 >
-                  <InboxIcon size={16} /> Active Threads
-                  <span className={cn("ml-auto text-xs font-black", filter.type === 'all' ? "text-primary-foreground/80" : "text-muted-foreground")}>{threads.filter(t => t.folder !== 'archive').length}</span>
+                  <InboxIcon size={14} /> Active
+                  <span className={cn("ml-auto text-[10px] font-black", filter.type === 'all' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.folder !== 'archive').length}</span>
                 </button>
                 <button
                   onClick={() => { setFilter({ type: 'archive' }); setSelectedThread(null); }}
-                  className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all", filter.type === 'archive' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
+                  className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'archive' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
                 >
-                  <Archive size={16} /> Archived
-                  <span className={cn("ml-auto text-xs font-black", filter.type === 'archive' ? "text-primary-foreground/80" : "text-muted-foreground")}>{threads.filter(t => t.folder === 'archive').length}</span>
+                  <Archive size={14} /> Archived
+                  <span className={cn("ml-auto text-[10px] font-black", filter.type === 'archive' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.folder === 'archive').length}</span>
                 </button>
               </div>
 
-              <div className="space-y-1">
-                <span className="px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Organizations</span>
+              <div className="space-y-0.5">
+                <span className="px-2 text-[10px] font-bold text-white/20 uppercase tracking-widest">Organizations</span>
                 {Object.entries(hierarchy).map(([businessName, bizCampaigns]) => {
                   const isBizSelected = filter.type === 'business' && filter.businessName === businessName;
                   let bizTotal = 0; Object.values(bizCampaigns).forEach(c => bizTotal += c);
 
                   return (
                     <div key={businessName} className="flex flex-col gap-0.5">
-                      <div className="flex items-center min-w-0">
-                        <button
-                          onClick={() => { setFilter({ type: 'business', businessName }); setSelectedThread(null); }}
-                          className={cn("flex-1 flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-bold transition-all min-w-0", isBizSelected ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
-                        >
-                          <Briefcase size={14} className="shrink-0" /> <span className="truncate flex-1 text-left">{businessName}</span> <span className="ml-auto text-[10px] opacity-60 shrink-0">{bizTotal}</span>
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => { setFilter({ type: 'business', businessName }); setSelectedThread(null); }}
+                        className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all min-w-0 w-full", isBizSelected ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
+                      >
+                        <Briefcase size={12} className="shrink-0" /> <span className="truncate flex-1 text-left">{businessName}</span> <span className="ml-auto text-[10px] font-black shrink-0">{bizTotal}</span>
+                      </button>
 
-                      <div className="pl-6 space-y-0.5 mt-0.5">
+                      <div className="pl-7 space-y-0.5">
                         {Object.entries(bizCampaigns).map(([campaignId, count]) => {
                           const campaign = campaigns.find(c => c.id === campaignId);
                           const isCampSelected = filter.type === 'campaign' && filter.campaignId === campaignId && filter.businessName === businessName;
-
                           return (
                             <button
                               key={campaignId}
                               onClick={() => { setFilter({ type: 'campaign', businessName, campaignId }); setSelectedThread(null); }}
-                              className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-xs font-bold transition-all min-w-0", isCampSelected ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground")}
+                              className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all min-w-0", isCampSelected ? "bg-primary/10 text-primary" : "text-white/30 hover:text-white hover:bg-white/5")}
                             >
-                              <Folder size={12} className="shrink-0" /> <span className="truncate flex-1 text-left">{campaign ? campaign.name : 'Unknown'}</span> <span className="ml-auto text-[9px] opacity-60 shrink-0">{count}</span>
+                              <Folder size={10} className="shrink-0" /> <span className="truncate flex-1 text-left">{campaign ? campaign.name : 'Unknown'}</span> <span className="ml-auto text-[9px] font-black shrink-0">{count}</span>
                             </button>
                           );
                         })}
@@ -412,58 +425,59 @@ const Inbox = () => {
           </div>
 
           {/* Threads List Column */}
-          <div className="w-96 border-r border-border flex flex-col bg-card relative z-10 shadow-xl shadow-black/5">
-            <div className="p-4 border-b border-border/50 bg-background/50">
+          <div className="w-80 border-r border-white/5 flex flex-col bg-white/[0.01] relative z-10 shrink-0">
+            <div className="p-3 border-b border-white/5">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={13} />
                 <input
                   type="text"
                   placeholder="Search threads..."
-                  className="w-full pl-9 pr-4 py-2.5 text-sm bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium text-foreground placeholder:text-muted-foreground"
+                  className="w-full pl-8 pr-3 py-2 text-xs font-medium bg-white/[0.03] border border-white/5 rounded-lg focus:outline-none focus:border-primary/40 text-white placeholder:text-white/25 transition-colors"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-y-auto">
               {loading ? (
-                <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-                  <RefreshCw className="animate-spin text-primary" size={24} />
-                  <span className="text-xs font-bold uppercase tracking-widest">Loading threads...</span>
+                <div className="flex flex-col items-center justify-center h-full gap-3">
+                  <RefreshCw className="animate-spin text-primary" size={18} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Loading threads...</span>
                 </div>
               ) : filteredThreads.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-xs font-bold uppercase tracking-widest">
+                <div className="flex items-center justify-center h-full text-[10px] font-bold uppercase tracking-widest text-white/20">
                   No threads found
                 </div>
               ) : (
-                <div className="divide-y divide-border/50">
+                <div>
                   {filteredThreads.map(thread => {
                     const latestMsg = thread.messages[thread.messages.length - 1];
+                    const isActive = selectedThread?.id === thread.id;
                     return (
                       <div
                         key={thread.id}
                         onClick={() => setSelectedThread(thread)}
                         className={cn(
-                          "p-4 cursor-pointer transition-all relative flex flex-col gap-1 hover:bg-muted",
-                          selectedThread?.id === thread.id ? "bg-primary/5 border-l-4 border-primary" : "border-l-4 border-transparent",
-                          !thread.isRead ? "bg-primary/5" : ""
+                          "px-4 py-3 cursor-pointer transition-all flex flex-col gap-0.5 border-b border-white/[0.03]",
+                          isActive ? "bg-primary/[0.06] border-l-2 border-l-primary" : "border-l-2 border-l-transparent hover:bg-white/[0.02]",
+                          !thread.isRead && !isActive ? "bg-white/[0.02]" : ""
                         )}
                       >
-                        <div className="flex justify-between items-start">
-                          <span className={cn("font-bold text-sm truncate pr-2", !thread.isRead ? "text-foreground" : "text-muted-foreground")}>
+                        <div className="flex justify-between items-center">
+                          <span className={cn("font-bold text-xs truncate pr-2", !thread.isRead ? "text-white" : "text-white/50")}>
                             {thread.contactName}
                           </span>
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 mt-0.5">
+                          <span className="text-[9px] font-bold text-white/20 uppercase tracking-wider shrink-0">
                             {format(thread.lastMessageAt, 'MMM d')}
                           </span>
                         </div>
-                        <div className="text-xs truncate font-medium text-foreground/80 flex items-center gap-1.5">
-                          {latestMsg.folder === 'sent' ? <Send size={10} className="text-muted-foreground" /> : <Mail size={10} className="text-primary" />}
+                        <div className="text-[11px] truncate font-medium text-white/40 flex items-center gap-1.5">
+                          {latestMsg.folder === 'sent' ? <Send size={9} className="text-white/20 shrink-0" /> : <Mail size={9} className="text-primary/60 shrink-0" />}
                           {latestMsg.subject}
                         </div>
-                        <div className="text-[11px] line-clamp-1 text-muted-foreground/80">
-                          {latestMsg.snippet || latestMsg.text?.substring(0, 50)}
+                        <div className="text-[10px] line-clamp-1 text-white/20">
+                          {latestMsg.snippet || latestMsg.text?.substring(0, 60)}
                         </div>
                       </div>
                     );
@@ -477,52 +491,59 @@ const Inbox = () => {
           <div className="flex-1 bg-background flex flex-col min-w-0 relative">
             {selectedThread ? (
               <>
-                <div className="h-16 flex items-center px-8 justify-between border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-10">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg border border-primary/30">
+                <div className="h-14 flex items-center px-6 justify-between border-b border-white/5 bg-background sticky top-0 z-10 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-black text-sm border border-primary/20">
                       {selectedThread.contactName.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-bold text-sm text-foreground">{selectedThread.contactName}</span>
-                      <span className="text-xs text-muted-foreground">{selectedThread.contactEmail}</span>
+                      <span className="font-bold text-sm text-white">{selectedThread.contactName}</span>
+                      <span className="text-[11px] text-white/30 font-medium">{selectedThread.contactEmail} · {selectedThread.messages.length} messages</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleAction('archive', selectedThread)}
-                      className="p-2 bg-card border border-border hover:bg-muted rounded-xl text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shadow-sm"
+                      className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all"
                       title="Archive Thread"
                     >
-                      <Archive size={16} />
+                      <Archive size={14} />
                     </button>
-                    <button onClick={() => setSelectedThread(null)} className="p-2 rounded-xl text-muted-foreground hover:bg-muted">
-                      <X size={16} />
+                    <button onClick={() => setSelectedThread(null)} className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all">
+                      <X size={14} />
                     </button>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-muted/10">
-                  <div className="max-w-4xl mx-auto flex flex-col gap-6">
-                    {/* Date separator can be added here in future */}
-                    
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="max-w-3xl mx-auto flex flex-col gap-5">
                     {selectedThread.messages.map((msg, idx) => {
                       const isSent = msg.folder === 'sent';
+                      const senderAccount = accounts.find(a => a.id === msg.accountId);
+                      const fromLabel = isSent ? (senderAccount?.email || msg.from) : msg.from;
+                      const toLabel = isSent ? msg.to : (senderAccount?.email || msg.to);
                       return (
-                        <div key={msg.id} className={cn("flex flex-col max-w-[85%]", isSent ? "self-end items-end" : "self-start items-start")}>
-                          <div className="flex items-center gap-2 mb-1 px-1">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                              {isSent ? 'You' : selectedThread.contactName.split(' ')[0]}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground/60">{format(new Date(msg.date), 'MMM d, h:mm a')}</span>
+                        <div key={msg.id} className={cn("flex flex-col max-w-[85%] animate-in fade-in duration-150", isSent ? "self-end items-end" : "self-start items-start")}>
+                          {/* From / To + Timestamp */}
+                          <div className="flex flex-col gap-0.5 mb-1.5 px-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
+                                {isSent ? 'You' : selectedThread.contactName.split(' ')[0]}
+                              </span>
+                              <span className="text-[9px] text-white/20">{format(new Date(msg.date), 'MMM d, h:mm a')}</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-white/20 font-medium">
+                              <span>From: <span className="text-white/35">{fromLabel.replace(/<|>/g, '').substring(0, 40)}</span></span>
+                              <span>To: <span className="text-white/35">{toLabel.replace(/<|>/g, '').substring(0, 40)}</span></span>
+                            </div>
                           </div>
                           
                           <div className={cn(
-                            "p-5 rounded-2xl shadow-sm text-sm leading-relaxed whitespace-pre-wrap font-medium border",
+                            "p-4 rounded-xl text-sm leading-relaxed whitespace-pre-wrap font-medium border",
                             isSent 
-                              ? "bg-primary/10 border-primary/20 text-foreground/90 rounded-tr-sm" 
-                              : "bg-card border-border/50 text-foreground/90 rounded-tl-sm"
+                              ? "bg-primary/[0.06] border-primary/10 text-white/80 rounded-tr-sm" 
+                              : "bg-white/[0.03] border-white/5 text-white/80 rounded-tl-sm"
                           )}>
-                            {/* Render text or HTML. Since this is an internal dashboard, raw text is often cleaner, but we'll use HTML inside an iframe for complex ones or just raw text */}
                             {msg.text ? msg.text : (
                               <iframe
                                 title={`msg-${msg.id}`}
@@ -540,29 +561,29 @@ const Inbox = () => {
                 </div>
 
                 {/* Reply Box */}
-                <div className="p-4 bg-card border-t border-border/50">
-                  <div className="max-w-4xl mx-auto">
-                    <div className="bg-background border border-border rounded-xl overflow-hidden focus-within:ring-1 focus-within:ring-primary/50 transition-shadow">
+                <div className="p-4 border-t border-white/5 shrink-0">
+                  <div className="max-w-3xl mx-auto">
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden focus-within:border-primary/30 transition-colors">
                       <textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
                         placeholder={`Reply to ${selectedThread.contactName}...`}
-                        className="w-full bg-transparent p-4 text-sm resize-none focus:outline-none min-h-[120px] text-foreground"
+                        className="w-full bg-transparent p-4 text-sm resize-none focus:outline-none min-h-[100px] text-white placeholder:text-white/20"
                       />
-                      <div className="flex items-center justify-between p-3 border-t border-border/50 bg-muted/30">
+                      <div className="flex items-center justify-between p-3 border-t border-white/5">
                         <button
                           onClick={handleAIDraft}
                           disabled={isDrafting}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 text-xs font-bold transition-colors disabled:opacity-50"
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-40"
                         >
-                          <Bot size={14} /> {isDrafting ? 'Drafting...' : 'Draft with AI'}
+                          <Bot size={12} /> {isDrafting ? 'Drafting...' : 'Draft with AI'}
                         </button>
                         <button
                           onClick={handleSendReply}
                           disabled={!replyContent.trim() || isSending}
-                          className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-bold transition-colors shadow-sm disabled:opacity-50"
+                          className="flex items-center gap-2 bg-white text-black px-5 py-2 rounded-lg hover:bg-gray-200 transition-all font-black uppercase tracking-widest text-[10px] disabled:opacity-40 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
                         >
-                          {isSending ? 'Sending...' : 'Send'} <Send size={14} />
+                          {isSending ? 'Sending...' : 'Send'} <Send size={12} />
                         </button>
                       </div>
                     </div>
@@ -570,12 +591,12 @@ const Inbox = () => {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6 shadow-sm border border-border">
-                  <Mail size={32} className="opacity-50" />
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center mb-5">
+                  <Mail size={28} className="text-white/15" />
                 </div>
-                <p className="font-bold text-sm">Select a thread to view</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Inbox zero is calling.</p>
+                <p className="font-bold text-sm text-white/40">Select a thread to view</p>
+                <p className="text-[10px] text-white/15 mt-1 uppercase tracking-widest font-bold">Conversations will appear here</p>
               </div>
             )}
           </div>
