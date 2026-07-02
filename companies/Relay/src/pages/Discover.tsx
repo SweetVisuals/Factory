@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, CheckCircle2, 
   XCircle, HelpCircle, Activity, Loader2, Sparkles, Plus, X, ArrowUpRight,
   Globe, Linkedin, Phone, Building2, MapPin, Briefcase, ArrowUpDown, ArrowUp, ArrowDown,
-  Copy, ExternalLink, ChevronDown, Hash
+  Copy, ExternalLink, ChevronDown, Hash, Filter
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
@@ -58,6 +58,9 @@ const Discover: React.FC = () => {
 
   // Expanded row
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+
+  // Mobile filters
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Metrics
   const [metrics, setMetrics] = useState({
@@ -249,116 +252,153 @@ const Discover: React.FC = () => {
       <div className="flex flex-col h-full bg-background text-foreground relative animate-in fade-in duration-200">
         
         {/* Header */}
-        <div className="p-4 lg:p-8 lg:pb-4 shrink-0">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 w-full">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
-                <h1 className="text-4xl font-black text-white tracking-tighter">Lead Searcher</h1>
-              </div>
-              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
-                B2B prospect database · {metrics.totalLeads.toLocaleString()} records
-              </p>
+        <div className="p-4 lg:p-8 lg:pb-4 shrink-0 flex flex-col md:flex-row md:items-end justify-between gap-6 w-full border-b border-white/5 bg-background z-10">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+              <h1 className="text-4xl font-black text-white tracking-tighter">Lead Searcher</h1>
             </div>
-            
-            <div className="flex items-center gap-6 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-              {/* Inline KPIs */}
-              <div className="flex items-center gap-4 lg:gap-5 bg-white/[0.03] border border-white/5 rounded-xl px-4 lg:px-5 py-2.5 min-w-max">
-                <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Total</span>
-                  <span className="text-lg font-black text-white tabular-nums">{metrics.totalLeads.toLocaleString()}</span>
-                </div>
-                <div className="h-8 w-px bg-white/10" />
-                <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest">Valid</span>
-                  <span className="text-lg font-black text-emerald-400 tabular-nums">{metrics.verifiedEmails.toLocaleString()}</span>
-                </div>
-                <div className="h-8 w-px bg-white/10" />
-                <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-rose-500/60 uppercase tracking-widest">Invalid</span>
-                  <span className="text-lg font-black text-rose-400 tabular-nums">{metrics.invalidEmails.toLocaleString()}</span>
-                </div>
-                <div className="h-8 w-px bg-white/10" />
-                <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Health</span>
-                  <span className="text-lg font-black text-white tabular-nums">{metrics.verificationRate}%</span>
-                </div>
+            <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
+              B2B prospect database · {metrics.totalLeads.toLocaleString()} records
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowMobileFilters(true)}
+              className="lg:hidden p-3 bg-white/[0.03] border border-white/5 rounded-lg text-white/50 hover:text-white transition-colors"
+            >
+              <Filter size={20} />
+            </button>
+            <div className="flex items-center gap-4 lg:gap-5 bg-white/[0.03] border border-white/5 rounded-xl px-4 lg:px-5 py-2.5 min-w-max">
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest">Valid</span>
+                <span className="text-lg font-black text-emerald-400 tabular-nums">{metrics.verifiedEmails.toLocaleString()}</span>
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-bold text-rose-500/60 uppercase tracking-widest">Invalid</span>
+                <span className="text-lg font-black text-rose-400 tabular-nums">{metrics.invalidEmails.toLocaleString()}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Filter Toolbar */}
-        <div className="flex items-center gap-3 px-4 lg:px-8 py-3 shrink-0 border-y border-white/5 bg-white/[0.01] overflow-x-auto hide-scrollbar w-full">
-          {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
-            <input
-              type="text"
-              placeholder="Search name, email, company..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors"
-            />
-          </div>
-
-          {/* Pill filters */}
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Briefcase className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
-              <input type="text" placeholder="Role" value={titleFilter} onChange={e => setTitleFilter(e.target.value)}
-                className="w-24 pl-7 pr-2 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
-            </div>
-            <div className="relative">
-              <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
-              <input type="text" placeholder="Company" value={companyFilter} onChange={e => setCompanyFilter(e.target.value)}
-                className="w-28 pl-7 pr-2 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
-            </div>
-            <div className="relative">
-              <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
-              <input type="text" placeholder="Industry" value={industryFilter} onChange={e => setIndustryFilter(e.target.value)}
-                className="w-28 pl-7 pr-2 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
-            </div>
-            <div className="relative">
-              <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/20" />
-              <input type="text" placeholder="Location" value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
-                className="w-28 pl-7 pr-2 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
-            </div>
-
-            <select
-              value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-              className="py-1.5 px-3 bg-white/[0.03] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer transition-colors appearance-none"
-            >
-              <option value="all">Any Status</option>
-              <option value="valid">Valid</option>
-              <option value="catch_all">Catch-all</option>
-              <option value="invalid">Invalid</option>
-              <option value="unverified">Unverified</option>
-            </select>
-          </div>
-
-          {activeFilterCount > 0 && (
-            <button onClick={clearAllFilters} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-white/50 hover:text-white bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all">
-              <X size={10} /> Clear {activeFilterCount}
-            </button>
+        <div className="flex-1 overflow-hidden flex relative">
+          
+          {/* Mobile Overlay */}
+          {showMobileFilters && (
+            <div className="lg:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={() => setShowMobileFilters(false)} />
           )}
 
-          <div className="ml-auto flex items-center gap-2">
-            <select
-              value={limit}
-              onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
-              className="py-1.5 px-2 bg-white/[0.03] border border-white/5 rounded-lg text-[10px] font-bold text-white/60 focus:outline-none cursor-pointer transition-colors appearance-none uppercase tracking-wider"
-            >
-              <option value={25}>25 rows</option>
-              <option value={50}>50 rows</option>
-              <option value={100}>100 rows</option>
-            </select>
-          </div>
-        </div>
+          {/* Sidebar Form */}
+          <div className={`
+            absolute lg:relative z-50 lg:z-0
+            inset-y-0 left-0
+            w-[320px] lg:w-[350px] shrink-0
+            bg-[#111111] lg:bg-transparent
+            border-r border-white/5
+            transform transition-transform duration-300 ease-in-out
+            ${showMobileFilters ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            flex flex-col
+          `}>
+            <div className="flex items-center justify-between p-4 border-b border-white/5 lg:hidden">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">Filters</h2>
+              <button onClick={() => setShowMobileFilters(false)} className="p-2 text-white/50 hover:text-white"><X size={18} /></button>
+            </div>
 
-        {/* Data Table */}
-        <div className="flex-1 overflow-auto relative custom-scrollbar w-full">
+            <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 custom-scrollbar">
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                  <input
+                    type="text"
+                    placeholder="Name, email, company..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Role / Title</label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                  <input type="text" placeholder="e.g. CEO, Founder" value={titleFilter} onChange={e => setTitleFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Company</label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                  <input type="text" placeholder="e.g. Apple" value={companyFilter} onChange={e => setCompanyFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Industry</label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                  <input type="text" placeholder="e.g. Software" value={industryFilter} onChange={e => setIndustryFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Location</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                  <input type="text" placeholder="e.g. London" value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Validation Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                  className="w-full pl-4 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer transition-colors appearance-none"
+                >
+                  <option value="all">Any Status</option>
+                  <option value="valid">Valid Emails</option>
+                  <option value="catch_all">Catch-all Domains</option>
+                  <option value="invalid">Invalid Emails</option>
+                  <option value="unverified">Unverified</option>
+                </select>
+              </div>
+
+              {activeFilterCount > 0 && (
+                <button onClick={clearAllFilters} className="w-full flex justify-center items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white/70 hover:text-white bg-white/[0.03] border border-white/5 hover:border-white/20 transition-all mt-4">
+                  <X size={14} /> Clear {activeFilterCount} Filters
+                </button>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-white/5 bg-white/[0.01]">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Rows per page</label>
+                <select
+                  value={limit}
+                  onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
+                  className="py-1 px-2 bg-transparent border-none text-xs font-bold text-white focus:outline-none cursor-pointer text-right appearance-none"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Table */}
+          <div className="flex-1 overflow-auto relative custom-scrollbar bg-[#0a0a0a]">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full">
               <Loader2 className="w-5 h-5 animate-spin text-primary mb-2" />
@@ -604,8 +644,8 @@ const Discover: React.FC = () => {
               <X size={11}/>
             </button>
           </div>
-        )}
-
+        </div>
+        </div>
       </div>
     </Layout>
   );
