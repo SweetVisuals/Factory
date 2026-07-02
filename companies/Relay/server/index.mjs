@@ -1187,6 +1187,13 @@ app.post('/api/scrape-leads', async (req, res) => {
       }
     }
 
+    // Global Concurrency Limiter: Push Hetzner Node to max capacity
+    // Allow up to 8 concurrent campaigns to be scraped at any given time.
+    if (activeScrapes.size >= 8) {
+      console.log(`[Scraper API] Server busy: ${activeScrapes.size} active scrapes running. Rejecting new request.`);
+      return res.status(429).json({ success: false, message: 'Server is currently at maximum scraping capacity. Please try again later.' });
+    }
+
     // Initialize user-specific stores
     userLogs.set(userId, []);
     userResults.set(userId, []);
@@ -1325,7 +1332,20 @@ app.post('/api/scrape-leads', async (req, res) => {
                 return;
             }
             
-            const { data: existingLead } = await client.from('leads').select('status').ilike('email', lead.email).maybeSingle();
+            // Filter out leads that are already scraped or don't have valid emails
+            const { data: existingLead } = await client.from('leads').select('id, status').ilike('email', lead.email).maybeSingle();
+            
+            if (existingLead) {
+              log(`[Scraper] Lead ${lead.email} already exists in DB. Skipping new insert, but will link to campaign if needed.`);
+              if (campaignId) {
+                await client.from('campaign_leads').upsert({
+                  campaign_id: campaignId,
+                  lead_id: existingLead.id
+                }, { onConflict: 'campaign_id,lead_id' });
+              }
+              continue;
+            }
+
             if (existingLead && ['bounced', 'closed', 'interested', 'client', 'converted'].includes(existingLead.status.toLowerCase())) {
                 log(`[Filter] Dropped ${lead.company}: Lead already exists with terminal status (${existingLead.status}).`);
                 return;
@@ -1632,7 +1652,7 @@ app.post('/api/scrape-leads', async (req, res) => {
         log(`Starting scrape for ${business || keywords || 'unspecified niche'}...`);
         if (notesContext) log(`Custom Notes Focus: ${notesContext}`);
 
-        const MAX_CONCURRENT = 2; // Limit to 2 concurrent scrapers to avoid overloading Supabase
+        const MAX_CONCURRENT = 5; // Push Hetzner to max: 5 concurrent scrapers
         const queue = [...scrapeLocations];
         const activePromises = new Set();
         let isCanceled = false;

@@ -245,7 +245,7 @@ const Discover: React.FC = () => {
       <div className="flex flex-col h-full bg-background text-foreground relative animate-in fade-in duration-200">
         
         {/* Header */}
-        <div className="p-8 pb-4 shrink-0">
+        <div className="p-4 lg:p-8 lg:pb-4 shrink-0">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 w-full">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
@@ -257,9 +257,9 @@ const Discover: React.FC = () => {
               </p>
             </div>
             
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
               {/* Inline KPIs */}
-              <div className="flex items-center gap-5 bg-white/[0.03] border border-white/5 rounded-xl px-5 py-2.5">
+              <div className="flex items-center gap-4 lg:gap-5 bg-white/[0.03] border border-white/5 rounded-xl px-4 lg:px-5 py-2.5 min-w-max">
                 <div className="flex flex-col items-center">
                   <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Total</span>
                   <span className="text-lg font-black text-white tabular-nums">{metrics.totalLeads.toLocaleString()}</span>
@@ -285,7 +285,7 @@ const Discover: React.FC = () => {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="flex items-center gap-3 px-8 py-3 shrink-0 border-y border-white/5 bg-white/[0.01] overflow-x-auto custom-scrollbar w-full">
+        <div className="flex items-center gap-3 px-4 lg:px-8 py-3 shrink-0 border-y border-white/5 bg-white/[0.01] overflow-x-auto hide-scrollbar w-full">
           {/* Search */}
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
@@ -521,7 +521,7 @@ const Discover: React.FC = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="flex items-center justify-between px-8 py-2.5 border-t border-white/5 bg-background text-xs shrink-0">
+        <div className="flex items-center justify-between px-4 lg:px-8 py-2.5 border-t border-white/5 bg-background text-xs shrink-0">
           <div className="flex items-center gap-4">
             <span className="text-white/30 font-bold uppercase tracking-widest text-[10px]">
               {((page - 1) * limit) + 1}–{Math.min(page * limit, totalCount)} of {totalCount.toLocaleString()}
@@ -568,7 +568,7 @@ const Discover: React.FC = () => {
 
         {/* Floating Action Toolbar */}
         {selectedLeadIds.length > 0 && (
-          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a1a] border border-white/10 shadow-2xl shadow-black/60 rounded-2xl px-6 py-3 flex items-center gap-5 animate-in slide-in-from-bottom-8 fade-in duration-200">
+          <div className="fixed bottom-20 xl:bottom-10 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a1a] border border-white/10 shadow-2xl shadow-black/60 rounded-2xl px-4 lg:px-6 py-3 flex items-center gap-3 lg:gap-5 animate-in slide-in-from-bottom-8 fade-in duration-200 min-w-max w-[95%] sm:w-auto overflow-x-auto hide-scrollbar">
             <div className="flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center text-[11px] font-black">{selectedLeadIds.length}</div>
               <span className="text-xs font-bold text-white uppercase tracking-wider">Selected</span>

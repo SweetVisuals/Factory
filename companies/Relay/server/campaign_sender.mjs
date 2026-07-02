@@ -57,7 +57,15 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function log(msg) { console.log(`[${new Date().toISOString()}] [Sender] ${msg}`); }
 
 function buildFullEmail(body) {
-  return `${body}
+  // Strip any existing sign-offs with wrong names (Ethan, etc.)
+  let cleaned = body;
+  cleaned = cleaned.replace(/\n*\s*(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care),?\s*\n\s*(Ethan|Ethan Hale|Nicolas|Nick)\b[\s\S]{0,200}$/i, '');
+  cleaned = cleaned.replace(/\n*\s*(Ethan|Ethan Hale)\s*\n.*Relay\s*Solutions[\s\S]{0,200}$/i, '');
+  cleaned = cleaned.replace(/\n*\s*(Ethan|Ethan Hale)\s*\n/gi, '\n');
+  cleaned = cleaned.replace(/\n*\s*(Ethan|Ethan Hale)\s*$/i, '');
+  cleaned = cleaned.trimEnd();
+  
+  return `${cleaned}
 
 ${SENDER_NAME}
 Relay — AI & Automation Systems
@@ -65,26 +73,93 @@ ${SENDER_PHONE}
 ${SENDER_EMAIL}
 www.relaysolutions.net
 
----
-Relay Solutions Ltd · relaysolutions.net
-You're receiving this because we believe our automation systems are relevant to your business operations.
-To unsubscribe, reply with "unsubscribe" in the subject line.`;
+P.S. If this isn't relevant, just reply and let me know — happy to remove you from my list.`;
+}
+
+// ─── Fetch Template for Fallback ──────────────────────────────────────────────
+async function getCampaignTemplate(campaignId) {
+  const { data } = await supabase
+    .from('scheduled_emails')
+    .select('id, templates(subject, content)')
+    .eq('campaign_id', campaignId)
+    .limit(1)
+    .maybeSingle();
+  if (data && data.templates) {
+    return { subject: data.templates.subject, content: data.templates.content, scheduleId: data.id };
+  }
+  return null;
+}
+
+function applyTemplate(templateStr, lead, isSubject = false) {
+  if (!templateStr) return '';
+  let res = templateStr;
+  const name = (lead.name || '').trim();
+  const company = (lead.company || '').trim() || 'your company';
+  
+  // Smart first name: use actual name, fall back to company name, NEVER use "there"
+  let firstName = '';
+  if (name) {
+    firstName = name.split(' ')[0];
+    // Make sure it's actually a person's name, not a company name repeated
+    const lowerFirst = firstName.toLowerCase();
+    if (lowerFirst === 'the' || lowerFirst === 'a' || lowerFirst === 'an' || 
+        lowerFirst === company.toLowerCase() || firstName.length <= 1) {
+      firstName = '';
+    }
+  }
+  
+  // For subject lines: use first name if available, otherwise use company name
+  // For body: use first name if available, otherwise use "Hi" with no name
+  const nameForSubject = firstName || company;
+  const nameForBody = firstName || 'Hi';
+  const displayName = isSubject ? nameForSubject : nameForBody;
+  
+  res = res.replace(/\{\{first_name\}\}|\{first_name\}|\{firstName\}|\[First Name\]/gi, displayName);
+  res = res.replace(/\{\{name\}\}|\{name\}|\[Name\]/gi, name || displayName);
+  res = res.replace(/\{\{company\}\}|\{company\}|\{companyName\}|\[Company\]|\{\{org_name\}\}/gi, company);
+  res = res.replace(/\{\{industry\}\}|\{industry\}/gi, lead.industry || 'industry');
+  res = res.replace(/\{\{location\}\}|\{location\}/gi, lead.location || '');
+  res = res.replace(/\{\{sender_name\}\}|\{sender_name\}|\[Sender Name\]/gi, SENDER_NAME);
+  res = res.replace(/\{\{sender_email\}\}|\{sender_email\}/gi, SENDER_EMAIL);
+  res = res.replace(/\{\{sender_phone\}\}|\{sender_phone\}/gi, SENDER_PHONE);
+  res = res.replace(/\{\{sender_company\}\}|\{sender_company\}|<company>/gi, 'Relay Solutions');
+  res = res.replace(/\{\{ender\}\}|\{ender\}/gi, 'Best,');
+  // Strip any remaining unresolved placeholders
+  res = res.replace(/\{\{[^}]+\}\}/g, '');
+  
+  // Clean up body: replace "Hi," or "Hi " at start if name was used as "Hi"
+  if (!firstName && !isSubject) {
+    // If the template starts with "{{first_name}}," it becomes "Hi," — clean it
+    res = res.replace(/^Hi,\s*\n\n/i, 'Hi,\n\n');
+  }
+  
+  return res;
 }
 
 // ─── Fetch pending batch for a campaign ──────────────────────────────────────
 async function fetchPendingBatch(campaignId) {
   const { data, error } = await supabase
     .from('campaign_leads')
-    .select('lead_id, leads!inner(id, email, name, company, personalized_email, personalized_subject)')
+    .select('lead_id, leads!inner(id, email, name, company, personalized_email, personalized_subject, industry, location)')
     .eq('campaign_id', campaignId)
     .eq('status', 'pending')
     .limit(BATCH_SIZE);
 
   if (error) { log(`❌ Fetch error: ${error.message}`); return []; }
+  
+  const templateObj = await getCampaignTemplate(campaignId);
 
   return (data || []).filter(cl => {
     const l = cl.leads;
-    if (!l?.email?.trim() || !l.personalized_email?.trim() || !l.personalized_subject?.trim()) return false;
+    if (!l?.email?.trim()) return false;
+    
+    // Apply template if missing personalized content
+    if (!l.personalized_email?.trim() || !l.personalized_subject?.trim()) {
+      if (!templateObj) return false; // Cannot fallback if no template
+      l.personalized_email = applyTemplate(templateObj.content, l, false);
+      l.personalized_subject = applyTemplate(templateObj.subject, l, true);
+    }
+    
     const domain = l.email.split('@')[1]?.toLowerCase();
     if (!domain || !domain.includes('.')) return false;
     if (PERSONAL_DOMAINS.includes(domain)) return false;
@@ -102,10 +177,16 @@ async function skipInvalidLeads(campaignId) {
     .limit(200);
 
   if (!data) return 0;
+  
+  const templateObj = await getCampaignTemplate(campaignId);
+  
   let skipped = 0;
   for (const cl of data) {
     const l = cl.leads;
-    const bad = !l?.email?.trim() || !l.personalized_email?.trim() ||
+    const hasPersonalized = l.personalized_email?.trim();
+    const hasTemplate = templateObj && templateObj.content;
+    
+    const bad = !l?.email?.trim() || (!hasPersonalized && !hasTemplate) ||
                 !l.email.includes('@') || !l.email.split('@')[1]?.includes('.') ||
                 PERSONAL_DOMAINS.includes(l.email.split('@')[1]?.toLowerCase());
     if (bad) {
@@ -128,7 +209,7 @@ async function sendEmail(lead) {
     text: buildFullEmail(lead.personalized_email),
     headers: {
       'X-Mailer': 'Relay Campaign Engine',
-      'List-Unsubscribe': `<mailto:${SENDER_EMAIL}?subject=unsubscribe>`,
+
     }
   });
 }
@@ -258,7 +339,7 @@ async function processCampaign(campaign) {
 // ─── Main ────────────────────────────────────────────────────────────────────
 async function main() {
   log('═══════════════════════════════════════════════════════════════');
-  log('  UNIVERSAL CAMPAIGN SENDER — ALL ACTIVE CAMPAIGNS');
+  log('  UNIVERSAL CAMPAIGN SENDER — CONTINUOUS MODE');
   log(`  Sender: ${SENDER_EMAIL}`);
   log(`  Delay: ${MIN_DELAY_SEC}–${MAX_DELAY_SEC}s between emails`);
   log('═══════════════════════════════════════════════════════════════');
@@ -274,35 +355,48 @@ async function main() {
     catch (e) { log(`❌ SMTP still failing: ${e.message}. Exiting.`); process.exit(1); }
   }
 
-  // Get all active campaigns with pending leads
-  const { data: campaigns, error } = await supabase
-    .from('campaigns')
-    .select('id, name, niche, status')
-    .eq('status', 'active')
-    .order('name');
+  // Run continuously
+  while (true) {
+    try {
+      // Get all active/in_progress campaigns
+      const { data: campaigns, error } = await supabase
+        .from('campaigns')
+        .select('id, name, niche, status')
+        .in('status', ['active', 'in_progress'])
+        .order('name');
 
-  if (error || !campaigns) { log(`❌ Campaign fetch failed: ${error?.message}`); process.exit(1); }
+      if (error || !campaigns) {
+        log(`❌ Campaign fetch failed: ${error?.message}. Retrying in 60s...`);
+        await sleep(60000);
+        continue;
+      }
 
-  log(`\n📋 Active campaigns: ${campaigns.length}`);
-  for (const c of campaigns) log(`  • ${c.name}`);
+      log(`\n📋 Active campaigns: ${campaigns.length}`);
+      for (const c of campaigns) log(`  • ${c.name}`);
 
-  let totalSent = 0, totalFailed = 0;
+      let totalSent = 0, totalFailed = 0;
 
-  for (const campaign of campaigns) {
-    const { sent, failed } = await processCampaign(campaign);
-    totalSent += sent;
-    totalFailed += failed;
+      for (const campaign of campaigns) {
+        const { sent, failed } = await processCampaign(campaign);
+        totalSent += sent;
+        totalFailed += failed;
+      }
+
+      log('\n═══════════════════════════════════════════════════════════════');
+      log('  CYCLE COMPLETE');
+      log('═══════════════════════════════════════════════════════════════');
+      log(`  ✅ Total sent:   ${totalSent}`);
+      log(`  ❌ Total failed: ${totalFailed}`);
+      log('  ⏳ Sleeping 5 minutes before next cycle...');
+      log('═══════════════════════════════════════════════════════════════');
+
+      await sleep(5 * 60 * 1000); // 5 minute pause between full cycles
+    } catch (err) {
+      log(`💀 Cycle error: ${err.message}. Retrying in 60s...`);
+      await sleep(60000);
+    }
   }
-
-  log('\n═══════════════════════════════════════════════════════════════');
-  log('  ALL CAMPAIGNS COMPLETE');
-  log('═══════════════════════════════════════════════════════════════');
-  log(`  ✅ Total sent:   ${totalSent}`);
-  log(`  ❌ Total failed: ${totalFailed}`);
-  log('═══════════════════════════════════════════════════════════════');
-
-  transporter.close();
-  process.exit(0);
 }
 
 main().catch(err => { log(`💀 FATAL: ${err.message}`); console.error(err); process.exit(1); });
+

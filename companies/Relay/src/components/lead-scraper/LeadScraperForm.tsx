@@ -66,9 +66,9 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
         e.preventDefault();
         onSearch({ ...formData });
       }}
-      className="bg-white/[0.02] p-8 mb-8 shadow-2xl"
+      className="bg-white/[0.02] p-6 lg:p-8 h-full overflow-y-auto custom-scrollbar"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="flex flex-col gap-5 mb-8">
         <div className="space-y-3">
           <label className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest ml-1">What business?</label>
           <input
@@ -111,7 +111,7 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="flex flex-col gap-5 mb-8">
         <div className="lg:col-span-2 space-y-3">
           <label className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest ml-1">Special Requirements (AI Brain)</label>
           <input
@@ -137,9 +137,9 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
         </div>
       </div>
 
-      <div className="space-y-4 mb-10">
-        <label className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest ml-1">Select Search Engines & Agents</label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+      <div className="space-y-4 mb-8">
+        <label className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest ml-1">Search Engines</label>
+        <div className="grid grid-cols-3 gap-3">
           {[
             { id: 'google', label: 'Google Maps', icon: '📍' },
             { id: 'linkedin', label: 'LinkedIn', icon: '👔' },
@@ -162,13 +162,13 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
               }`}
             >
               <span className="text-2xl mb-3">{p.icon}</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">{p.label}</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-center leading-tight">{p.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 mt-4 bg-white/[0.01] -mx-8 px-8">
+      <div className="flex flex-col gap-6 pt-6 mt-4 border-t border-white/5">
         <div className="flex flex-col sm:flex-row items-center gap-8">
           <label className="flex items-center gap-4 cursor-pointer group">
             <div className="relative">
@@ -190,7 +190,7 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
         
         <button
           type="submit"
-          className="w-full sm:w-auto bg-primary text-primary-foreground px-12 py-4 hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 font-black uppercase tracking-widest shadow-none"
+          className="w-full bg-primary text-primary-foreground px-6 py-4 hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 font-black uppercase tracking-widest shadow-none rounded-xl"
         >
           Start Scraper
         </button>

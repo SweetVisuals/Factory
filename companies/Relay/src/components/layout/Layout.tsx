@@ -17,11 +17,11 @@ const Layout: React.FC<LayoutProps> = ({ children, fullHeight = false }) => {
             
             <div className="flex-1 flex overflow-hidden relative w-full">
                 {fullHeight ? (
-                    <main className="flex-1 flex flex-col h-full overflow-hidden bg-background w-full">
+                    <main className="flex-1 flex flex-col h-full overflow-hidden bg-background w-full pb-16 xl:pb-0">
                         {children}
                     </main>
                 ) : (
-                    <main className="flex-1 overflow-y-auto bg-background">
+                    <main className="flex-1 overflow-y-auto bg-background pb-16 xl:pb-0">
                         {children}
                     </main>
                 )}
