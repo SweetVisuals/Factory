@@ -442,9 +442,10 @@ export const Dashboard = () => {
                       ) : (
                         inboxEmails.filter(email => {
                           const isBounce = email.from.toLowerCase().includes('mailer-daemon') || email.from.toLowerCase().includes('postmaster');
+                          const subjectLower = (email.subject || '').toLowerCase();
                           const bodyLower = (email.body_text || '').toLowerCase();
-                          const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me');
-                          const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(email.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office');
+                          const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me') || subjectLower.includes('unsubscribe') || subjectLower.includes('opt out');
+                          const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(email.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office') || bodyLower.includes('your email has been received') || subjectLower.includes('thank you for emailing');
                           
                           if (isBounce && !showBounces) return false;
                           if (isOptOut && !showOptOuts) return false;
@@ -452,9 +453,10 @@ export const Dashboard = () => {
                           return true;
                         }).map((email) => {
                           const isBounce = email.from.toLowerCase().includes('mailer-daemon') || email.from.toLowerCase().includes('postmaster');
+                          const subjectLower = (email.subject || '').toLowerCase();
                           const bodyLower = (email.body_text || '').toLowerCase();
-                          const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me');
-                          const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(email.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office');
+                          const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me') || subjectLower.includes('unsubscribe') || subjectLower.includes('opt out');
+                          const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(email.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office') || bodyLower.includes('your email has been received') || subjectLower.includes('thank you for emailing');
                           
                           let displayBody = email.body_text?.substring(0, 100);
                           let originalEmail = '';
@@ -518,9 +520,10 @@ export const Dashboard = () => {
                             <div className="flex flex-col min-w-0">
                               <span className="font-bold text-sm text-white truncate">
                                 {(() => {
+                                  const subjectLower = (selectedInboxEmail.subject || '').toLowerCase();
                                   const bodyLower = (selectedInboxEmail.body_text || '').toLowerCase();
-                                  const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me');
-                                  const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(selectedInboxEmail.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office');
+                                  const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me') || subjectLower.includes('unsubscribe') || subjectLower.includes('opt out');
+                                  const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(selectedInboxEmail.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office') || bodyLower.includes('your email has been received') || subjectLower.includes('thank you for emailing');
                                   
                                   if (isAutoReply) return <span className="text-orange-400 mr-2">[Automated Response]</span>;
                                   if (isOptOut) return <span className="text-yellow-400 mr-2">[Opt Out]</span>;
