@@ -60,6 +60,8 @@ export const Dashboard = () => {
   const [scraperLogs, setScraperLogs] = useState<ScraperLog[]>([]);
   const [isScraperOpen, setIsScraperOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
   const [showBounces, setShowBounces] = useState(false);
+  const [showOptOuts, setShowOptOuts] = useState(false);
+  const [showAutoReplies, setShowAutoReplies] = useState(false);
   
   const [inboxEmails, setInboxEmails] = useState<InboxEmail[]>([]);
   const [sentEmails, setSentEmails] = useState<SentEmail[]>([]);
@@ -392,6 +394,18 @@ export const Dashboard = () => {
                       <AlertCircle size={14} /> {showBounces ? 'Hide Bounces' : 'Show Bounces'}
                     </button>
                     <button
+                      onClick={() => setShowOptOuts(!showOptOuts)}
+                      className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors", showOptOuts ? "bg-yellow-500/20 text-yellow-400" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white")}
+                    >
+                      <AlertCircle size={14} /> {showOptOuts ? 'Hide Opt Outs' : 'Show Opt Outs'}
+                    </button>
+                    <button
+                      onClick={() => setShowAutoReplies(!showAutoReplies)}
+                      className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors", showAutoReplies ? "bg-orange-500/20 text-orange-400" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white")}
+                    >
+                      <AlertCircle size={14} /> {showAutoReplies ? 'Hide Auto Replies' : 'Show Auto Replies'}
+                    </button>
+                    <button
                       onClick={() => {
                         if (selectedEmails.size === inboxEmails.length) setSelectedEmails(new Set());
                         else setSelectedEmails(new Set(inboxEmails.map(e => e.id)));
@@ -428,18 +442,28 @@ export const Dashboard = () => {
                       ) : (
                         inboxEmails.filter(email => {
                           const isBounce = email.from.toLowerCase().includes('mailer-daemon') || email.from.toLowerCase().includes('postmaster');
+                          const bodyLower = (email.body_text || '').toLowerCase();
+                          const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me');
+                          const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(email.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office');
+                          
                           if (isBounce && !showBounces) return false;
+                          if (isOptOut && !showOptOuts) return false;
+                          if (isAutoReply && !showAutoReplies) return false;
                           return true;
                         }).map((email) => {
                           const isBounce = email.from.toLowerCase().includes('mailer-daemon') || email.from.toLowerCase().includes('postmaster');
                           const bodyLower = (email.body_text || '').toLowerCase();
                           const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me');
+                          const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(email.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office');
+                          
                           let displayBody = email.body_text?.substring(0, 100);
                           let originalEmail = '';
                           if (isBounce) {
                             const match = email.body_text?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
                             if (match) originalEmail = match[0];
                             displayBody = `Email: ${originalEmail || 'Unknown'} was blacklisted and invalid.`;
+                          } else if (isAutoReply) {
+                            displayBody = `[Automated Response] ${displayBody}`;
                           } else if (isOptOut) {
                             displayBody = `[Opt Out] ${displayBody}`;
                           }
@@ -450,6 +474,8 @@ export const Dashboard = () => {
                             className={cn(
                               "p-4 border-b border-white/5 cursor-pointer transition-all hover:bg-white/[0.02] flex gap-3 group",
                               selectedInboxEmail?.id === email.id ? "bg-white/[0.04] border-l-2 border-l-primary" : "border-l-2 border-l-transparent",
+                              isBounce ? "bg-red-500/5 hover:bg-red-500/10" :
+                              isAutoReply ? "bg-orange-500/10 hover:bg-orange-500/20" :
                               isOptOut ? "bg-yellow-500/10 hover:bg-yellow-500/20" : ""
                             )}
                           >
@@ -494,7 +520,11 @@ export const Dashboard = () => {
                                 {(() => {
                                   const bodyLower = (selectedInboxEmail.body_text || '').toLowerCase();
                                   const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me');
-                                  return isOptOut ? <span className="text-yellow-400 mr-2">[Opt Out]</span> : null;
+                                  const isAutoReply = /^(auto:|automatic reply:|autoreply:|out of office|ooo:|vacation|undeliverable)/i.test(selectedInboxEmail.subject || '') || bodyLower.includes('this is an automated response') || bodyLower.includes('this mailbox is not monitored') || bodyLower.includes('away from my desk') || bodyLower.includes('out of the office');
+                                  
+                                  if (isAutoReply) return <span className="text-orange-400 mr-2">[Automated Response]</span>;
+                                  if (isOptOut) return <span className="text-yellow-400 mr-2">[Opt Out]</span>;
+                                  return null;
                                 })()}
                                 {selectedInboxEmail.subject}
                               </span>
