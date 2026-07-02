@@ -100,6 +100,10 @@ const Discover: React.FC = () => {
         fetchLeads();
         fetchMetrics();
       })
+      .on('broadcast', { event: 'leads_updated' }, () => {
+        fetchLeads();
+        fetchMetrics();
+      })
       .subscribe();
     return () => { supabase.removeChannel(sub); };
   }, []);

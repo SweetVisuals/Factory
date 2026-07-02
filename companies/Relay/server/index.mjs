@@ -974,16 +974,26 @@ app.get('/api/scraper-logs', async (req, res) => {
       .order('timestamp', { ascending: false })
       .limit(200);
 
+    const memLogs = userLogs.get(user.id) || [];
+    let combined = [...memLogs];
+
     if (!dbError && dbLogs && dbLogs.length > 0) {
-      return res.json(dbLogs.reverse().map(l => ({
+      const dbArr = dbLogs.reverse().map(l => ({
         timestamp: l.timestamp,
         message: l.message
-      })));
+      }));
+      // Merge and deduplicate by message+timestamp
+      const seen = new Set(memLogs.map(m => m.timestamp + m.message));
+      for (const d of dbArr) {
+        if (!seen.has(d.timestamp + d.message)) {
+          combined.push(d);
+        }
+      }
     }
-
-    // Fallback to memory if DB is empty or fails
-    const logs = userLogs.get(user.id) || [];
-    res.json(logs);
+    
+    // Sort combined by timestamp ascending
+    combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    res.json(combined.slice(-200));
   } catch (e) {
     res.json([]);
   }
@@ -1279,6 +1289,12 @@ app.post('/api/scrape-leads', async (req, res) => {
 
       // Broadcast real-time log to UI
       const payload = { timestamp, message };
+      
+      const logs = userLogs.get(userId) || [];
+      logs.push(payload);
+      if (logs.length > 200) logs.shift();
+      userLogs.set(userId, logs);
+
       scrapeChannel.send({
         type: 'broadcast',
         event: 'scrape-log',
@@ -1343,6 +1359,10 @@ app.post('/api/scrape-leads', async (req, res) => {
                   lead_id: existingLead.id
                 }, { onConflict: 'campaign_id,lead_id' });
               }
+              
+              if (scrapeChannel) scrapeChannel.send({ type: 'broadcast', event: 'leads_updated', payload: {} });
+              if (campaignChannel) campaignChannel.send({ type: 'broadcast', event: 'metrics_updated', payload: {} });
+              
               return;
             }
 
@@ -1469,6 +1489,9 @@ app.post('/api/scrape-leads', async (req, res) => {
               console.error('[Main Server] Error linking lead to campaign:', linkErr.message);
             }
           }
+
+          if (scrapeChannel) scrapeChannel.send({ type: 'broadcast', event: 'leads_updated', payload: {} });
+          if (campaignChannel) campaignChannel.send({ type: 'broadcast', event: 'metrics_updated', payload: {} });
 
           // Link to the newly created list
           if (listId) {

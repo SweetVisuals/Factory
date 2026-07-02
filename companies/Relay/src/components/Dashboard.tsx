@@ -172,6 +172,7 @@ export const Dashboard = () => {
     const channel = supabase.channel('dashboard-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_progress' }, () => fetchAllData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_emails' }, () => fetchAllData())
+      .on('broadcast', { event: 'metrics_updated' }, () => fetchAllData())
       .subscribe();
 
     let logsInterval: any;
