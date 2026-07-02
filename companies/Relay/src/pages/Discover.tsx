@@ -644,8 +644,8 @@ const Discover: React.FC = () => {
               <X size={11}/>
             </button>
           </div>
-        </div>
-        </div>
+        )}
+      </div>
       </div>
     </Layout>
   );
