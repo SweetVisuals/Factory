@@ -71,8 +71,10 @@ async function runEmailerCron() {
   isRunning = true;
   try {
     const { data: memData } = await supabase.from('agent_memory').select('value').eq('key_name', 'factory_status').maybeSingle();
+    let hasAiCredits = true;
     if (memData?.value?.status === 'paused' && memData?.value?.reason === 'insufficient_credits') {
       console.log('[Emailer Cron] Factory is paused due to insufficient credits. Checking balance...');
+      hasAiCredits = false;
       try {
          const deepseekKey = process.env.DEEPSEEK_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
          const balRes = await fetch('https://api.deepseek.com/user/balance', { headers: { 'Authorization': `Bearer ${deepseekKey}` } });
@@ -84,17 +86,14 @@ async function runEmailerCron() {
                if (realBalance > 0) {
                   console.log(`[Emailer Cron] Balance is now ${realBalance}. Auto-resuming factory!`);
                   await supabase.from('agent_memory').upsert({ key_name: 'factory_status', value: { status: 'running' } }, { onConflict: 'key_name' });
+                  hasAiCredits = true;
                } else {
-                  console.log(`[Emailer Cron] Balance is still ${realBalance}. Staying paused.`);
-                  isRunning = false;
-                  return;
+                  console.log(`[Emailer Cron] Balance is still ${realBalance}. Continuing non-AI tasks.`);
                }
             }
          }
       } catch (err) {
          console.error('[Emailer Cron] Error checking balance:', err);
-         isRunning = false;
-         return;
       }
     } else if (memData?.value?.status === 'paused') {
       console.log(`[Emailer Cron] Factory is paused for reason: ${memData?.value?.reason}. Skipping.`);
@@ -102,9 +101,11 @@ async function runEmailerCron() {
       return;
     }
 
-    console.log('[Emailer Cron] Triggering background auto-research + running campaign processing...');
-    // Trigger auto-research in background (decoupled)
-    runAutoResearch().catch(err => console.error('[Auto-Research Error]', err));
+    console.log('[Emailer Cron] Running campaign processing...');
+    if (hasAiCredits) {
+      // Trigger auto-research in background (decoupled)
+      runAutoResearch().catch(err => console.error('[Auto-Research Error]', err));
+    }
     
     // Process campaign immediately
     const resultString = await runProcessCampaign();

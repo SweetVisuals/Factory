@@ -1468,7 +1468,7 @@ CRITICAL INSTRUCTIONS:
       // Pipeline-aware recommendations for the Boss
       const nextStepMap = {
         'Market Researcher': `**RECOMMENDED NEXT STEP:** Check the LIVE CAMPAIGN DASHBOARD below. If campaigns exist with the researched niche, DELEGATE to **Scraper** with the real campaign UUID. If NO campaigns exist, call RELAY_API: CREATE_CAMPAIGN first, then delegate to Scraper.`,
-        'Scraper': `**RECOMMENDED NEXT STEP:** Check the LIVE CAMPAIGN DASHBOARD below. If campaigns show prospects > 0, DELEGATE to **Validator**. If prospects are still 0, the scrape may still be processing — wait or retry.`,
+        'Scraper': `**RECOMMENDED NEXT STEP:** Check the LIVE CAMPAIGN DASHBOARD below. If a campaign has >= 5000 prospects, the lead scrape is 100% COMPLETE — do NOT scrape it anymore, and count it as finished so the system can move to a new campaign. If prospects are between 1 and 4999, DELEGATE to **Validator**. If prospects are still 0, the scrape may still be processing — wait or retry.`,
         'Validator': `**RECOMMENDED NEXT STEP:** Check the LIVE CAMPAIGN DASHBOARD below. Only DELEGATE to **Sales Strategist** for campaigns that have prospects > 0. The Strategist needs real campaign UUIDs from the dashboard.`,
         'Sales Strategist': `**RECOMMENDED NEXT STEP:** Check the LIVE CAMPAIGN DASHBOARD below. Only DELEGATE to **Emailer** for campaigns that have prospects > 0 AND already have sequences generated.`,
         'Emailer': `**🎉 PIPELINE COMPLETE!** Check the LIVE CAMPAIGN DASHBOARD below. If all campaigns are active, find a NEW niche and DELEGATE to **Market Researcher** for the next round.`
@@ -1495,7 +1495,7 @@ You are the Boss of the Openclaw Factory Assembly Line. An agent has just report
 
 **Your job now:**
 1. **READ THE LIVE CAMPAIGN DASHBOARD ABOVE** — use ONLY the real UUIDs shown there.
-2. **MONITOR CURRENT CAMPAIGNS**: If any campaign is active but its Leads count is 0 or stalled, your IMMEDIATE priority is to DELEGATE to **Scraper** to replenish leads for that specific campaign. Do not leave campaigns with 0 leads.
+2. **MONITOR CURRENT CAMPAIGNS**: If any campaign is active but its Leads count is 0 or stalled (and under 5000), your IMMEDIATE priority is to DELEGATE to **Scraper** to replenish leads for that specific campaign. Do not leave campaigns with 0 leads. If a campaign has >= 5000 prospects, it is fully scraped — move on to the next one or create a new campaign.
 3. **MAINTAIN 3-5 TARGETS & CAMPAIGNS**: Only if existing campaigns are healthy (prospects > 0 and progressing), should you create new ones. If there are fewer than 3 active targets in LIVE METRICS, use \`RELAY_API: CREATE_TARGET\`. CRITICAL: Target names MUST focus on booking and securing clients via calendar or phone. We are NOT selling, we are inquiring about current struggles and hurdles. Do NOT use simple niches or generic nouns. If fewer than 3 active campaigns in the dashboard, use \`RELAY_API: CREATE_CAMPAIGN\`. Maximum of 5 active for each.
 4. If campaigns have prospects > 0 → Follow the RECOMMENDED NEXT STEP above.
 5. **NEVER invent campaign IDs.** Only use UUIDs from the dashboard.

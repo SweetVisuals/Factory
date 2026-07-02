@@ -12,7 +12,7 @@ async function runScraperScheduler() {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
     
     const { data: memData } = await supabase.from('agent_memory').select('value').eq('key_name', 'factory_status').maybeSingle();
-    if (memData?.value?.status === 'paused') {
+    if (memData?.value?.status === 'paused' && memData?.value?.reason !== 'insufficient_credits') {
       console.log(`[Scraper Scheduler] Factory is paused for reason: ${memData?.value?.reason}. Skipping scraper schedule.`);
       return;
     }
@@ -52,28 +52,34 @@ async function runScraperScheduler() {
             continue;
         }
 
-        // Max out server: feed leads to campaigns under 1000 leads
-        if (count !== null && count < 1000) {
-            // Check if there is an active scraper task for this campaign in the database
-            try {
-                const { data: activeTasks, error: taskCheckErr } = await supabase
-                    .from('tasks')
-                    .select('id, description')
-                    .eq('assigned_to', 'Scraper')
-                    .in('status', ['in_progress', 'pending', 'waiting']);
-                
-                if (taskCheckErr) {
-                    console.error(`[Scraper Scheduler] Error checking active tasks for ${c.id}:`, taskCheckErr.message);
-                } else if (activeTasks) {
-                    // Only 1 scraper per campaign to avoid overloading the DB
-                    const isAlreadyRunning = activeTasks.some(t => t.description && t.description.includes(c.id));
-                    if (isAlreadyRunning) {
-                        console.log(`[Scraper Scheduler] Campaign "${c.name}" (${c.id}) already has an active task. Skipping.`);
-                        continue;
+        // Max out server: feed leads to campaigns under 5000 leads
+        if (count !== null && count < 5000) {
+            // Check if we have AI credits. If we aren't using AI, we ignore the tasks table
+            const { data: creditData } = await supabase.from('agent_memory').select('value').eq('key_name', 'api_credits').maybeSingle();
+            const hasAiCredits = creditData?.value?.balance > 0;
+
+            if (hasAiCredits) {
+                // Check if there is an active scraper task for this campaign in the database
+                try {
+                    const { data: activeTasks, error: taskCheckErr } = await supabase
+                        .from('tasks')
+                        .select('id, description')
+                        .eq('assigned_to', 'Scraper')
+                        .in('status', ['in_progress', 'pending', 'waiting']);
+                    
+                    if (taskCheckErr) {
+                        console.error(`[Scraper Scheduler] Error checking active tasks for ${c.id}:`, taskCheckErr.message);
+                    } else if (activeTasks) {
+                        // Only 1 scraper per campaign to avoid overloading the DB
+                        const isAlreadyRunning = activeTasks.some(t => t.description && t.description.includes(c.id));
+                        if (isAlreadyRunning) {
+                            console.log(`[Scraper Scheduler] Campaign "${c.name}" (${c.id}) already has an active task. Skipping.`);
+                            continue;
+                        }
                     }
+                } catch (err) {
+                    console.error(`[Scraper Scheduler] Exception checking active tasks for ${c.id}:`, err.message);
                 }
-            } catch (err) {
-                console.error(`[Scraper Scheduler] Exception checking active tasks for ${c.id}:`, err.message);
             }
 
             // Derive niche from the actual `niche` column
