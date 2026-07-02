@@ -1675,7 +1675,7 @@ app.post('/api/scrape-leads', async (req, res) => {
         log(`Starting scrape for ${business || keywords || 'unspecified niche'}...`);
         if (notesContext) log(`Custom Notes Focus: ${notesContext}`);
 
-        const MAX_CONCURRENT = 5; // Push Hetzner to max: 5 concurrent scrapers
+        const MAX_CONCURRENT = 2; // Reduced to 2 to prevent server OOM lockup
         const queue = [...scrapeLocations];
         const activePromises = new Set();
         let isCanceled = false;
