@@ -1343,7 +1343,7 @@ app.post('/api/scrape-leads', async (req, res) => {
                   lead_id: existingLead.id
                 }, { onConflict: 'campaign_id,lead_id' });
               }
-              continue;
+              return;
             }
 
             if (existingLead && ['bounced', 'closed', 'interested', 'client', 'converted'].includes(existingLead.status.toLowerCase())) {
