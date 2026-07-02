@@ -2207,6 +2207,7 @@ app.get('/api/emails', async (req, res) => {
                     }
 
                     let range;
+                    let fetchOptions = {};
                     if (shouldIncrementalSync) {
                       // Only fetch emails newer than the highest UID we already have
                       const { data: lastEmail } = await scopedSupabase
@@ -2225,6 +2226,7 @@ app.get('/api/emails', async (req, res) => {
                         return;
                       }
                       range = `${lastUid + 1}:*`;
+                      fetchOptions = { uid: true };
                       console.log(`[${account.email}] Incremental sync ${folderType}: fetching UIDs from ${lastUid + 1}`);
                     } else {
                       // Full sync: fetch last 500
@@ -2233,7 +2235,7 @@ app.get('/api/emails', async (req, res) => {
                       range = `${start}:*`;
                     }
 
-                    for await (const message of client.fetch(range, { envelope: true, source: true, uid: true, flags: true })) {
+                    for await (const message of client.fetch(range, { envelope: true, source: true, uid: true, flags: true }, fetchOptions)) {
                       const parsed = await simpleParser(message.source);
                       const isRead = message.flags && message.flags.has ? message.flags.has('\\Seen') : false;
 
@@ -2309,7 +2311,10 @@ app.get('/api/emails', async (req, res) => {
                         bodyText.includes('stop sending') ||
                         bodyText.includes('do not contact') ||
                         bodyText.includes('opt out') ||
-                        bodyText.includes('opt-out');
+                        bodyText.includes('opt-out') ||
+                        bodyText.includes('no thank you') ||
+                        bodyText.includes('no thanks') ||
+                        bodyText.includes('not interested');
 
                       const isBounce = senderText.toLowerCase().includes('mailer-daemon') || isNoReplySender || /undeliverable/i.test(subjectText);
 

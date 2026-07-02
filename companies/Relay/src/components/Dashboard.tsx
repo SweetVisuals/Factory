@@ -46,7 +46,7 @@ export const Dashboard = () => {
   const { toast } = useToast();
   
   const logsEndRef = useRef<HTMLDivElement>(null);
-  const scraperLogsEndRef = useRef<HTMLDivElement>(null);
+  const scraperContainerRef = useRef<HTMLDivElement>(null);
   
   const [businesses, setBusinesses] = useState<{ id: string; name: string; status: string }[]>([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
@@ -58,7 +58,8 @@ export const Dashboard = () => {
   
   // Real-time feeds
   const [scraperLogs, setScraperLogs] = useState<ScraperLog[]>([]);
-  const [isScraperOpen, setIsScraperOpen] = useState(true);
+  const [isScraperOpen, setIsScraperOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
+  const [showBounces, setShowBounces] = useState(false);
   
   const [inboxEmails, setInboxEmails] = useState<InboxEmail[]>([]);
   const [sentEmails, setSentEmails] = useState<SentEmail[]>([]);
@@ -71,7 +72,12 @@ export const Dashboard = () => {
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
 
   const scrollToBottom = () => {
-    scraperLogsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scraperContainerRef.current) {
+      scraperContainerRef.current.scrollTo({
+        top: scraperContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   };
 
   useEffect(() => {
@@ -380,6 +386,12 @@ export const Dashboard = () => {
                 {activeTab === 'inbox' && inboxEmails.length > 0 && (
                   <div className="flex items-center gap-3 pr-2">
                     <button
+                      onClick={() => setShowBounces(!showBounces)}
+                      className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors", showBounces ? "bg-red-500/20 text-red-400" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white")}
+                    >
+                      <AlertCircle size={14} /> {showBounces ? 'Hide Bounces' : 'Show Bounces'}
+                    </button>
+                    <button
                       onClick={() => {
                         if (selectedEmails.size === inboxEmails.length) setSelectedEmails(new Set());
                         else setSelectedEmails(new Set(inboxEmails.map(e => e.id)));
@@ -414,14 +426,22 @@ export const Dashboard = () => {
                           Inbox zero. You're all caught up.
                         </div>
                       ) : (
-                        inboxEmails.map((email) => {
+                        inboxEmails.filter(email => {
                           const isBounce = email.from.toLowerCase().includes('mailer-daemon') || email.from.toLowerCase().includes('postmaster');
+                          if (isBounce && !showBounces) return false;
+                          return true;
+                        }).map((email) => {
+                          const isBounce = email.from.toLowerCase().includes('mailer-daemon') || email.from.toLowerCase().includes('postmaster');
+                          const bodyLower = (email.body_text || '').toLowerCase();
+                          const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me');
                           let displayBody = email.body_text?.substring(0, 100);
                           let originalEmail = '';
                           if (isBounce) {
                             const match = email.body_text?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
                             if (match) originalEmail = match[0];
                             displayBody = `Email: ${originalEmail || 'Unknown'} was blacklisted and invalid.`;
+                          } else if (isOptOut) {
+                            displayBody = `[Opt Out] ${displayBody}`;
                           }
                           return (
                           <div 
@@ -429,7 +449,8 @@ export const Dashboard = () => {
                             onClick={() => setSelectedInboxEmail(email)}
                             className={cn(
                               "p-4 border-b border-white/5 cursor-pointer transition-all hover:bg-white/[0.02] flex gap-3 group",
-                              selectedInboxEmail?.id === email.id ? "bg-white/[0.04] border-l-2 border-l-primary" : "border-l-2 border-l-transparent"
+                              selectedInboxEmail?.id === email.id ? "bg-white/[0.04] border-l-2 border-l-primary" : "border-l-2 border-l-transparent",
+                              isOptOut ? "bg-yellow-500/10 hover:bg-yellow-500/20" : ""
                             )}
                           >
                             <div 
@@ -469,7 +490,14 @@ export const Dashboard = () => {
                               {(selectedInboxEmail.from.charAt(0) || '?').toUpperCase()}
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="font-bold text-sm text-white truncate">{selectedInboxEmail.subject}</span>
+                              <span className="font-bold text-sm text-white truncate">
+                                {(() => {
+                                  const bodyLower = (selectedInboxEmail.body_text || '').toLowerCase();
+                                  const isOptOut = bodyLower.includes('no thank you') || bodyLower.includes('no thanks') || bodyLower.includes('not interested') || bodyLower.includes('unsubscribe') || bodyLower.includes('opt out') || bodyLower.includes('opt-out') || bodyLower.includes('remove me');
+                                  return isOptOut ? <span className="text-yellow-400 mr-2">[Opt Out]</span> : null;
+                                })()}
+                                {selectedInboxEmail.subject}
+                              </span>
                               <span className="text-[10px] text-muted-foreground truncate">{selectedInboxEmail.from} • {selectedInboxEmail.campaign?.name || 'Direct'}</span>
                             </div>
                           </div>
@@ -585,7 +613,7 @@ export const Dashboard = () => {
               {isScraperOpen && (
                 <div className="flex-1 bg-[#1a1a1a] border border-white/5 rounded-2xl flex flex-col overflow-hidden relative">
                   <div className="absolute top-0 w-full h-4 bg-gradient-to-b from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  <div ref={scraperContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                     {scraperLogs.length === 0 ? (
                       <div className="text-center text-xs text-muted-foreground italic py-8">Waiting for scraper activity...</div>
                     ) : (
@@ -601,7 +629,6 @@ export const Dashboard = () => {
                         </div>
                       ))
                     )}
-                    <div ref={scraperLogsEndRef} />
                     <div ref={logsEndRef} />
                   </div>
                   <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
