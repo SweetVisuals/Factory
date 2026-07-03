@@ -129,12 +129,12 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300"
+        className="fixed xl:hidden inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Sidebar */}
-      <div className="fixed inset-y-0 right-0 w-full sm:w-[500px] bg-[#0A0A0A] border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col">
+      <div className="fixed xl:relative inset-y-0 right-0 w-full sm:w-[500px] xl:w-full h-full bg-[#0A0A0A] border-l border-white/5 shadow-2xl xl:shadow-none transform xl:transform-none transition-transform duration-300 ease-in-out z-50 xl:z-auto flex flex-col">
         <div className="p-8 pb-0 flex-shrink-0">
           <div className="flex justify-between items-start mb-8">
             <div className="flex flex-col gap-1">

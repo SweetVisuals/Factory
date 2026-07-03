@@ -38,6 +38,7 @@ const Discover: React.FC = () => {
   const [titleFilter, setTitleFilter] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [requireFullProfile, setRequireFullProfile] = useState(true);
 
   // Debounced
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -57,7 +58,7 @@ const Discover: React.FC = () => {
   const [addingToCampaign, setAddingToCampaign] = useState(false);
 
   // Expanded row
-  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+  const [selectedLeadPanel, setSelectedLeadPanel] = useState<Lead | null>(null);
 
   // Mobile filters
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -113,7 +114,7 @@ const Discover: React.FC = () => {
 
   useEffect(() => {
     fetchLeads();
-  }, [page, limit, debouncedSearch, debouncedIndustry, debouncedLocation, debouncedTitle, debouncedCompany, statusFilter, sortField, sortDir]);
+  }, [page, limit, debouncedSearch, debouncedIndustry, debouncedLocation, debouncedTitle, debouncedCompany, statusFilter, sortField, sortDir, requireFullProfile]);
 
   const fetchCampaigns = async () => {
     const { data } = await supabase.from('campaigns').select('id, name').order('name', { ascending: true });
@@ -143,7 +144,20 @@ const Discover: React.FC = () => {
       if (debouncedLocation.trim()) query = query.ilike('location', `%${debouncedLocation}%`);
       if (debouncedTitle.trim()) query = query.ilike('title', `%${debouncedTitle}%`);
       if (debouncedCompany.trim()) query = query.ilike('company', `%${debouncedCompany}%`);
-      if (statusFilter !== 'all') query = query.eq('validation_status', statusFilter);
+      
+      if (statusFilter !== 'all') {
+        query = query.eq('validation_status', statusFilter);
+      } else {
+        query = query.neq('validation_status', 'invalid');
+        query = query.neq('status', 'bounced');
+      }
+
+      if (requireFullProfile) {
+        query = query.not('name', 'is', null).neq('name', '')
+                     .not('company', 'is', null).neq('company', '')
+                     .not('email', 'is', null).neq('email', '')
+                     .not('location', 'is', null).neq('location', '');
+      }
 
       const from = (page - 1) * limit;
       const { data, count, error } = await query
@@ -185,9 +199,9 @@ const Discover: React.FC = () => {
     toast({ title: 'Copied', description: email });
   };
 
-  const handleExpandRow = (e: React.MouseEvent, id: string) => {
+  const handleOpenLeadPanel = (e: React.MouseEvent, lead: Lead) => {
     e.stopPropagation();
-    setExpandedLeadId(prev => prev === id ? null : id);
+    setSelectedLeadPanel(prev => prev?.id === lead.id ? null : lead);
   };
 
   const clearAllFilters = () => {
@@ -251,19 +265,15 @@ const Discover: React.FC = () => {
     <Layout fullHeight>
       <div className="flex flex-col h-full bg-background text-foreground relative animate-in fade-in duration-200">
         
-        {/* Header */}
         <div className="p-4 lg:p-8 lg:pb-4 shrink-0 flex flex-col md:flex-row md:items-end justify-between gap-6 w-full border-b border-white/5 bg-background z-10">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
               <h1 className="text-4xl font-black text-white tracking-tighter">Lead Searcher</h1>
             </div>
-            <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
-              B2B prospect database · {metrics.totalLeads.toLocaleString()} records
-            </p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
             <button
               onClick={() => setShowMobileFilters(true)}
               className="lg:hidden p-3 bg-white/[0.03] border border-white/5 rounded-lg text-white/50 hover:text-white transition-colors"
@@ -272,6 +282,11 @@ const Discover: React.FC = () => {
             </button>
             <div className="flex items-center gap-4 lg:gap-5 bg-white/[0.03] border border-white/5 rounded-xl px-4 lg:px-5 py-2.5 min-w-max">
               <div className="flex flex-col items-center">
+                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Total</span>
+                <span className="text-lg font-black text-white tabular-nums">{metrics.totalLeads.toLocaleString()}</span>
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div className="flex flex-col items-center">
                 <span className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest">Valid</span>
                 <span className="text-lg font-black text-emerald-400 tabular-nums">{metrics.verifiedEmails.toLocaleString()}</span>
               </div>
@@ -279,6 +294,11 @@ const Discover: React.FC = () => {
               <div className="flex flex-col items-center">
                 <span className="text-[10px] font-bold text-rose-500/60 uppercase tracking-widest">Invalid</span>
                 <span className="text-lg font-black text-rose-400 tabular-nums">{metrics.invalidEmails.toLocaleString()}</span>
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest">Health</span>
+                <span className="text-lg font-black text-blue-400 tabular-nums">{metrics.verificationRate}%</span>
               </div>
             </div>
           </div>
@@ -374,6 +394,25 @@ const Discover: React.FC = () => {
                 </select>
               </div>
 
+              <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl mt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Require Full Profile</span>
+                  <button
+                    onClick={() => setRequireFullProfile(!requireFullProfile)}
+                    className={cn(
+                      "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none",
+                      requireFullProfile ? "bg-primary" : "bg-white/10"
+                    )}
+                  >
+                    <span className={cn(
+                      "pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      requireFullProfile ? "translate-x-4" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+                <p className="text-[9px] text-white/30 mt-2 font-medium">Hides leads missing name, email, company, or location, and hides bounces by default.</p>
+              </div>
+
               {activeFilterCount > 0 && (
                 <button onClick={clearAllFilters} className="w-full flex justify-center items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white/70 hover:text-white bg-white/[0.03] border border-white/5 hover:border-white/20 transition-all mt-4">
                   <X size={14} /> Clear {activeFilterCount} Filters
@@ -397,218 +436,258 @@ const Discover: React.FC = () => {
             </div>
           </div>
 
-          {/* Data Table */}
-          <div className="flex-1 overflow-auto relative custom-scrollbar bg-[#0a0a0a]">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <Loader2 className="w-5 h-5 animate-spin text-primary mb-2" />
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/30">Querying database...</div>
-            </div>
-          ) : leads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <Search className="w-8 h-8 text-white/10 mb-3" />
-              <div className="text-sm font-bold text-white/40">No records match your filters</div>
-              <button onClick={clearAllFilters} className="mt-4 text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider">Clear Filters</button>
-            </div>
-          ) : (
-            <table className="w-full min-w-[1000px] text-left text-[13px] border-collapse">
-              <thead className="bg-background sticky top-0 z-10">
-                <tr>
-                  <th className="pl-8 pr-2 py-2.5 w-10">
-                    <div onClick={handleSelectAll} className="cursor-pointer w-max">
-                      <CustomCheckbox checked={selectedLeadIds.length === leads.length && leads.length > 0} onChange={() => {}} />
-                    </div>
-                  </th>
-                  <th onClick={() => handleSort('name')} className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
-                    <div className="flex items-center gap-1.5">Contact <SortIcon field="name" /></div>
-                  </th>
-                  <th onClick={() => handleSort('company')} className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
-                    <div className="flex items-center gap-1.5">Company <SortIcon field="company" /></div>
-                  </th>
-                  <th onClick={() => handleSort('email')} className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
-                    <div className="flex items-center gap-1.5">Email <SortIcon field="email" /></div>
-                  </th>
-                  <th onClick={() => handleSort('location')} className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
-                    <div className="flex items-center gap-1.5">Location <SortIcon field="location" /></div>
-                  </th>
-                  <th className="px-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest">Status</th>
-                  <th className="pr-8 pl-3 py-2.5 text-[10px] font-bold text-white/30 uppercase tracking-widest text-right">Links</th>
-                </tr>
-                <tr><td colSpan={7}><div className="h-px bg-white/5" /></td></tr>
-              </thead>
-              <tbody>
-                {leads.map((lead) => {
-                  const isSelected = selectedLeadIds.includes(lead.id);
-                  const isExpanded = expandedLeadId === lead.id;
-                  return (
-                    <React.Fragment key={lead.id}>
-                      <tr
-                        onClick={() => handleSelectRow(lead.id)}
-                        className={cn(
-                          "group cursor-pointer transition-colors border-b border-white/[0.03]",
-                          isSelected ? 'bg-primary/[0.06]' : 'hover:bg-white/[0.02]'
-                        )}
-                      >
-                        <td className="pl-8 pr-2 py-2.5 w-10">
-                          <CustomCheckbox checked={isSelected} onChange={() => {}} />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-[10px] font-black text-white/40 uppercase shrink-0">
-                              {(lead.name || '?')[0]}
+          {/* Data Table Column */}
+          <div className="flex-1 flex flex-col min-w-0 bg-[#0a0a0a]">
+            <div className="flex-1 overflow-auto relative custom-scrollbar">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary mb-2" />
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-white/30">Querying database...</div>
+                </div>
+              ) : leads.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <Search className="w-8 h-8 text-white/10 mb-3" />
+                  <div className="text-sm font-bold text-white/40">No records match your filters</div>
+                  <button onClick={clearAllFilters} className="mt-4 text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider">Clear Filters</button>
+                </div>
+              ) : (
+                <table className="w-full min-w-[1000px] text-left text-[13px] border-collapse">
+                  <thead className="bg-[#111] sticky top-0 z-10 border-b border-white/5 shadow-md">
+                    <tr>
+                      <th className="pl-6 pr-2 py-4 w-10">
+                        <div onClick={handleSelectAll} className="cursor-pointer w-max">
+                          <CustomCheckbox checked={selectedLeadIds.length === leads.length && leads.length > 0} onChange={() => {}} />
+                        </div>
+                      </th>
+                      <th onClick={() => handleSort('name')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
+                        <div className="flex items-center gap-1.5">Contact <SortIcon field="name" /></div>
+                      </th>
+                      <th onClick={() => handleSort('company')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
+                        <div className="flex items-center gap-1.5">Company <SortIcon field="company" /></div>
+                      </th>
+                      <th onClick={() => handleSort('email')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
+                        <div className="flex items-center gap-1.5">Email <SortIcon field="email" /></div>
+                      </th>
+                      <th onClick={() => handleSort('location')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
+                        <div className="flex items-center gap-1.5">Location <SortIcon field="location" /></div>
+                      </th>
+                      <th className="pr-6 pl-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest text-right">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leads.map((lead) => {
+                      const isSelected = selectedLeadIds.includes(lead.id);
+                      const isPanelOpen = selectedLeadPanel?.id === lead.id;
+                      return (
+                        <tr
+                          key={lead.id}
+                          onClick={() => handleSelectRow(lead.id)}
+                          className={cn(
+                            "group cursor-pointer transition-colors border-b border-white/[0.03]",
+                            isSelected ? 'bg-primary/[0.06] border-l-2 border-l-primary' : isPanelOpen ? 'bg-white/[0.04] border-l-2 border-l-transparent' : 'hover:bg-white/[0.02] border-l-2 border-l-transparent'
+                          )}
+                        >
+                          <td className="pl-6 pr-2 py-3 w-10">
+                            <CustomCheckbox checked={isSelected} onChange={() => {}} />
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-[10px] font-black text-white/40 uppercase shrink-0">
+                                {(lead.name || '?')[0]}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-white truncate max-w-[180px]">{lead.name || 'Unknown'}</div>
+                                <div className="text-[11px] text-white/30 truncate max-w-[180px]">{lead.title || '—'}</div>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <div className="font-semibold text-white truncate max-w-[180px]">{lead.name || 'Unknown'}</div>
-                              <div className="text-[11px] text-white/30 truncate max-w-[180px]">{lead.title || '—'}</div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="font-medium text-white/80 truncate max-w-[160px]">{lead.company || '—'}</div>
+                            <div className="text-[11px] text-white/25 truncate max-w-[160px]">{lead.industry || '—'}</div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-2 group/email">
+                              <span className="font-mono text-[12px] text-white/70 truncate max-w-[200px]">{lead.email}</span>
+                              <button onClick={(e) => handleCopyEmail(e, lead.email)} className="opacity-0 group-hover/email:opacity-100 text-white/20 hover:text-white transition-all" title="Copy">
+                                <Copy className="w-3 h-3" />
+                              </button>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="font-medium text-white/80 truncate max-w-[160px]">{lead.company || '—'}</div>
-                          <div className="text-[11px] text-white/25 truncate max-w-[160px]">{lead.industry || '—'}</div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-2 group/email">
-                            <span className="font-mono text-[12px] text-white/70 truncate max-w-[200px]">{lead.email}</span>
-                            <button onClick={(e) => handleCopyEmail(e, lead.email)} className="opacity-0 group-hover/email:opacity-100 text-white/20 hover:text-white transition-all" title="Copy">
-                              <Copy className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span className="text-white/40 text-xs">{lead.location || '—'}</span>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <StatusDot status={lead.validation_status} />
-                            <span className={cn("text-[10px] font-bold uppercase tracking-wider",
-                              lead.validation_status === 'valid' ? 'text-emerald-400' :
-                              lead.validation_status === 'invalid' ? 'text-rose-400' :
-                              lead.validation_status === 'catch_all' ? 'text-amber-400' : 'text-white/25'
-                            )}>
-                              {lead.validation_status || 'Unknown'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="pr-8 pl-3 py-2.5 text-right">
-                          <div className="flex gap-1.5 justify-end items-center">
-                            {lead.phone && (
-                              <span className="text-white/15 group-hover:text-white/40 transition-colors" title={lead.phone}>
-                                <Phone className="w-3.5 h-3.5" />
-                              </span>
-                            )}
-                            {lead.linkedin && (
-                              <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/15 hover:text-blue-400 transition-colors" title="LinkedIn">
-                                <Linkedin className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-                            {lead.website && (
-                              <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/15 hover:text-emerald-400 transition-colors" title="Website">
-                                <Globe className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-                            <button onClick={(e) => handleExpandRow(e, lead.id)} className={cn("text-white/15 hover:text-white/50 transition-all ml-1", isExpanded && "text-primary rotate-180")} title="Details">
-                              <ChevronDown className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {/* Expanded Detail Row */}
-                      {isExpanded && (
-                        <tr className="bg-white/[0.015]">
-                          <td colSpan={7} className="px-8 py-4">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs animate-in fade-in duration-150">
-                              <div>
-                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Full Name</div>
-                                <div className="text-white/70 font-medium">{lead.name || '—'}</div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Job Title</div>
-                                <div className="text-white/70 font-medium">{lead.title || '—'}</div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Phone</div>
-                                <div className="text-white/70 font-medium">{lead.phone || '—'}</div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Employees</div>
-                                <div className="text-white/70 font-medium">{lead.employees || '—'}</div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Industry</div>
-                                <div className="text-white/70 font-medium">{lead.industry || '—'}</div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Website</div>
-                                {lead.website ? (
-                                  <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium flex items-center gap-1">
-                                    {lead.website.replace(/https?:\/\//, '').substring(0, 30)} <ExternalLink className="w-3 h-3" />
-                                  </a>
-                                ) : <span className="text-white/70 font-medium">—</span>}
-                              </div>
-                              {lead.summary && (
-                                <div className="col-span-2">
-                                  <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">Summary</div>
-                                  <div className="text-white/50 font-medium leading-relaxed">{lead.summary}</div>
-                                </div>
-                              )}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="text-white/40 text-xs">{lead.location || '—'}</span>
+                          </td>
+                          <td className="pr-6 pl-3 py-3 text-right">
+                            <div className="flex justify-end">
+                              <button 
+                                onClick={(e) => handleOpenLeadPanel(e, lead)}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 border",
+                                  isPanelOpen ? "bg-white/10 text-white border-white/10" : "bg-white/5 hover:bg-white/10 text-white/50 hover:text-white border-white/5"
+                                )}
+                              >
+                                View <ChevronRight className="w-3 h-3" />
+                              </button>
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="flex items-center justify-between px-4 lg:px-8 py-2.5 border-t border-white/5 bg-[#111] text-xs shrink-0 relative z-10">
+              <div className="flex items-center gap-4">
+                <span className="text-white/30 font-bold uppercase tracking-widest text-[10px]">
+                  {((page - 1) * limit) + 1}–{Math.min(page * limit, totalCount)} of {totalCount.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage(1)} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
+                  First
+                </button>
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                
+                {/* Page Numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  return (
+                    <button key={pageNum} onClick={() => setPage(pageNum)} className={cn(
+                      "w-7 h-7 rounded text-xs font-bold transition-all",
+                      page === pageNum ? "bg-primary/20 text-primary" : "text-white/30 hover:text-white hover:bg-white/5"
+                    )}>
+                      {pageNum}
+                    </button>
                   );
                 })}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="flex items-center justify-between px-4 lg:px-8 py-2.5 border-t border-white/5 bg-background text-xs shrink-0">
-          <div className="flex items-center gap-4">
-            <span className="text-white/30 font-bold uppercase tracking-widest text-[10px]">
-              {((page - 1) * limit) + 1}–{Math.min(page * limit, totalCount)} of {totalCount.toLocaleString()}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setPage(1)} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
-              First
-            </button>
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            
-            {/* Page Numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum: number;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (page <= 3) {
-                pageNum = i + 1;
-              } else if (page >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = page - 2 + i;
-              }
-              return (
-                <button key={pageNum} onClick={() => setPage(pageNum)} className={cn(
-                  "w-7 h-7 rounded text-xs font-bold transition-all",
-                  page === pageNum ? "bg-primary/20 text-primary" : "text-white/30 hover:text-white hover:bg-white/5"
-                )}>
-                  {pageNum}
+                
+                <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
+                  <ChevronRight className="w-4 h-4" />
                 </button>
-              );
-            })}
-            
-            <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <button onClick={() => setPage(totalPages)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
-              Last
-            </button>
+                <button onClick={() => setPage(totalPages)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
+                  Last
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+
+          {/* Right Side Lead Panel */}
+          {selectedLeadPanel && (
+            <div className="w-0 xl:w-[400px] shrink-0 bg-[#0A0A0A] border-l border-white/10 animate-in slide-in-from-right-8 duration-200 z-40 flex flex-col h-full shadow-2xl relative">
+              <div className="flex items-center justify-between p-6 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-center text-sm font-black text-white/60 uppercase">
+                    {(selectedLeadPanel.name || '?')[0]}
+                  </div>
+                  <div className="flex flex-col">
+                    <h3 className="text-lg font-black text-white tracking-tight truncate max-w-[200px]" title={selectedLeadPanel.name}>{selectedLeadPanel.name || 'Unknown'}</h3>
+                    <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest truncate max-w-[200px]" title={selectedLeadPanel.title}>{selectedLeadPanel.title || 'No Title'}</div>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedLeadPanel(null)} className="p-2 text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                
+                {/* Contact Info */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Contact Information</h4>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                      <div className="flex items-center gap-3">
+                        <MailCheck className="w-4 h-4 text-white/30" />
+                        <span className="text-sm font-mono text-white/80">{selectedLeadPanel.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={selectedLeadPanel.validation_status} />
+                        <span className={cn("text-[9px] font-bold uppercase tracking-widest",
+                          selectedLeadPanel.validation_status === 'valid' ? 'text-emerald-400' :
+                          selectedLeadPanel.validation_status === 'invalid' ? 'text-rose-400' :
+                          selectedLeadPanel.validation_status === 'catch_all' ? 'text-amber-400' : 'text-white/25'
+                        )}>
+                          {selectedLeadPanel.validation_status || 'Unknown'}
+                        </span>
+                      </div>
+                    </div>
+                    {selectedLeadPanel.phone && (
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                        <Phone className="w-4 h-4 text-white/30" />
+                        <span className="text-sm font-medium text-white/80">{selectedLeadPanel.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Company Details */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Company Details</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Company</span>
+                      <span className="text-sm font-semibold text-white/80 truncate" title={selectedLeadPanel.company}>{selectedLeadPanel.company || '—'}</span>
+                    </div>
+                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Location</span>
+                      <span className="text-sm font-semibold text-white/80 truncate" title={selectedLeadPanel.location}>{selectedLeadPanel.location || '—'}</span>
+                    </div>
+                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Industry</span>
+                      <span className="text-sm font-semibold text-white/80 truncate" title={selectedLeadPanel.industry}>{selectedLeadPanel.industry || '—'}</span>
+                    </div>
+                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Employees</span>
+                      <span className="text-sm font-semibold text-white/80 truncate">{selectedLeadPanel.employees || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social Links */}
+                {(selectedLeadPanel.linkedin || selectedLeadPanel.website) && (
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Links & Socials</h4>
+                    <div className="flex gap-2 flex-wrap">
+                      {selectedLeadPanel.linkedin && (
+                        <a href={selectedLeadPanel.linkedin} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[120px] flex items-center justify-center gap-2 p-3 rounded-xl bg-[#0077b5]/10 border border-[#0077b5]/20 text-[#0077b5] hover:bg-[#0077b5]/20 transition-all font-bold text-xs uppercase tracking-wider">
+                          <Linkedin size={14} /> LinkedIn
+                        </a>
+                      )}
+                      {selectedLeadPanel.website && (
+                        <a href={`https://${selectedLeadPanel.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[120px] flex items-center justify-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-white/70 hover:text-white hover:bg-white/10 transition-all font-bold text-xs uppercase tracking-wider">
+                          <Globe size={14} /> Website
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Summary */}
+                {selectedLeadPanel.summary && (
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Summary</h4>
+                    <p className="text-xs leading-relaxed text-white/60 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                      {selectedLeadPanel.summary}
+                    </p>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          )}
 
         {/* Floating Action Toolbar */}
         {selectedLeadIds.length > 0 && (
