@@ -272,34 +272,39 @@ export async function runProcessCampaign() {
       if (v > 0) {
         console.log(`Step ${v + 1} (schedule ${e.id}): Sequence enforcement enabled per-lead.`);
       }
-      const K = Math.max(1, e.interval_minutes || 2),
-        { data: Y } = await n
-          .from("campaign_progress")
-          .select("sent_at")
-          .eq("campaign_id", e.campaign_id)
-          .eq("schedule_id", e.id)
-          .eq("status", "sent")
-          .not("sent_at", "is", null)
-          .order("sent_at", { ascending: !1 })
-          .limit(1)
-          .maybeSingle();
-      if (Y?.sent_at && process.env.FORCE_RUN !== "true") {
-        const t = (o.getTime() - new Date(Y.sent_at).getTime()) / 6e4;
-        if (t < K) {
-          console.log(
-            `Skipping schedule ${e.id}: ${Math.round(t)}min since last (need ${K}min).`,
-          );
-          continue;
-        }
-      }
+      const K = Math.max(1, e.interval_minutes || 2);
       const { data: M } = await n
         .from("schedule_email_accounts")
         .select("*, email_accounts!inner(*)")
         .eq("schedule_id", e.id);
       if (!M || M.length === 0) continue;
-      const u = M;
+      
+      const u = [];
+      for (const sa of M) {
+        const { data: lastSentAcc } = await n
+          .from("campaign_progress")
+          .select("sent_at")
+          .eq("campaign_id", e.campaign_id)
+          .eq("schedule_id", e.id)
+          .eq("email_account_id", sa.email_accounts.id)
+          .eq("status", "sent")
+          .not("sent_at", "is", null)
+          .order("sent_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+          
+        if (lastSentAcc?.sent_at && process.env.FORCE_RUN !== "true") {
+          const mins = (o.getTime() - new Date(lastSentAcc.sent_at).getTime()) / 60000;
+          if (mins < K) {
+            console.log(`[Rate Limit] Skipping account ${sa.email_accounts.email} for schedule ${e.id}: ${Math.round(mins)}min since last (need ${K}min).`);
+            continue;
+          }
+        }
+        u.push(sa);
+      }
+      
       if (u.length === 0) {
-        console.log(`Schedule ${e.id}: No email accounts linked.`);
+        console.log(`Schedule ${e.id}: All accounts are currently throttled (rate limited).`);
         continue;
       }
       let { data: f, error: W } = await n

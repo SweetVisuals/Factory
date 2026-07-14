@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { verifyImap, verifySmtp } from '../../lib/api/email-verification';
 import { supabase } from '../../lib/supabase';
 import { EmailAccount } from '../../types';
-import { toast } from '../../components/ui/use-toast';
+import { useToast } from '../../components/ui/use-toast';
 
 interface Props {
   onClose: () => void;
@@ -14,6 +14,7 @@ interface Props {
 const AddEmailModal: React.FC<Props> = ({ onClose }) => {
   const { addEmailAccount } = useApp();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -27,6 +28,7 @@ const AddEmailModal: React.FC<Props> = ({ onClose }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'verifying' | 'success' | 'error'>('idle');
+  const [bypassVerification, setBypassVerification] = useState(false);
 
   const verifyEmailConnection = async () => {
     try {
@@ -70,8 +72,13 @@ const AddEmailModal: React.FC<Props> = ({ onClose }) => {
     setIsLoading(true);
 
     try {
-      const isVerified = await verifyEmailConnection();
-      if (!isVerified) return;
+      if (!bypassVerification) {
+        const isVerified = await verifyEmailConnection();
+        if (!isVerified) {
+          setIsLoading(false);
+          return;
+        }
+      }
 
       if (!user) {
         throw new Error('User not authenticated');
@@ -107,8 +114,6 @@ const AddEmailModal: React.FC<Props> = ({ onClose }) => {
           newAccount.encrypted_password = encryptedData;
         } else {
           console.error('Encryption failed:', encryptError);
-          // Fallback or error? For now, proceed but maybe warn? 
-          // Actually if encryption fails, we can't save the password securely.
           throw new Error('Failed to encrypt password');
         }
       } catch (err) {
@@ -133,152 +138,183 @@ const AddEmailModal: React.FC<Props> = ({ onClose }) => {
     }
   };
 
+  // Helper styling for input fields
+  const inputClassName = "mt-1.5 block w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all";
+  const labelClassName = "block text-xs font-bold text-muted-foreground uppercase tracking-wider";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white rounded-none p-6 w-[600px]">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-card border border-border rounded-3xl p-8 w-full max-w-[620px] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Add Email Account</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
+          <div>
+            <h2 className="text-2xl font-black text-foreground tracking-tight">Add Email Account</h2>
+            <p className="text-sm text-muted-foreground mt-1">Configure your SMTP and IMAP connection parameters.</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-full transition-colors">
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Display Name</label>
+              <label className={labelClassName}>Display Name</label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={inputClassName}
+                placeholder="John Doe"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Company</label>
+              <label className={labelClassName}>Company</label>
               <input
                 type="text"
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={inputClassName}
                 placeholder="MyCorp"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Email Address</label>
+              <label className={labelClassName}>Email Address</label>
               <input
                 type="email"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={inputClassName}
+                placeholder="john@example.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+              <label className={labelClassName}>Phone Number</label>
               <input
                 type="tel"
                 value={formData.phone_number}
                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={inputClassName}
                 placeholder="+1 555-0123"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">IMAP Host</label>
+              <label className={labelClassName}>IMAP Host</label>
               <input
                 type="text"
                 required
                 value={formData.imap_host}
                 onChange={(e) => setFormData({ ...formData, imap_host: e.target.value })}
-                className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={inputClassName}
+                placeholder="imap.example.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">IMAP Port</label>
+              <label className={labelClassName}>IMAP Port</label>
               <input
                 type="number"
                 required
                 value={formData.imap_port}
                 onChange={(e) => setFormData({ ...formData, imap_port: e.target.value })}
-                className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={inputClassName}
+                placeholder="993"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">SMTP Host</label>
+              <label className={labelClassName}>SMTP Host</label>
               <input
                 type="text"
                 required
                 value={formData.smtp_host}
                 onChange={(e) => setFormData({ ...formData, smtp_host: e.target.value })}
-                className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={inputClassName}
+                placeholder="smtp.example.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">SMTP Port</label>
+              <label className={labelClassName}>SMTP Port</label>
               <input
                 type="number"
                 required
                 value={formData.smtp_port}
                 onChange={(e) => setFormData({ ...formData, smtp_port: e.target.value })}
-                className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={inputClassName}
+                placeholder="587"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label className={labelClassName}>Password / App Password</label>
             <input
               type="password"
               required
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="mt-1 block w-full rounded-none  shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className={inputClassName}
+              placeholder="••••••••••••"
             />
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
+          {/* Connection bypass checkbox */}
+          <div className="flex items-center space-x-3 p-3 bg-muted/40 rounded-xl border border-border/50">
+            <input
+              id="bypass-verif"
+              type="checkbox"
+              checked={bypassVerification}
+              onChange={(e) => setBypassVerification(e.target.checked)}
+              className="h-4.5 w-4.5 rounded-md border-border text-primary focus:ring-primary bg-background"
+            />
+            <label htmlFor="bypass-verif" className="text-xs text-foreground font-medium select-none cursor-pointer">
+              Skip connection verification (Proceed even if IMAP/SMTP cannot connect right now)
+            </label>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between pt-2 border-t border-border">
             <div className="flex items-center space-x-2">
               {connectionStatus === 'verifying' && (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
               )}
               {connectionStatus === 'success' && (
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
               )}
               {connectionStatus === 'error' && (
-                <AlertCircle className="h-4 w-4 text-red-500" />
+                <AlertCircle className="h-4 w-4 text-destructive" />
               )}
-              <span className="text-sm text-gray-500">
+              <span className="text-xs text-muted-foreground font-medium">
                 {connectionStatus === 'verifying' && 'Verifying connection...'}
                 {connectionStatus === 'success' && 'Connection verified'}
                 {connectionStatus === 'error' && 'Connection failed'}
               </span>
             </div>
-            <div className="space-x-3">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border-none  rounded-none text-gray-700 hover:bg-gray-50"
+                className="px-5 py-2.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-xl text-sm font-bold transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isLoading || connectionStatus === 'verifying'}
-                className="px-4 py-2 bg-blue-600 text-white rounded-none hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/95 rounded-xl text-sm font-bold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Saving...</span>
+                  </div>
                 ) : (
                   'Add Account'
                 )}
