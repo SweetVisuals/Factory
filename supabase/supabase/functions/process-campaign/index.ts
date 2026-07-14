@@ -1,19 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import nodemailer from 'npm:nodemailer@6.9.13';
 
-function isAccountAllowedForBusiness(email: string, businessId: string): boolean {
-  const emailLower = email.toLowerCase();
-  
-  if (businessId === '0269fe06-4607-4c58-9263-12a3930a1dc3') {
-    return emailLower.includes('mrmedic');
-  }
-  if (businessId === '102a3bca-7b0a-4cee-bd33-fefd7b4450b4') {
-    return emailLower.includes('relaysolutions');
-  }
-  
-  return true; // Fallback for other businesses or if not specified
-}
-
 // Config
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') || 'sk-6733c8ac2b83402b8626e5e253824488';
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
@@ -65,34 +52,9 @@ Deno.serve(async (req) => {
     globalNamesToStrip.add("MrMedic");
     globalNamesToStrip.add("MrMedic Events");
 
-    console.log("Checking engine status...");
-    const { data: engineStatus } = await supabaseAdmin
-        .from('agent_memory')
-        .select('value')
-        .eq('key_name', 'factory_status')
-        .maybeSingle();
-
-    if (engineStatus?.value?.status === 'paused') {
-        console.log("Engine is PAUSED. Standing by.");
-        return new Response(JSON.stringify({ message: 'Engine paused' }), { headers: { 'Content-Type': 'application/json' } });
-    }
-
     // --- LOCK MECHANISM TO PREVENT RACE CONDITIONS ---
-    const { data: lockData } = await supabaseAdmin.from('agent_memory').select('value').eq('key_name', 'process_campaign_lock').maybeSingle();
-    if (lockData && lockData.value?.locked_at) {
-        const lockTime = new Date(lockData.value.locked_at).getTime();
-        if (Date.now() - lockTime < 3 * 60 * 1000) { // 3 minutes timeout
-            console.log("process-campaign is already running. Exiting to prevent duplicates.");
-            return new Response(JSON.stringify({ message: 'Already running' }), { headers: { 'Content-Type': 'application/json' } });
-        }
-    }
-    // Set lock
-    await supabaseAdmin.from('agent_memory').upsert({ key_name: 'process_campaign_lock', value: { locked_at: new Date().toISOString() } }, { onConflict: 'key_name' });
-
-    // Release lock helper
-    const releaseLock = async () => {
-        await supabaseAdmin.from('agent_memory').upsert({ key_name: 'process_campaign_lock', value: { locked_at: null } }, { onConflict: 'key_name' });
-    };
+    // (Locking removed temporarily as agent_memory is deprecated)
+    const releaseLock = async () => {};
 
     // UK Time Gatekeeper
     const ukTimeOptions = { timeZone: 'Europe/London', hour12: false, hour: '2-digit', minute: '2-digit' } as const;
@@ -117,16 +79,12 @@ Deno.serve(async (req) => {
         .select(`
             *,
             campaigns!scheduled_emails_campaign_id_fkey!inner (
-                id, name, status, company_name, contact_number, primary_email, business_id, current_step,
-                businesses!inner (
-                    id, name, status, slug, signature_template
-                )
+                id, name, status, company_name, contact_number, primary_email, current_step
             ),
             templates!scheduled_emails_template_id_fkey!inner (*)
         `)
         .eq('status', 'scheduled')
-        .eq('campaigns.status', 'in_progress')
-        .eq('campaigns.businesses.status', 'active');
+        .eq('campaigns.status', 'in_progress');
 
     if (error) {
         console.error("Database query error:", error);
@@ -138,22 +96,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ message: 'No active schedules' }), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Filter activeSchedules to check business status
-    const filteredSchedules = (activeSchedules || []).filter((schedule: any) => {
-        const campaign = schedule.campaigns;
-        const business = campaign?.businesses;
-        if (!business || business.status !== 'active') {
-            console.log(`Skipping schedule ${schedule.id} because business status is not active (status: ${business?.status})`);
-            return false;
-        }
-
-        return true;
-    });
-
-    if (filteredSchedules.length === 0) {
-        await releaseLock();
-        return new Response(JSON.stringify({ message: 'No active schedules (all filtered or inactive)' }), { headers: { 'Content-Type': 'application/json' } });
-    }
+    const filteredSchedules = activeSchedules || [];
 
     const results = [];
 
@@ -209,17 +152,7 @@ Deno.serve(async (req) => {
 
         if (!rawScheduleAccounts || rawScheduleAccounts.length === 0) continue;
 
-        const businessId = schedule.campaigns?.business_id || '';
-        const scheduleAccounts = (rawScheduleAccounts || []).filter((sa: any) => {
-            const acc = sa.email_accounts;
-            if (!acc) return false;
-            return isAccountAllowedForBusiness(acc.email, businessId);
-        });
-
-        if (scheduleAccounts.length === 0) {
-             console.log(`Schedule ${schedule.id}: No active email accounts allowed for business ID ${businessId}.`);
-             continue;
-        }
+        const scheduleAccounts = (rawScheduleAccounts || []).filter((sa: any) => sa.email_accounts);
 
         // Get Pending Leads (increased limits to email quicker)
         const maxBatchSize = Math.min(100, scheduleAccounts.length * 15);
@@ -375,11 +308,11 @@ Deno.serve(async (req) => {
                         .select('*')
                         .eq('id', lead.assigned_email_account_id)
                         .single();
-                     if (directAcc && isAccountAllowedForBusiness(directAcc.email, businessId)) {
+                     if (directAcc) {
                          account = directAcc;
                          console.log(`Lead ${lead.email} using consistently assigned account ${account.email} even if not explicitly in schedule.`);
                      } else {
-                         console.warn(`Consistently assigned account for lead ${lead.email} is NOT allowed for business ID ${businessId}. Reassigning...`);
+                         console.warn(`Consistently assigned account for lead ${lead.email} is NOT found. Reassigning...`);
                      }
                  }
              }
@@ -651,23 +584,7 @@ Deno.serve(async (req) => {
                                const completionCost = (aiData.usage.completion_tokens || 0) * 0.28 / 1000000;
                                const totalCost = promptCost + completionCost;
                                
-                               try {
-                                   const { data: memData } = await supabaseAdmin.from('agent_memory').select('value').eq('key_name', 'api_credits').maybeSingle();
-                                   let balance = 10;
-                                   if (memData?.value?.balance !== undefined) {
-                                       balance = memData.value.balance;
-                                   }
-                                   balance -= totalCost;
-                                   if (balance < 0) balance = 0;
-                                   await supabaseAdmin.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance } }, { onConflict: 'key_name' });
-                                   
-                                   if (balance <= 0) {
-                                       console.log("DeepSeek credit depletion detected! (Balance: 0)");
-                                       await supabaseAdmin.from('agent_memory').upsert({ key_name: 'factory_status', value: { status: 'paused', reason: 'insufficient_credits' } }, { onConflict: 'key_name' });
-                                   }
-                               } catch (err) {
-                                   console.error("Error deducting credits:", err);
-                               }
+                               // Credit tracking logic removed for global campaigns
                            }
 
                            if (aiData.choices && aiData.choices[0]) {
@@ -729,9 +646,8 @@ Deno.serve(async (req) => {
                  senderFirstName = senderFirstName.charAt(0).toUpperCase() + senderFirstName.slice(1);
              }
 
-             const businessName = schedule.campaigns?.businesses?.name || '';
              const senderPhone = schedule.campaigns.contact_number || account.phone_number || '';
-             const senderCompany = schedule.campaigns.company_name || businessName || account.company || '';
+             const senderCompany = schedule.campaigns.company_name || account.company || '';
              const senderName = account.name || senderFirstName;
              const senderEmail = account.email;
 
@@ -781,7 +697,7 @@ Deno.serve(async (req) => {
                  randomOptOut = "Still not the right time? Just let me know and I'll update my records.";
              }
              
-             const signatureTemplate = schedule.campaigns?.businesses?.signature_template || '';
+             const signatureTemplate = '';
              
              // Check if the signature template already acts as the primary sign-off
              const hasSignOff = /(Best|Kind regards|Regards|Warm regards|Cheers|Thanks|Sincerely|Thank you|All the best|Take care|Looking forward)/i.test(signatureTemplate);
@@ -964,8 +880,6 @@ Deno.serve(async (req) => {
     await releaseLock();
     return new Response(JSON.stringify({ success: true, processed: results }), { headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
-    const supabaseAdminForCatch = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    await supabaseAdminForCatch.from('agent_memory').upsert({ key_name: 'process_campaign_lock', value: { locked_at: null } }, { onConflict: 'key_name' });
     return new Response(String(error?.message ?? error), { status: 500 });
   }
 });
