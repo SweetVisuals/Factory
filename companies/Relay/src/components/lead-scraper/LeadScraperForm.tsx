@@ -16,7 +16,7 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
     news: '',
     notesContext: '',
     limit: 100,
-    deepResearch: false,
+    deepResearch: true,
     platforms: {
       google: true,
       linkedin: false,
@@ -127,7 +127,7 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
           <input
             type="number"
             min="10"
-            max="5000"
+            max="10000"
             step="10"
             value={formData.limit}
             onChange={(e) => updateFormData({ limit: parseInt(e.target.value) || 100 })}
@@ -182,8 +182,8 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
               <div className={`absolute left-1 top-1 bg-white w-5 h-5 transition-all duration-500 ${formData.deepResearch ? 'translate-x-5' : ''}`}></div>
             </div>
             <div>
-              <div className="text-sm font-black text-white uppercase tracking-tight">Super Scan</div>
-              <div className="text-[10px] font-bold text-muted-foreground group-hover:text-primary transition-colors uppercase tracking-widest">CEO Discovery & Socials</div>
+              <div className="text-sm font-black text-white uppercase tracking-tight">Super Scan (Deep Dive)</div>
+              <div className="text-[10px] font-bold text-muted-foreground group-hover:text-primary transition-colors uppercase tracking-widest">Extracts Deep Dive Summary & Conversation Starters Live</div>
             </div>
           </label>
         </div>

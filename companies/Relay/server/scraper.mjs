@@ -8,6 +8,12 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 const execPromise = util.promisify(exec);
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
+
 const createLogger = (onLog) => (message) => {
     try {
         fs.appendFileSync('scraper_debug.log', `[${new Date().toISOString()}] ${message}\n`);
@@ -15,6 +21,12 @@ const createLogger = (onLog) => (message) => {
         console.error('Error writing to scraper_debug.log:', e);
     }
     console.log(message);
+    if (supabase) {
+        // Fire and forget to Supabase
+        supabase.from('debug_logs').insert({ message }).then(({error}) => {
+            if (error) console.error('Supabase log error:', error.message);
+        });
+    }
     if (onLog && typeof onLog === 'function') {
         try {
             onLog(message);
