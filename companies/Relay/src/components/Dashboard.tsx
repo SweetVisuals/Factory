@@ -48,11 +48,7 @@ export const Dashboard = () => {
   const logsEndRef = useRef<HTMLDivElement>(null);
   const scraperContainerRef = useRef<HTMLDivElement>(null);
   
-  const [businesses, setBusinesses] = useState<{ id: string; name: string; status: string }[]>([]);
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
-  
-  const [globalStats, setGlobalStats] = useState({ totalSent: 0, bounceRate: 0, opportunities: 0, conversions: 0, totalScraped: 0, health: 98.4 });
-  const [engineStatus, setEngineStatus] = useState<{ status: string; reason?: string } | null>(null);
+  const [globalStats, setGlobalStats] = useState({ totalSent: 0, bounceRate: 0, opportunities: 0, conversions: 0, totalScraped: 0 });
 
   const [activeTab, setActiveTab] = useState<'inbox' | 'outgoing'>('inbox');
   
@@ -86,33 +82,10 @@ export const Dashboard = () => {
     if (isScraperOpen) scrollToBottom();
   }, [scraperLogs, isScraperOpen]);
 
-  const handleResumeEngine = async () => {
-    const { error } = await supabase.from('agent_memory').upsert({ key_name: 'factory_status', value: { status: 'active' } }, { onConflict: 'key_name' });
-    if (!error) setEngineStatus({ status: 'active' });
-  };
 
-  useEffect(() => {
-    const fetchBusinesses = async () => {
-      const { data } = await supabase.from('businesses').select('id, name, status').order('created_at');
-      if (data && data.length > 0) {
-        setBusinesses(data);
-        if (!selectedBusinessId) setSelectedBusinessId(data[0].id);
-      }
-    };
-    fetchBusinesses();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedBusinessId) return;
-
-    const fetchEngineStatus = async () => {
-      const { data } = await supabase.from('agent_memory').select('value').eq('key_name', 'factory_status').maybeSingle();
-      if (data && data.value) setEngineStatus(data.value);
-    };
-    fetchEngineStatus();
 
     const fetchAllData = async () => {
-      const { data: bCampaigns } = await supabase.from('campaigns').select('id').eq('business_id', selectedBusinessId);
+      const { data: bCampaigns } = await supabase.from('campaigns').select('id');
       const campaignIds = (bCampaigns || []).map(c => c.id);
       const campIds = campaignIds.length > 0 ? campaignIds : ['00000000-0000-0000-0000-000000000000'];
 
@@ -203,7 +176,7 @@ export const Dashboard = () => {
       clearInterval(pollInterval);
       if (logsInterval) clearInterval(logsInterval);
     };
-  }, [selectedBusinessId]);
+  }, []);
 
   const handleAIDraft = async () => {
     if (!selectedInboxEmail) return;
@@ -291,7 +264,7 @@ export const Dashboard = () => {
     }
   };
 
-  const activeCampaignsCount = campaigns.filter(c => c.business_id === selectedBusinessId).length;
+  const activeCampaignsCount = campaigns.length;
 
   return (
     <Layout fullHeight>
@@ -310,38 +283,9 @@ export const Dashboard = () => {
               </p>
             </div>
             
-            {/* Business Selection Tabs */}
-            <div className="flex items-center gap-2 bg-black/40 p-1 rounded-xl border border-white/5">
-              {businesses.map(b => (
-                <button
-                  key={b.id}
-                  onClick={() => setSelectedBusinessId(b.id)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
-                    selectedBusinessId === b.id 
-                      ? "bg-white/10 text-white shadow-sm" 
-                      : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-                  )}
-                >
-                  {b.name}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
-
-        {engineStatus?.status === 'paused' && (
-          <div className="mx-6 mt-4 max-w-[1600px] xl:mx-auto p-4 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-4">
-              <AlertCircle size={20} className="text-destructive" />
-              <div className="flex flex-col">
-                <span className="font-bold text-destructive text-sm">Engine Paused</span>
-                <span className="text-destructive/80 text-xs">System outreach halted. Resume when ready.</span>
-              </div>
-            </div>
-            <button onClick={handleResumeEngine} className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-bold hover:bg-destructive/90 transition-colors text-sm shadow-sm">Resume System</button>
-          </div>
-        )}
+        </div>
 
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
           

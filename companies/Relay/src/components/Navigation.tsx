@@ -25,16 +25,6 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
 
   useEffect(() => {
     const fetchStatus = async () => {
-      const { data } = await supabase.from('agent_memory').select('value').eq('key_name', 'factory_status').maybeSingle();
-      if (data?.value) setIsPaused(data.value.status === 'paused');
-      
-      const { data: balData } = await supabase.from('agent_memory').select('value').eq('key_name', 'api_credits').maybeSingle();
-      if (balData?.value?.balance !== undefined) {
-        setBalance(balData.value.balance);
-      } else {
-        await supabase.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance: 10 } }, { onConflict: 'key_name' });
-      }
-
       // Fetch API limit (chat logs count)
       const { count: apiCount } = await openclawSupabase.from('chat_logs').select('*', { count: 'exact', head: true });
       if (apiCount !== null) {
@@ -50,14 +40,6 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
     fetchStatus();
 
     const channel = supabase.channel('factory-status-nav')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_memory', filter: 'key_name=eq.factory_status' }, (payload) => {
-        setIsPaused((payload.new as any).value.status === 'paused');
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_memory', filter: 'key_name=eq.api_credits' }, (payload) => {
-        if ((payload.new as any).value?.balance !== undefined) {
-          setBalance((payload.new as any).value.balance);
-        }
-      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_leads' }, async (payload) => {
         // Fetch lead and campaign details
         const { data: leadData } = await supabase.from('leads').select('name, email').eq('id', payload.new.lead_id).maybeSingle();
@@ -98,11 +80,6 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
-
-  const toggleEngine = async (status: 'active' | 'paused') => {
-    const { error } = await supabase.from('agent_memory').upsert({ key_name: 'factory_status', value: { status } }, { onConflict: 'key_name' });
-    if (!error) setIsPaused(status === 'paused');
-  };
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));

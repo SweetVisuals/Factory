@@ -8,57 +8,11 @@ import LoadingSpinner from '../components/auth/LoadingSpinner';
 import Layout from '../components/layout/Layout';
 import { supabase } from '../lib/supabase';
 
-interface BusinessTarget {
-  id: string;
-  name: string;
-  description: string | null;
-  status: string;
-}
-
 export const CampaignHub = () => {
   const navigate = useNavigate();
   const { campaigns, loading, error } = useApp();
-  const [targets, setTargets] = useState<BusinessTarget[]>([]);
-  const [businesses, setBusinesses] = useState<{ id: string, name: string }[]>([]);
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('all');
-  const [selectedTargetId, setSelectedTargetId] = useState<string>('all');
 
-  useEffect(() => {
-    const fetchTargets = async () => {
-      const { data } = await supabase
-        .from('business_targets')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at');
-      if (data) setTargets(data);
-    };
-    const fetchBusinesses = async () => {
-      const { data } = await supabase
-        .from('businesses')
-        .select('id, name')
-        .order('created_at');
-      if (data) setBusinesses(data);
-    };
-    fetchTargets();
-    fetchBusinesses();
-  }, []);
-
-  const handleBusinessChange = (bizId: string) => {
-    setSelectedBusinessId(bizId);
-    setSelectedTargetId('all');
-  };
-
-  const filteredCampaigns = campaigns.filter(c => {
-    const matchBusiness = selectedBusinessId === 'all' || c.business_id === selectedBusinessId;
-    const matchTarget = selectedTargetId === 'all' || c.target_id === selectedTargetId;
-    return matchBusiness && matchTarget;
-  });
-
-  const getBusinessColor = (name: string) => {
-    if (name.toLowerCase().includes('relay')) return '#10b981';
-    if (name.toLowerCase().includes('mrmedic')) return '#3b82f6';
-    return '#8b5cf6'; // Default purple
-  };
+  const filteredCampaigns = campaigns;
 
   const renderContent = () => {
     if (loading) {
@@ -98,12 +52,10 @@ export const CampaignHub = () => {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredCampaigns.map((campaign) => {
-            const business = businesses.find(b => b.id === campaign.business_id);
             return (
               <CampaignCard
                 key={campaign.id}
                 {...campaign}
-                businessName={business?.name}
                 onClick={() => navigate(`/campaign/${campaign.id}`)}
               />
             );
@@ -144,48 +96,6 @@ export const CampaignHub = () => {
               <PlusCircle size={16} className="group-hover:rotate-90 transition-transform duration-300" />
               <span className="font-black uppercase tracking-widest text-[10px]">New Campaign</span>
             </button>
-          </div>
-
-          {/* Filters Bar */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 p-4 bg-black/20 rounded-2xl border border-white/5 backdrop-blur-md">
-            
-            {/* Business Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto scrollbar-none">
-              <button
-                onClick={() => handleBusinessChange('all')}
-                className={`flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-xl transition-all duration-300 ${
-                  selectedBusinessId === 'all' 
-                    ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]' 
-                    : 'bg-white/5 text-white/50 hover:bg-white/10'
-                }`}
-              >
-                <LayoutGrid size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">All Workspaces</span>
-              </button>
-              
-              {businesses.map(b => {
-                const color = getBusinessColor(b.name);
-                const isSelected = selectedBusinessId === b.id;
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => handleBusinessChange(b.id)}
-                    className={`flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-xl transition-all duration-300 border border-transparent`}
-                    style={{
-                      backgroundColor: isSelected ? `${color}20` : 'rgba(255,255,255,0.05)',
-                      borderColor: isSelected ? `${color}50` : 'transparent',
-                      color: isSelected ? color : 'rgba(255,255,255,0.5)',
-                      boxShadow: isSelected ? `0 0 20px ${color}30` : 'none'
-                    }}
-                  >
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{b.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            
           </div>
         </div>
 

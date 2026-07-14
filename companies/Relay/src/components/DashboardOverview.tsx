@@ -19,11 +19,10 @@ interface ActivityItem {
 }
 
 interface DashboardOverviewProps {
-  selectedBusinessId?: string;
   themeHue?: number;
 }
 
-const DashboardOverview = ({ selectedBusinessId = 'all', themeHue = 260 }: DashboardOverviewProps) => {
+const DashboardOverview = ({ themeHue = 260 }: DashboardOverviewProps) => {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -45,25 +44,10 @@ const DashboardOverview = ({ selectedBusinessId = 'all', themeHue = 260 }: Dashb
     try {
       if (activities.length === 0) setLoading(true);
 
-      let campaignIds: string[] = [];
-      if (selectedBusinessId && selectedBusinessId !== 'all') {
-        const { data: bCampaigns } = await supabase
-          .from('campaigns')
-          .select('id')
-          .eq('business_id', selectedBusinessId);
-        campaignIds = (bCampaigns || []).map(c => c.id);
-      }
-
       // Fetch Recent Sent
       let sentQuery = supabase.from('campaign_progress').select('id, created_at, sent_at, status, campaign_id, campaign:campaigns(name), email_account:email_accounts(health_score)').eq('status', 'sent').order('sent_at', { ascending: false }).limit(20);
       let receivedQuery = supabase.from('inbox_emails').select('id, received_at, subject, from, to, body_text, campaign:campaigns(name), email_account:email_accounts(health_score)').eq('folder', 'inbox').order('received_at', { ascending: false }).limit(10);
       let scraperQuery = supabase.from('scraper_logs').select('*').order('timestamp', { ascending: false }).limit(20);
-
-      if (selectedBusinessId && selectedBusinessId !== 'all') {
-        const campIds = campaignIds.length > 0 ? campaignIds : ['00000000-0000-0000-0000-000000000000'];
-        sentQuery = sentQuery.in('campaign_id', campIds);
-        receivedQuery = receivedQuery.in('campaign_id', campIds);
-      }
 
       const [{ data: sentData }, { data: receivedData }, { data: scraperData }] = await Promise.all([
         sentQuery, receivedQuery, scraperQuery
@@ -113,26 +97,11 @@ const DashboardOverview = ({ selectedBusinessId = 'all', themeHue = 260 }: Dashb
       setActivities(combined);
 
       // Advanced Stats
-      let leadsTodayQuery = supabase.from('leads').select('id', { count: 'exact', head: true }).gt('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString());
-      let oppsQuery = supabase.from('leads').select('id', { count: 'exact', head: true }).in('status', ['Opportunity', 'Active', 'Interested', 'Meeting Booked']);
-      let convsQuery = supabase.from('leads').select('id', { count: 'exact', head: true }).in('status', ['Converted', 'Closed', 'Client', 'Deal Won']);
-      let totalLeadsQuery = supabase.from('leads').select('id', { count: 'exact', head: true });
-
-      if (selectedBusinessId && selectedBusinessId !== 'all') {
-        let leadIds: string[] = [];
-        if (campaignIds.length > 0) {
-          const { data: clData } = await supabase.from('campaign_leads').select('lead_id').in('campaign_id', campaignIds);
-          leadIds = Array.from(new Set((clData || []).map(cl => cl.lead_id)));
-        }
-        const lIds = leadIds.length > 0 ? leadIds : ['00000000-0000-0000-0000-000000000000'];
-        leadsTodayQuery = leadsTodayQuery.in('id', lIds);
-        oppsQuery = oppsQuery.in('id', lIds);
-        convsQuery = convsQuery.in('id', lIds);
-        totalLeadsQuery = totalLeadsQuery.in('id', lIds);
-      }
-
       const [{ count: leadsToday }, { count: opps }, { count: convs }, { count: totalLeads }, { count: neuralSignals }] = await Promise.all([
-        leadsTodayQuery, oppsQuery, convsQuery, totalLeadsQuery,
+        supabase.from('leads').select('id', { count: 'exact', head: true }).gt('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
+        supabase.from('leads').select('id', { count: 'exact', head: true }).in('status', ['Opportunity', 'Active', 'Interested', 'Meeting Booked']),
+        supabase.from('leads').select('id', { count: 'exact', head: true }).in('status', ['Converted', 'Closed', 'Client', 'Deal Won']),
+        supabase.from('leads').select('id', { count: 'exact', head: true }),
         supabase.from('scraper_logs').select('id', { count: 'exact', head: true })
       ]);
 
@@ -155,7 +124,7 @@ const DashboardOverview = ({ selectedBusinessId = 'all', themeHue = 260 }: Dashb
     fetchOverviewData();
     const interval = setInterval(fetchOverviewData, 30000);
     return () => clearInterval(interval);
-  }, [selectedBusinessId]);
+  }, []);
 
   if (loading && activities.length === 0) {
     return (
