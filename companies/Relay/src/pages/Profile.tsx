@@ -9,6 +9,7 @@ import { useToast } from '../components/ui/use-toast';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 
+interface Business { id: string; name: string; slug: string; overview_md: string | null; status: string; }
 
 export default function ProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -27,7 +28,22 @@ export default function ProfilePage() {
     industry: user?.user_metadata?.industry || 'Automation & Systems',
   });
 
+  // Business States
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const initBusiness = async () => {
+      const { data } = await supabase.from('businesses').select('*').eq('status', 'active').order('created_at');
+      if (data && data.length > 0) { 
+        setBusinesses(data); 
+        setSelectedBiz(data[0]); 
+      }
+    };
+    initBusiness();
+  }, []);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +62,16 @@ export default function ProfilePage() {
     }
   };
 
-
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file || !file.name.endsWith('.md')) return;
+    const text = await file.text();
+    const name = file.name.replace('.md', '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const { data } = await supabase.from('businesses').insert({ name, slug, overview_md: text, status: 'active' }).select().single();
+    if (data) { setBusinesses(p => [...p, data]); setSelectedBiz(data); }
+    setShowUpload(false);
+    toast({ title: 'Business Profile Added', description: `${name} has been imported successfully.` });
+  };
 
   const handleTabChange = (tabName: string) => {
     setSearchParams({ tab: tabName });
@@ -73,7 +98,8 @@ export default function ProfilePage() {
             <div className="flex gap-2 p-1.5 bg-black/20 border border-white/5 rounded-2xl w-full md:w-fit overflow-x-auto custom-scrollbar">
               {[
                 { id: 'profile', label: 'My Profile' },
-                { id: 'subscription', label: 'Plan & Billing' }
+                { id: 'subscription', label: 'Subscription & Billing' },
+                { id: 'business', label: 'Business AI Profiles' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -260,7 +286,63 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* TAB: BUSINESS AI PROFILES */}
+          {activeTab === 'business' && (
+            <div className="space-y-8 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground max-w-xl">
+                  Business profiles act as the core intelligence source for the AI. Upload markdown documents describing products, tone of voice, and value propositions.
+                </p>
+                <button 
+                  onClick={() => setShowUpload(!showUpload)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
+                >
+                  <Plus size={18} />
+                  New Profile
+                </button>
+              </div>
 
+              {showUpload && (
+                <div className="p-8 bg-card border border-border rounded-3xl animate-in slide-in-from-top-4 duration-300">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl p-12 text-center">
+                    <div className="p-4 bg-muted rounded-full mb-4">
+                      <Upload size={24} className="text-muted-foreground" />
+                    </div>
+                    <h4 className="text-lg font-bold text-foreground mb-2">Upload Profile Document</h4>
+                    <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+                      Upload a Markdown (.md) file containing your business context to train the agent.
+                    </p>
+                    <input ref={fileRef} type="file" accept=".md" onChange={handleUpload} className="hidden" />
+                    <button 
+                      onClick={() => fileRef.current?.click()}
+                      className="px-6 py-3 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
+                    >
+                      Select File
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {businesses.map(b => (
+                  <div key={b.id} className="p-6 bg-card border border-border rounded-3xl shadow-sm group hover:border-primary/30 transition-colors cursor-pointer">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="p-3 bg-primary/10 rounded-xl">
+                        <Building2 size={20} className="text-primary" />
+                      </div>
+                      <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
+                        {b.status}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">{b.name}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {b.overview_md ? b.overview_md.substring(0, 150) + '...' : 'No context provided.'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
