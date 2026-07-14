@@ -38,6 +38,30 @@ export default function ProfilePage() {
   const [showUpload, setShowUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Groq AI Refiner States
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [groqUsageCount, setGroqUsageCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchGroqUsage = async () => {
+      if (!user) return;
+      const dateStr = new Date().toISOString().split('T')[0];
+      const limitKey = `groq_brief_usage_${user.id}_${dateStr}`;
+      const { data } = await supabase
+        .from('agent_memory')
+        .select('value')
+        .eq('key_name', limitKey)
+        .maybeSingle();
+      if (data && data.value) {
+        setGroqUsageCount(data.value.count || 0);
+      } else {
+        setGroqUsageCount(0);
+      }
+    };
+    fetchGroqUsage();
+  }, [user, isEditingBiz]);
+
   useEffect(() => {
     const initBusiness = async () => {
       const { data } = await supabase.from('businesses').select('*').eq('status', 'active').order('created_at');
@@ -89,6 +113,47 @@ export default function ProfilePage() {
       setSelectedBiz(prev => prev ? { ...prev, overview_md: editContent } : null);
       toast({ title: 'Saved', description: 'Business profile updated successfully.' });
       setIsEditingBiz(false);
+    }
+  };
+
+  const handleAiEdit = async () => {
+    if (!aiPrompt.trim()) {
+      toast({ title: 'Error', description: 'Please enter a prompt for the AI' });
+      return;
+    }
+    setIsAiLoading(true);
+    try {
+      const response = await fetch('/api/edit-brief-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: aiPrompt,
+          markdown: editContent,
+          userId: user?.id
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to refine brief with AI');
+      }
+      setEditContent(data.markdown);
+      setAiPrompt('');
+      if (data.usageCount !== undefined) {
+        setGroqUsageCount(data.usageCount);
+      }
+      toast({
+        title: 'Success',
+        description: `Brief refined successfully with Groq Llama 3! Daily usage: ${data.usageCount}/5`,
+      });
+    } catch (error) {
+      toast({
+        title: 'AI Edit Failed',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false); // To clear outer spinner
+      setIsAiLoading(false);
     }
   };
 
@@ -396,11 +461,46 @@ export default function ProfilePage() {
                   </div>
 
                   {isEditingBiz ? (
-                    <textarea 
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full h-96 bg-background border border-border rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
-                    />
+                    <div className="space-y-4">
+                      <textarea 
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full h-96 bg-background border border-border rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                      />
+                      
+                      {/* AI Assistant Section */}
+                      <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-amber-400" /> Groq AI Refiner (Free Llama 3)
+                          </label>
+                          {groqUsageCount !== null && (
+                            <span className="text-[10px] font-bold text-muted-foreground px-2 py-0.5 bg-muted rounded-full uppercase tracking-wider">
+                              Daily Used: {groqUsageCount}/5 edits
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                            disabled={isAiLoading}
+                            placeholder="e.g. 'Make the copy more casual' or 'Add Plastering segment...'"
+                            className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAiEdit}
+                            disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                            Refine
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="p-6 bg-background border border-border rounded-xl">
                       <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
