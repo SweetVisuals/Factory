@@ -31,6 +31,9 @@ export default function ProfilePage() {
   // Business States
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
+  const [isEditingBiz, setIsEditingBiz] = useState(false);
+  const [editContent, setEditContent] = useState('');
+  const [isSavingBiz, setIsSavingBiz] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +74,21 @@ export default function ProfilePage() {
     if (data) { setBusinesses(p => [...p, data]); setSelectedBiz(data); }
     setShowUpload(false);
     toast({ title: 'Business Profile Added', description: `${name} has been imported successfully.` });
+  };
+
+  const handleSaveBiz = async () => {
+    if (!selectedBiz) return;
+    setIsSavingBiz(true);
+    const { error } = await supabase.from('businesses').update({ overview_md: editContent }).eq('id', selectedBiz.id);
+    setIsSavingBiz(false);
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to save changes.', variant: 'destructive' });
+    } else {
+      setBusinesses(prev => prev.map(b => b.id === selectedBiz.id ? { ...b, overview_md: editContent } : b));
+      setSelectedBiz(prev => prev ? { ...prev, overview_md: editContent } : null);
+      toast({ title: 'Saved', description: 'Business profile updated successfully.' });
+      setIsEditingBiz(false);
+    }
   };
 
   const handleTabChange = (tabName: string) => {
@@ -323,24 +341,83 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {businesses.map(b => (
-                  <div key={b.id} className="p-6 bg-card border border-border rounded-3xl shadow-sm group hover:border-primary/30 transition-colors cursor-pointer">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="p-3 bg-primary/10 rounded-xl">
-                        <Building2 size={20} className="text-primary" />
-                      </div>
-                      <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
-                        {b.status}
-                      </span>
+              {selectedBiz ? (
+                <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => { setSelectedBiz(null); setIsEditingBiz(false); }}
+                        className="p-2 bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+                      >
+                        <Settings size={18} className="rotate-180" /> {/* Back arrow approximation */}
+                      </button>
+                      <h3 className="text-xl font-bold text-foreground">{selectedBiz.name}</h3>
                     </div>
-                    <h3 className="text-lg font-bold text-foreground mb-2">{b.name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {b.overview_md ? b.overview_md.substring(0, 150) + '...' : 'No context provided.'}
-                    </p>
+                    {isEditingBiz ? (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => setIsEditingBiz(false)}
+                          className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={handleSaveBiz}
+                          disabled={isSavingBiz}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all flex items-center gap-2"
+                        >
+                          {isSavingBiz ? <RefreshCw size={14} className="animate-spin" /> : <Settings size={14} />}
+                          Save Changes
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => { setEditContent(selectedBiz.overview_md || ''); setIsEditingBiz(true); }}
+                        className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
+                      >
+                        Edit Markdown
+                      </button>
+                    )}
                   </div>
-                ))}
-              </div>
+
+                  {isEditingBiz ? (
+                    <textarea 
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full h-96 bg-background border border-border rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                    />
+                  ) : (
+                    <div className="p-6 bg-background border border-border rounded-xl">
+                      <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
+                        {selectedBiz.overview_md || 'No content available.'}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {businesses.map(b => (
+                    <div 
+                      key={b.id} 
+                      onClick={() => setSelectedBiz(b)}
+                      className="p-6 bg-card border border-border rounded-3xl shadow-sm group hover:border-primary/30 transition-colors cursor-pointer"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-primary/10 rounded-xl">
+                          <Building2 size={20} className="text-primary" />
+                        </div>
+                        <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
+                          {b.status}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-foreground mb-2">{b.name}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {b.overview_md ? b.overview_md.substring(0, 150) + '...' : 'No context provided.'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
