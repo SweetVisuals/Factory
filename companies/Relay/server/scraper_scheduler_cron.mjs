@@ -21,12 +21,8 @@ async function runScraperScheduler() {
     const { data: campaigns, error: campaignError } = await supabase
         .from('campaigns')
         .select(`
-            id, name, status, business_id, niche,
-            businesses!inner (
-                id, name, status
-            )
+            id, name, status, niche
         `)
-        .eq('businesses.status', 'active')
         .in('status', ['in_progress', 'active']);
 
     if (campaignError) {
