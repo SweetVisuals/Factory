@@ -38,7 +38,7 @@ const Discover: React.FC = () => {
   const [titleFilter, setTitleFilter] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [requireFullProfile, setRequireFullProfile] = useState(true);
+  const [requireFullProfile, setRequireFullProfile] = useState(false);
 
   // Debounced
   const [debouncedSearch, setDebouncedSearch] = useState(search);
