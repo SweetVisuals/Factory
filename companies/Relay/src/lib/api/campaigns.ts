@@ -44,29 +44,15 @@ export async function fetchCampaigns() {
       return [];
     }
 
-    // Explicitly verify user_id matches authenticated user
-    const { data: statsData, error } = await supabase
-      .from('campaign_stats')
+    const { data: campaignsData, error } = await supabase
+      .from('campaigns')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    const { data: campaignsData } = await supabase
-      .from('campaigns')
-      .select('id, current_step')
-      .eq('user_id', user.id);
-
-    const data = statsData.map(stat => {
-      const camp = campaignsData?.find(c => c.id === stat.id);
-      return {
-        ...stat,
-        current_step: camp?.current_step || 1
-      };
-    });
-
-    return data.map(transformDbCampaignToFrontend);
+    return (campaignsData || []).map(transformDbCampaignToFrontend);
   } catch (error) {
     console.error('Error fetching campaigns:', error);
     toast({
