@@ -244,6 +244,71 @@ app.get('/api/hermes/status', async (req, res) => {
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 
+app.post('/api/edit-brief-ai', async (req, res) => {
+  try {
+    const { prompt, markdown, userId } = req.body;
+    if (!prompt || !markdown || !userId) {
+      return res.status(400).json({ error: 'Missing required parameters: prompt, markdown, userId' });
+    }
+
+    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const limitKey = `groq_brief_usage_${userId}_${dateStr}`;
+
+    // Get current usage count
+    let currentCount = 0;
+    const { data: memoryRecord } = await supabase
+      .from('agent_memory')
+      .select('value')
+      .eq('key_name', limitKey)
+      .maybeSingle();
+
+    if (memoryRecord && memoryRecord.value) {
+      currentCount = memoryRecord.value.count || 0;
+    }
+
+    if (currentCount >= 5) {
+      return res.status(429).json({ error: 'Daily limit reached. You can only use the Groq AI editor 5 times per day.' });
+    }
+
+    // Increment count
+    await supabase.from('agent_memory').upsert({
+      key_name: limitKey,
+      value: { count: currentCount + 1 }
+    }, { onConflict: 'key_name' });
+
+    // Call Groq
+    const result = await fetchAIChatCompletion({
+      model: 'meta-llama/llama-3-8b-instruct:free',
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert copywriter. Your task is to edit and refine the provided markdown business overview brief according to the user's instructions.
+CRITICAL RULES:
+1. Return ONLY the edited markdown text.
+2. DO NOT wrap the output in markdown code blocks (\`\`\`markdown or \`\`\`). Just return the raw text.
+3. DO NOT include any chat, introductions, explanations, or greeting.
+4. Keep the general structure, segments, and formatting of the brief intact, only modifying the sections as instructed.`
+        },
+        {
+          role: 'user',
+          content: `Original Brief:\n${markdown}\n\nInstructions from user: "${prompt}"`
+        }
+      ]
+    });
+
+    const editedMarkdown = result?.choices?.[0]?.message?.content?.trim();
+    if (!editedMarkdown) {
+      throw new Error('AI returned an empty response.');
+    }
+
+    res.json({ success: true, markdown: editedMarkdown, usageCount: currentCount + 1 });
+  } catch (err) {
+    console.error('Groq brief edit failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/generate-sequences', async (req, res) => {
   try {
     const { campaignName, niche, company, pitch, contactNumber, primaryEmail, count = 5, isSingle = false, targetStep = 1 } = req.body;
@@ -1711,14 +1776,58 @@ app.post('/api/scrape-leads', async (req, res) => {
         }
 
         if (countryCode && !normalizedLocation) {
-          log(`Broad country search for ${countryCode}. Picking 30 random cities for fast rotation across campaigns.`);
+          log(`Broad country search for ${countryCode}. Prioritizing major cities and surrounding areas.`);
           const countryCities = City.getCitiesOfCountry(countryCode) || [];
-          const allCities = countryCities.map(c => `${c.name}, ${c.stateCode || ''}, ${countryCode}`.replace(/,\s*,/g, ','));
-          // Shuffle and take 30 random cities per run so every campaign gets quick turns
-          for (let i = allCities.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allCities[i], allCities[j]] = [allCities[j], allCities[i]];
+          
+          const MAJOR_GB_CITIES = [
+            "London", "Birmingham", "Manchester", "Glasgow", "Newcastle upon Tyne", 
+            "Leeds", "Liverpool", "Nottingham", "Sheffield", "Bristol", 
+            "Belfast", "Leicester", "Edinburgh", "Coventry", "Cardiff", 
+            "Hull", "Bradford", "Stoke-on-Trent", "Wolverhampton", "Plymouth", 
+            "Southampton", "Reading", "Derby", "Dundee", "Aberdeen", 
+            "Portsmouth", "York", "Northampton", "Norwich", "Luton"
+          ];
+
+          const MAJOR_US_CITIES = [
+            "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", 
+            "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose", 
+            "Austin", "Jacksonville", "San Francisco", "Columbus", "Indianapolis", 
+            "Fort Worth", "Charlotte", "Seattle", "Denver", "El Paso", 
+            "Washington", "Boston", "Detroit", "Nashville", "Memphis", 
+            "Portland", "Oklahoma City", "Las Vegas", "Louisville"
+          ];
+
+          const majorNames = countryCode === 'GB' ? MAJOR_GB_CITIES : countryCode === 'US' ? MAJOR_US_CITIES : [];
+          
+          let prioritized = [];
+          let others = [];
+          
+          for (const c of countryCities) {
+            const cityName = c.name;
+            const fullCityStr = `${cityName}, ${c.stateCode || ''}, ${countryCode}`.replace(/,\s*,/g, ',');
+            
+            // Check if it's one of the major cities
+            if (majorNames.some(m => cityName.toLowerCase() === m.toLowerCase())) {
+              prioritized.push(fullCityStr);
+            } else {
+              others.push(fullCityStr);
+            }
           }
+          
+          // Shuffle prioritized
+          for (let i = prioritized.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [prioritized[i], prioritized[j]] = [prioritized[j], prioritized[i]];
+          }
+          
+          // Shuffle others
+          for (let i = others.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [others[i], others[j]] = [others[j], others[i]];
+          }
+          
+          // Combine prioritized first, then others (picking 30 total)
+          const allCities = [...prioritized, ...others];
           scrapeLocations = allCities.slice(0, 30);
         } else if (normalizedLocation) {
           const tokens = normalizedLocation.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean);
