@@ -129,15 +129,18 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           
           {/* OS System Health Monitors & AI Balance */}
           <div className="hidden lg:flex items-center gap-4 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">
-            <div className="flex items-center gap-2 w-24 group cursor-pointer opacity-80 hover:opacity-100 transition-opacity">
-              <Sparkles size={12} className="text-purple-400/80 shrink-0" />
+            <div 
+              onClick={() => navigate('/settings')}
+              className="flex items-center gap-2 w-24 group cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <Sparkles size={12} className="text-emerald-400/80 shrink-0" />
               <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[9px] font-bold text-foreground/50">
-                  <span>Balance</span>
-                  <span className="text-white/90 font-mono">${balance.toFixed(4)}</span>
+                  <span>Usage</span>
+                  <span className="text-white/90 font-mono">Free</span>
                 </div>
                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-purple-500/50 to-purple-400 shadow-[0_0_2px_rgba(168,85,247,0.5)] transition-all duration-500" style={{ width: `${Math.max(0, (balance / STARTING_BALANCE) * 100)}%` }} />
+                  <div className="h-full bg-gradient-to-r from-emerald-500/50 to-emerald-400 shadow-[0_0_2px_rgba(52,211,153,0.5)] transition-all duration-500" style={{ width: '45%' }} />
                 </div>
               </div>
             </div>

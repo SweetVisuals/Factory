@@ -301,7 +301,6 @@ export const Dashboard = () => {
             {[
               { label: 'Active Campaigns', val: activeCampaignsCount.toString(), icon: Activity, color: 'text-blue-400' },
               { label: 'Prospects Scraped', val: globalStats.totalScraped.toLocaleString(), icon: Users, color: 'text-amber-400' },
-              { label: 'Free Plan Allowance', val: globalStats.freePlanLimit ? globalStats.freePlanLimit.toLocaleString() : '10,000', icon: Users, color: 'text-emerald-400' },
               { label: 'Total Emails Sent', val: globalStats.totalSent.toLocaleString(), icon: Mail, color: 'text-emerald-400' },
               { label: 'Estimated Pipeline', val: `$${(globalStats.opportunities * 1500 + globalStats.conversions * 5000).toLocaleString()}`, icon: TrendingUp, color: 'text-purple-400' },
               { label: 'Bounce Rate', val: `${globalStats.bounceRate}%`, icon: AlertCircle, color: globalStats.bounceRate > 5 ? 'text-destructive' : 'text-muted-foreground' }
