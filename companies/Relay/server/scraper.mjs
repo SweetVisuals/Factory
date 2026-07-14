@@ -929,9 +929,37 @@ async function generateAISummary(text, notesContext = '', isDeepResearch = true)
 
         log(`GENERATE_AI_SUMMARY: Generating summary for text length: ${text.length}, deepResearch: ${isDeepResearch}`);
 
-        // Return structured format WITHOUT AI as requested by user
-        let report = `## ⚡ Quick Summary\n(AI Summarization Disabled)\n\n## 🔬 Deep Research\n\n`;
-        report += text.substring(0, 5000); // include raw data directly
+        // Non-AI Programmatic Extraction
+        let summary = "Company focuses on providing standard services to their clients.";
+        let conversationStarter = "I noticed your team handles various projects—how are you managing your internal processes right now?";
+        
+        try {
+            // Try to extract a summary from the home page text
+            const homeMatch = text.match(/\[HOME PAGE\]:\s*(.{100,400})/i);
+            if (homeMatch && homeMatch[1]) {
+                const rawSummary = homeMatch[1].replace(/\n/g, ' ').trim();
+                // cut off at the last period
+                const lastPeriod = rawSummary.lastIndexOf('.');
+                summary = lastPeriod > 0 ? rawSummary.substring(0, lastPeriod + 1) : rawSummary + '...';
+            }
+
+            // Extract keywords for conversation starter
+            const words = text.split(/\s+/);
+            const longWords = words.filter(w => w.length > 7 && !w.includes('[') && !w.includes(']'));
+            if (longWords.length > 5) {
+                // Pick a random interesting word from the text (simulated)
+                const keyword1 = longWords[Math.floor(Math.random() * (longWords.length / 2))].replace(/[^a-zA-Z]/g, '').toLowerCase();
+                const keyword2 = longWords[Math.floor(longWords.length / 2)].replace(/[^a-zA-Z]/g, '').toLowerCase();
+                if (keyword1 && keyword2) {
+                    conversationStarter = `I noticed your work involves ${keyword1} and ${keyword2}. Are you looking to scale those operations soon?`;
+                }
+            }
+        } catch (err) {
+            log('Extraction heuristics failed, using defaults.');
+        }
+
+        let report = `## ⚡ Quick Summary\n${summary}\n\n## 🔬 Conversation Starter\n> "${conversationStarter}"\n\n## 📊 Extracted Context\n`;
+        report += text.substring(0, 800) + '...'; // include a bit of raw data
 
         return report;
     } catch (e) {

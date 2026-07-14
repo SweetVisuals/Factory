@@ -113,7 +113,7 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
 
       <div className="flex flex-col gap-5 mb-8">
         <div className="lg:col-span-2 space-y-3">
-          <label className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest ml-1">Special Requirements (AI Brain)</label>
+          <label className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-widest ml-1">Special Requirements</label>
           <input
             type="text"
             value={formData.notesContext}
@@ -147,7 +147,7 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
             { id: 'companieshouse', label: 'Companies House', icon: '🇬🇧' },
             { id: 'bing', label: 'Bing Maps', icon: '🗺️' },
             { id: 'yell', label: 'Yell.com', icon: '📞' },
-            { id: 'hermes', label: 'Hermes AI Agent', icon: '🤖' },
+            { id: 'hermes', label: 'Hermes Agent', icon: '🤖' },
           ].map((p) => (
             <button
               key={p.id}
