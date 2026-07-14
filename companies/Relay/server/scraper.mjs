@@ -951,7 +951,7 @@ Format your response EXACTLY as follows (using markdown):
             const aiRes = await fetchAIChatCompletion({
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,
-                model: 'google/gemma-2-9b-it:free' // Using OpenRouter free model
+                model: 'llama-3.1-8b-instant' // Using Groq high-volume model
             });
             
             if (aiRes && aiRes.choices && aiRes.choices[0]) {

@@ -95,7 +95,72 @@ export async function fetchAIChatCompletion(params, log = console.log) {
     model = 'openrouter/owl-alpha'
   } = params;
 
-  // 1. Load OpenRouter keys and try OpenRouter first
+  // 0. Try Groq First if it's a Llama model or Groq key is present
+  const groqKey = process.env.GROQ_API_KEY;
+  const isGroqModel = model.includes('llama') || model.includes('mixtral') || model.includes('gemma');
+  
+  if (groqKey && isGroqModel) {
+    let groqModel = model;
+    // Map standard names to Groq-specific ones if necessary
+    if (model === 'google/gemma-2-9b-it:free' || model === 'gemma-2-9b-it') groqModel = 'gemma2-9b-it';
+    if (model.includes('llama-3-8b')) groqModel = 'llama-3.1-8b-instant';
+    if (model.includes('llama-3.3-70b')) groqModel = 'llama-3.3-70b-versatile';
+    
+    log(`[AI-Client] Attempting Groq for model: ${groqModel}...`);
+    
+    let retries = 0;
+    const maxRetries = 3;
+    let success = false;
+    
+    while (retries <= maxRetries && !success) {
+      try {
+        const result = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model: groqModel,
+            temperature,
+            messages,
+            ...(response_format ? { response_format } : {})
+          })
+        }, 15000);
+
+        if (result.ok) {
+          const data = result.body;
+          if (data && !data.error) {
+            log(`[AI-Client] Groq success using ${groqModel}!`);
+            return data;
+          } else {
+            log(`[AI-Client] Groq API error: ${JSON.stringify(data?.error)}`);
+            break; // Don't retry on non-rate-limit errors
+          }
+        } else {
+          log(`[AI-Client] Groq request failed (Status ${result.status}): ${typeof result.body === 'string' ? result.body : JSON.stringify(result.body)}`);
+          if (result.status === 429) {
+            retries++;
+            if (retries <= maxRetries) {
+               const backoffMs = 2000 * retries;
+               log(`[AI-Client] Groq rate limited. Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
+               await new Promise(r => setTimeout(r, backoffMs));
+               continue;
+            }
+          }
+          break;
+        }
+      } catch (err) {
+        log(`[AI-Client] Groq network exception or timeout: ${err.message}`);
+        retries++;
+        if (retries <= maxRetries) {
+           await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+  }
+
+  // 1. Load OpenRouter keys and try OpenRouter Next
   const openRouterKeys = loadOpenRouterKeys();
   const openRouterModel = model.includes('deepseek') ? 'openrouter/owl-alpha' : model;
 
