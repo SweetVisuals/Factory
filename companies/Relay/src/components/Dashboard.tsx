@@ -82,8 +82,7 @@ export const Dashboard = () => {
     if (isScraperOpen) scrollToBottom();
   }, [scraperLogs, isScraperOpen]);
 
-
-
+  useEffect(() => {
     const fetchAllData = async () => {
       const { data: bCampaigns } = await supabase.from('campaigns').select('id');
       const campaignIds = (bCampaigns || []).map(c => c.id);
