@@ -9,8 +9,7 @@ import { fetchEmailAccounts } from '../lib/api/email-accounts';
 import { api } from '../lib/api/api';
 import { useToast } from '../components/ui/use-toast';
 import Layout from '../components/layout/Layout';
-import { ComposeEmailModal } from '../components/ComposeEmailModal';
-
+import { ComposePane } from '../components/ComposePane';
 type FilterState = 
   | { type: 'all' }
   | { type: 'archive' }
@@ -372,8 +371,8 @@ const Inbox = () => {
           <div className="hidden lg:flex w-60 border-r border-white/5 flex-col bg-[#1a1a1a]/50 shrink-0">
             <div className="p-4 border-b border-white/5">
               <button 
-                onClick={() => setIsComposeOpen(true)}
-                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                onClick={() => { setIsComposeOpen(true); setSelectedThread(null); }}
+                className={cn("w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2", isComposeOpen ? "bg-primary/20 text-primary shadow-inner" : "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02]")}
               >
                 Compose <Send size={14} />
               </button>
@@ -436,7 +435,7 @@ const Inbox = () => {
           </div>
 
           {/* Threads List Column */}
-          <div className={cn("border-r border-white/5 flex flex-col bg-white/[0.01] relative z-10 shrink-0", selectedThread ? "hidden md:flex w-80" : "flex-1 w-full lg:w-80")}>
+          <div className={cn("border-r border-white/5 flex flex-col bg-white/[0.01] relative z-10 shrink-0", (selectedThread || isComposeOpen) ? "hidden md:flex w-80" : "flex-1 w-full lg:w-80")}>
             <div className="p-3 border-b border-white/5">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={13} />
@@ -468,7 +467,7 @@ const Inbox = () => {
                     return (
                       <div
                         key={thread.id}
-                        onClick={() => setSelectedThread(thread)}
+                        onClick={() => { setSelectedThread(thread); setIsComposeOpen(false); }}
                         className={cn(
                           "px-4 py-3 cursor-pointer transition-all flex flex-col gap-0.5 border-b border-white/[0.03]",
                           isActive ? "bg-primary/[0.06] border-l-2 border-l-primary" : "border-l-2 border-l-transparent hover:bg-white/[0.02]",
@@ -498,9 +497,11 @@ const Inbox = () => {
             </div>
           </div>
 
-          {/* Thread Reading & Reply Pane */}
-          <div className={cn("bg-background flex flex-col min-w-0 relative", selectedThread ? "flex-1 w-full" : "hidden md:flex flex-1")}>
-            {selectedThread ? (
+          {/* Thread Reading & Reply Pane or Compose Pane */}
+          <div className={cn("bg-background flex flex-col min-w-0 relative", (selectedThread || isComposeOpen) ? "flex-1 w-full" : "hidden md:flex flex-1")}>
+            {isComposeOpen ? (
+              <ComposePane onClose={() => setIsComposeOpen(false)} accounts={accounts} />
+            ) : selectedThread ? (
               <>
                 <div className="h-14 flex items-center px-4 md:px-6 justify-between border-b border-white/5 bg-background sticky top-0 z-10 shrink-0">
                   <div className="flex items-center gap-2 md:gap-3">
@@ -637,12 +638,6 @@ const Inbox = () => {
 
         </div>
       </div>
-
-      <ComposeEmailModal 
-        isOpen={isComposeOpen} 
-        onClose={() => setIsComposeOpen(false)} 
-        accounts={accounts} 
-      />
     </Layout>
   );
 };
