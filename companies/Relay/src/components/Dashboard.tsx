@@ -105,11 +105,21 @@ export const Dashboard = () => {
         totalScraped: totalScraped || 0
       }));
 
-      // Fetch Scraper Logs
+      // Fetch Engine Logs (Debug Logs)
       try {
-        const logRes = await api.get('/scraper-logs');
-        if (Array.isArray(logRes.data) && logRes.data.length > 0) {
-            setScraperLogs(logRes.data);
+        const { data: debugLogs } = await supabase
+            .from('debug_logs')
+            .select('*')
+            .order('created_at', { ascending: true })
+            .limit(50);
+        
+        if (debugLogs && debugLogs.length > 0) {
+            const formattedLogs = debugLogs.map(l => ({
+                id: l.id,
+                timestamp: l.created_at,
+                message: l.message
+            }));
+            setScraperLogs(formattedLogs);
         }
       } catch(e) {}
 
@@ -149,27 +159,25 @@ export const Dashboard = () => {
     }, 15000); // 15 seconds polling
 
     let logsInterval: any;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      // Keep only the lightweight broadcast for scraper logs, no postgres_changes
-      const scrapeChannel = supabase.channel(`scraped-leads-${session.user.id}`)
-        .on('broadcast', { event: 'scrape-log' }, (payload) => {
-           if (payload.payload && payload.payload.message) {
-             setScraperLogs(prev => [...prev.slice(-49), payload.payload as ScraperLog]);
-           }
-        }).subscribe();
-        
+      // Engine Logs Polling
       logsInterval = setInterval(async () => {
         try {
-          const logRes = await api.get('/scraper-logs');
-          if (Array.isArray(logRes.data) && logRes.data.length > 0) {
-            setScraperLogs(logRes.data);
+          const { data: debugLogs } = await supabase
+            .from('debug_logs')
+            .select('*')
+            .order('created_at', { ascending: true })
+            .limit(50);
+            
+          if (debugLogs && debugLogs.length > 0) {
+            const formattedLogs = debugLogs.map(l => ({
+                id: l.id,
+                timestamp: l.created_at,
+                message: l.message
+            }));
+            setScraperLogs(formattedLogs);
           }
         } catch(e) {}
-      }, 5000); // Increase log poll interval
-
-      return scrapeChannel;
-    });
+      }, 5000); 
 
     return () => { 
       clearInterval(pollInterval);
@@ -578,12 +586,12 @@ export const Dashboard = () => {
                 {isScraperOpen ? (
                   <>
                     <div className="flex items-center gap-2 px-2 font-bold text-sm text-white">
-                      <Zap size={16} className="text-yellow-400" /> Live Scraper Feed
+                      <Zap size={16} className="text-emerald-400" /> Live Engine Feed
                     </div>
                     <button onClick={() => setIsScraperOpen(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-muted-foreground"><X size={16}/></button>
                   </>
                 ) : (
-                  <button onClick={() => setIsScraperOpen(true)} className="p-1.5 hover:bg-white/10 rounded-lg text-yellow-400 m-auto flex flex-col gap-2" title="Open Scraper Feed">
+                  <button onClick={() => setIsScraperOpen(true)} className="p-1.5 hover:bg-white/10 rounded-lg text-emerald-400 m-auto flex flex-col gap-2" title="Open Engine Feed">
                     <Zap size={16} />
                   </button>
                 )}
@@ -595,7 +603,7 @@ export const Dashboard = () => {
                   <div className="absolute top-0 w-full h-4 bg-gradient-to-b from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
                   <div ref={scraperContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                     {scraperLogs.length === 0 ? (
-                      <div className="text-center text-xs text-muted-foreground italic py-8">Waiting for scraper activity...</div>
+                      <div className="text-center text-xs text-muted-foreground italic py-8">Waiting for engine activity...</div>
                     ) : (
                       scraperLogs.map((log, i) => (
                         <div key={log.id || i} className="font-mono text-[10px] leading-relaxed p-3 rounded-lg bg-black/40 border border-white/5 animate-in slide-in-from-bottom-2 duration-300">
