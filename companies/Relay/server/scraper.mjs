@@ -929,39 +929,37 @@ async function generateAISummary(text, notesContext = '', isDeepResearch = true)
 
         log(`GENERATE_AI_SUMMARY: Generating summary for text length: ${text.length}, deepResearch: ${isDeepResearch}`);
 
-        // Non-AI Programmatic Extraction
-        let summary = "Company focuses on providing standard services to their clients.";
-        let conversationStarter = "I noticed your team handles various projects—how are you managing your internal processes right now?";
-        
+        // Use AI to generate a high quality summary
+        const prompt = `You are a B2B sales intelligence agent. Analyze the following scraped web data for a company.
+Your goal is to extract a "Deep Dive Summary" and a highly personalized "Conversation Starter" for a cold email.
+
+CRITICAL INSTRUCTIONS:
+1. Pay special attention to the [EXTERNAL_INTEL_SOCIAL] section. Summarize their social media presence, recent reviews, or public perception.
+2. The conversation starter should be 1-2 sentences, curiosity-driven, and reference a specific detail from their website or social media.
+
+RAW DATA:
+${text.substring(0, 10000)}
+
+Format your response EXACTLY as follows (using markdown):
+## ⚡ Deep Dive Summary
+[Your 2-3 paragraph summary focusing on their business model, target audience, and social media presence]
+
+## 🔬 Conversation Starter
+> "[Your conversation starter]"`;
+
         try {
-            // Try to extract a summary from the home page text
-            const homeMatch = text.match(/\[HOME PAGE\]:\s*(.{100,400})/i);
-            if (homeMatch && homeMatch[1]) {
-                const rawSummary = homeMatch[1].replace(/\n/g, ' ').trim();
-                // cut off at the last period
-                const lastPeriod = rawSummary.lastIndexOf('.');
-                summary = lastPeriod > 0 ? rawSummary.substring(0, lastPeriod + 1) : rawSummary + '...';
+            const aiRes = await fetchAIChatCompletion({
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                model: 'google/gemma-2-9b-it:free' // Using OpenRouter free model
+            });
+            
+            if (aiRes && aiRes.choices && aiRes.choices[0]) {
+                return aiRes.choices[0].message.content;
             }
-
-            // Extract keywords for conversation starter
-            const words = text.split(/\s+/);
-            const longWords = words.filter(w => w.length > 7 && !w.includes('[') && !w.includes(']'));
-            if (longWords.length > 5) {
-                // Pick a random interesting word from the text (simulated)
-                const keyword1 = longWords[Math.floor(Math.random() * (longWords.length / 2))].replace(/[^a-zA-Z]/g, '').toLowerCase();
-                const keyword2 = longWords[Math.floor(longWords.length / 2)].replace(/[^a-zA-Z]/g, '').toLowerCase();
-                if (keyword1 && keyword2) {
-                    conversationStarter = `I noticed your work involves ${keyword1} and ${keyword2}. Are you looking to scale those operations soon?`;
-                }
-            }
-        } catch (err) {
-            log('Extraction heuristics failed, using defaults.');
+        } catch (aiErr) {
+            log(`AI API failed: ${aiErr.message}`);
         }
-
-        let report = `## ⚡ Quick Summary\n${summary}\n\n## 🔬 Conversation Starter\n> "${conversationStarter}"\n\n## 📊 Extracted Context\n`;
-        report += text.substring(0, 800) + '...'; // include a bit of raw data
-
-        return report;
     } catch (e) {
         console.error('Summary Generation Fatal Error:', e);
         return `## ⚡ Quick Summary\nAutomated research encountered an error: ${e.message}\n\n## 🔬 Deep Research\nCould not complete deep research due to an error.`;
