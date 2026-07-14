@@ -166,8 +166,8 @@ const EmailAccountsList: React.FC = () => {
                           <td className="px-4 py-3.5 text-center">
                             <span className={cn(
                               "text-sm font-black",
-                              (account.healthScore || 0) > 90 ? "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]" : (account.healthScore || 0) > 70 ? "text-yellow-400" : "text-red-400"
-                            )}>{account.healthScore || 'N/A'}%</span>
+                              (account.healthScore ? parseInt(account.healthScore) : 100) > 90 ? "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]" : (account.healthScore ? parseInt(account.healthScore) : 100) > 70 ? "text-yellow-400" : "text-red-400"
+                            )}>{account.healthScore || '100'}%</span>
                           </td>
                           <td className="pr-6 pl-4 py-3.5 text-right">
                             <div className="flex justify-end">

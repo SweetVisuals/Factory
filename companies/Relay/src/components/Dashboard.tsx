@@ -612,7 +612,7 @@ export const Dashboard = () => {
                             <span className="text-blue-400 flex items-center gap-1"><TerminalIcon size={10} /> SYSTEM</span>
                             <span>{format(new Date(log.timestamp), 'HH:mm:ss')}</span>
                           </div>
-                          <div className="text-emerald-400 whitespace-pre-wrap break-words max-h-32 overflow-y-auto custom-scrollbar pr-2 bg-black/20 p-2 rounded border border-white/5">
+                          <div className="text-emerald-400 text-[10px] font-mono whitespace-pre-wrap break-words max-h-32 overflow-y-auto custom-scrollbar pr-2 bg-black/20 p-2 rounded border border-white/5">
                             {log.message}
                           </div>
                         </div>
