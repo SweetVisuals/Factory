@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Activity, Upload, Plus, AlertTriangle, Users, Mail, Target, Zap, ArrowUpRight, Shield, Cpu, Eye, Trash2, CreditCard, Check, Sparkles, Building2, User } from 'lucide-react';
+import { Activity, Upload, Plus, AlertTriangle, Users, Mail, Target, Zap, ArrowUpRight, Shield, Cpu, Eye, Trash2, CreditCard, Check, Sparkles, Building2, User, Settings, ArrowLeft } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -364,7 +364,7 @@ export default function ProfilePage() {
                         onClick={() => { setSelectedBiz(null); setIsEditingBiz(false); }}
                         className="p-2 bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                       >
-                        <Settings size={18} className="rotate-180" /> {/* Back arrow approximation */}
+                        <ArrowLeft size={18} />
                       </button>
                       <h3 className="text-xl font-bold text-foreground">{selectedBiz.name}</h3>
                     </div>
