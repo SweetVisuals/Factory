@@ -421,6 +421,65 @@ Return ONLY JSON with 'subject' and 'content'.`;
     });
   }
 });
+// --- COMPOSE DIRECT EMAIL ENDPOINT ---
+app.post('/api/send-direct-email', async (req, res) => {
+  try {
+    const { accountId, to, subject, text, html, attachments } = req.body;
+    if (!accountId || !to || !subject || !text) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const { data: account } = await supabase.from('email_accounts').select('*').eq('id', accountId).single();
+    if (!account) return res.status(404).json({ error: 'Account not found' });
+
+    let transporter;
+    if (account.provider === 'google') {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: account.email, pass: account.app_password }
+      });
+    } else {
+      transporter = nodemailer.createTransport({
+        host: account.smtp_host,
+        port: parseInt(account.smtp_port) || 465,
+        secure: true,
+        auth: { user: account.email, pass: account.app_password }
+      });
+    }
+
+    const mailOptions = {
+      from: `"${account.name || ''}" <${account.email}>`,
+      to,
+      subject,
+      text,
+      html,
+      attachments: attachments ? attachments.map(att => ({
+        filename: att.name,
+        content: att.content,
+        encoding: 'base64'
+      })) : []
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    
+    // Log in inbox_emails (optional but good for history)
+    await supabase.from('inbox_emails').insert({
+      email_account_id: account.id,
+      from: `"${account.name || ''}" <${account.email}>`,
+      to,
+      subject,
+      body_text: text,
+      body_html: html || text,
+      folder: 'sent',
+      is_read: true
+    });
+
+    res.json({ success: true, messageId: info.messageId });
+  } catch (error) {
+    console.error('Error sending direct email:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
 
 app.post('/api/draft-closing-reply', async (req, res) => {
   try {

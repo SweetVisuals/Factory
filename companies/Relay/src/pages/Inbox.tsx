@@ -9,6 +9,7 @@ import { fetchEmailAccounts } from '../lib/api/email-accounts';
 import { api } from '../lib/api/api';
 import { useToast } from '../components/ui/use-toast';
 import Layout from '../components/layout/Layout';
+import { ComposeEmailModal } from '../components/ComposeEmailModal';
 
 type FilterState = 
   | { type: 'all' }
@@ -45,6 +46,9 @@ const Inbox = () => {
   const [isDrafting, setIsDrafting] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [replyFromAccountId, setReplyFromAccountId] = useState('');
+  
+  // Compose State
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -365,9 +369,14 @@ const Inbox = () => {
         <div className="flex flex-1 overflow-hidden border-t border-white/5">
 
           {/* Sidebar */}
-          <div className="hidden lg:flex w-60 border-r border-white/5 flex-col bg-white/[0.01] shrink-0">
+          <div className="hidden lg:flex w-60 border-r border-white/5 flex-col bg-[#1a1a1a]/50 shrink-0">
             <div className="p-4 border-b border-white/5">
-              <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Navigation</span>
+              <button 
+                onClick={() => setIsComposeOpen(true)}
+                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+              >
+                Compose <Send size={14} />
+              </button>
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-6">
@@ -628,6 +637,12 @@ const Inbox = () => {
 
         </div>
       </div>
+
+      <ComposeEmailModal 
+        isOpen={isComposeOpen} 
+        onClose={() => setIsComposeOpen(false)} 
+        accounts={accounts} 
+      />
     </Layout>
   );
 };
