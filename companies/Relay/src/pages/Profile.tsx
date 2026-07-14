@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ui/use-toast';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeToggle } from '../components/ThemeToggle';
+import UsageDashboard from '../components/UsageDashboard';
 
 interface Business { id: string; name: string; slug: string; overview_md: string | null; status: string; }
 
@@ -116,6 +117,7 @@ export default function ProfilePage() {
             <div className="flex gap-2 p-1.5 bg-black/20 border border-white/5 rounded-2xl w-full md:w-fit overflow-x-auto custom-scrollbar">
               {[
                 { id: 'profile', label: 'My Profile' },
+                { id: 'usage', label: 'System Usage' },
                 { id: 'subscription', label: 'Subscription & Billing' },
                 { id: 'business', label: 'Business AI Profiles' }
               ].map(tab => (
@@ -206,6 +208,19 @@ export default function ProfilePage() {
                   </div>
                   <ThemeToggle />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: USAGE */}
+          {activeTab === 'usage' && (
+            <div className="space-y-8 animate-in fade-in duration-200">
+              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <Activity className="w-5 h-5 text-emerald-400" />
+                  <h3 className="text-lg font-bold text-foreground">Usage Metrics</h3>
+                </div>
+                <UsageDashboard />
               </div>
             </div>
           )}

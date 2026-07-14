@@ -130,7 +130,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           {/* OS System Health Monitors & AI Balance */}
           <div className="hidden lg:flex items-center gap-4 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">
             <div 
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/profile?tab=usage')}
               className="flex items-center gap-2 w-24 group cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
             >
               <Sparkles size={12} className="text-emerald-400/80 shrink-0" />
