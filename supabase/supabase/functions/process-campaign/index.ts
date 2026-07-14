@@ -16,6 +16,16 @@ Deno.serve(async (req) => {
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    const logToDebug = async (level: string, message: string, context: any = {}) => {
+        try {
+            await supabaseAdmin.from('debug_logs').insert({ level, message, context });
+            console.log(`[${level.toUpperCase()}] ${message}`);
+        } catch (e) {
+            console.error('Failed to write to debug_logs:', e);
+        }
+    };
+
+
     // Fetch DeepSeek disable setting
     const { data: deepseekOption } = await supabaseAdmin
         .from('api_keys')
@@ -72,7 +82,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ message: `Outside sending window (UK Time: ${ukTimeStr})` }), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    console.log("Checking for scheduled campaigns...");
+    await logToDebug('info', "Checking for scheduled campaigns...");
 
     const { data: activeSchedules, error } = await supabaseAdmin
         .from('scheduled_emails')
@@ -224,7 +234,7 @@ Deno.serve(async (req) => {
             }
         }
 
-        console.log(`Schedule ${schedule.id}: Processing ${pendingLeads.length} leads across ${scheduleAccounts.length} accounts.`);
+        await logToDebug('info', `Schedule ${schedule.id}: Processing ${pendingLeads.length} leads across ${scheduleAccounts.length} accounts.`);
 
         let sentCount = 0;
         let accountIndex = 0;
