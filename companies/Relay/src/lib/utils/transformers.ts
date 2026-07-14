@@ -40,7 +40,11 @@ export function transformFrontendCampaignToDb(campaign: Partial<Campaign>): Part
   if (campaign.status !== undefined) dbCampaign.status = campaign.status.toLowerCase();
   if (campaign.niche !== undefined) dbCampaign.niche = campaign.niche;
   if (campaign.schedule !== undefined) dbCampaign.schedule = campaign.schedule;
-  if (campaign.pitch !== undefined) dbCampaign.pitch = campaign.pitch;
+  if (campaign.pitch !== undefined) {
+    dbCampaign.pitch = campaign.pitch;
+  } else if (campaign.objective !== undefined) {
+    dbCampaign.pitch = campaign.objective;
+  }
   
   if (campaign.prospects !== undefined) {
     dbCampaign.prospects = parseInt(campaign.prospects, 10);
