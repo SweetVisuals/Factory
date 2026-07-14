@@ -25,7 +25,7 @@ conn.on('ready', () => {
       if (uploaded >= files.length) {
         // All uploaded — restart PM2 with increased memory limits
         const cmds = [
-          'pm2 delete relay-backend 2>/dev/null; pm2 start /root/Factory/companies/Relay/server/index.mjs --name relay-backend --max-memory-restart 3500M --node-args="--max-old-space-size=3500"',
+          'pm2 delete relay-backend 2>/dev/null; pm2 start /root/Factory/companies/Relay/server/index.mjs --name relay-backend --max-memory-restart 1G --node-args="--max-old-space-size=1000"',
           'pm2 restart campaign-sender',
           'pm2 restart relay-cron',
           'pm2 list'

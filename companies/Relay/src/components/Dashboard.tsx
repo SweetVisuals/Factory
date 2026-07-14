@@ -169,16 +169,18 @@ export const Dashboard = () => {
 
     fetchAllData();
 
-    const channel = supabase.channel('dashboard-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_progress' }, () => fetchAllData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_emails' }, () => fetchAllData())
-      .on('broadcast', { event: 'metrics_updated' }, () => fetchAllData())
-      .subscribe();
+    fetchAllData();
+
+    // Use polling instead of heavy postgres_changes subscriptions
+    const pollInterval = setInterval(() => {
+      fetchAllData();
+    }, 15000); // 15 seconds polling
 
     let logsInterval: any;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) return;
-      supabase.channel(`scraped-leads-${session.user.id}`)
+      // Keep only the lightweight broadcast for scraper logs, no postgres_changes
+      const scrapeChannel = supabase.channel(`scraped-leads-${session.user.id}`)
         .on('broadcast', { event: 'scrape-log' }, (payload) => {
            if (payload.payload && payload.payload.message) {
              setScraperLogs(prev => [...prev.slice(-49), payload.payload as ScraperLog]);
@@ -192,11 +194,13 @@ export const Dashboard = () => {
             setScraperLogs(logRes.data);
           }
         } catch(e) {}
-      }, 2000);
+      }, 5000); // Increase log poll interval
+
+      return scrapeChannel;
     });
 
     return () => { 
-      supabase.removeChannel(channel); 
+      clearInterval(pollInterval);
       if (logsInterval) clearInterval(logsInterval);
     };
   }, [selectedBusinessId]);

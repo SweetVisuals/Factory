@@ -153,8 +153,8 @@ const DashboardOverview = ({ selectedBusinessId = 'all', themeHue = 260 }: Dashb
 
   useEffect(() => {
     fetchOverviewData();
-    const channel = supabase.channel('dashboard-overview').on('postgres_changes', { event: '*', schema: 'public' }, () => fetchOverviewData()).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(fetchOverviewData, 30000);
+    return () => clearInterval(interval);
   }, [selectedBusinessId]);
 
   if (loading && activities.length === 0) {

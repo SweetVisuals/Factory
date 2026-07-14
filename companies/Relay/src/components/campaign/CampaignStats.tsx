@@ -160,40 +160,13 @@ const CampaignStats = ({ campaignId }: CampaignStatsProps) => {
 
     fetchStats();
 
-    // Realtime Subscriptions
-    const leadsChannel = supabase
-      .channel(`stats-leads-${campaignId}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'campaign_leads', 
-        filter: `campaign_id=eq.${campaignId}` 
-      }, () => fetchStats())
-      .subscribe();
-
-    const progressChannel = supabase
-      .channel(`stats-progress-${campaignId}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'campaign_progress', 
-        filter: `campaign_id=eq.${campaignId}` 
-      }, () => fetchStats())
-      .subscribe();
-
-    const inboxChannel = supabase
-      .channel(`stats-inbox-${campaignId}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'inbox_emails'
-      }, () => fetchStats())
-      .subscribe();
+    // Use polling instead of multiple postgres_changes subscriptions
+    const pollInterval = setInterval(() => {
+      fetchStats();
+    }, 15000); // Poll every 15 seconds
 
     return () => {
-      supabase.removeChannel(leadsChannel);
-      supabase.removeChannel(progressChannel);
-      supabase.removeChannel(inboxChannel);
+      clearInterval(pollInterval);
     };
   }, [campaignId]);
 

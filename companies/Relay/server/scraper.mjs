@@ -322,7 +322,7 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
             const consentBtn = await page.$('form[action*="consent"] button');
             if (consentBtn) {
                 await consentBtn.click();
-                await new Promise(r => setTimeout(r, 2000));
+                await new Promise(r => setTimeout(r, 5000));
             }
         } catch(e) {}
 
@@ -361,7 +361,7 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                 sameHeightCount = 0;
             }
             previousHeight = newHeight;
-            await new Promise(r => setTimeout(r, 1500));
+            await new Promise(r => setTimeout(r, 4000));
         }
 
         const places = await page.evaluate(() => {
@@ -388,7 +388,7 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
             log(`Clicking ${name} to get details...`);
             try {
                 await page.goto(place.url, { waitUntil: 'networkidle2', timeout: 15000 });
-                await new Promise(r => setTimeout(r, 1500));
+                await new Promise(r => setTimeout(r, 4000));
             } catch (navErr) {
                 log(`Navigation timeout for ${name}, trying to extract anyway...`);
             }
@@ -898,7 +898,7 @@ function fetchWithRateLimit(url, options, maxRetries = 3) {
             } catch (error) {
                 if (i === maxRetries) throw error;
                 log(`Network error: ${error.message}. Retrying... (Attempt ${i + 1}/${maxRetries})`);
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(resolve => setTimeout(resolve, 5000));
             }
         }
 
@@ -917,62 +917,13 @@ async function generateAISummary(text, notesContext = '', isDeepResearch = true)
 
         log(`GENERATE_AI_SUMMARY: Generating summary for text length: ${text.length}, deepResearch: ${isDeepResearch}`);
 
-        // DEEP RESEARCH PROMPT
-        let contextInstruction = '';
-        if (notesContext && notesContext.trim().length > 0) {
-            contextInstruction = `CRITICAL INSTRUCTION: The user specifically wants to know: "${notesContext}". YOU MUST ADDRESS THIS in a dedicated section titled "## 🎯 Response to Query" at the very beginning of your report. If the info is found, state it clearly. If not, state "Information not found".\n\n`;
-        }
+        // Return structured format WITHOUT AI as requested by user
+        let report = `## ⚡ Quick Summary\n(AI Summarization Disabled)\n\n## 🔬 Deep Research\n\n`;
+        report += text.substring(0, 5000); // include raw data directly
 
-        let systemPrompt = '';
-
-        if (isDeepResearch) {
-            systemPrompt = `You are an elite business intelligence researcher. 
-Your task is to write a short, punchy 2-3 sentence summary about the target company.
-
-${contextInstruction}Structure your response exactly as follows:
-
-## ⚡ Quick Summary
-(Write 2-3 concise sentences summarizing the company, its value proposition, and a specific operational bottleneck or manual process deduced from their website/tech stack, e.g., "Uses static contact forms for client bookings, likely requiring manual follow-ups" or "Relies on manual email attachments for file delivery").
-
-Tone: Professional, insightful, "Sherlock Holmes" style.
-Format: Markdown. DO NOT include a massive deep research report.`;
-        } else {
-            systemPrompt = `You are an AI assistant helping a user extract specific information from a company's website.
-
-${contextInstruction}Structure your response exactly as follows:
-
-## ⚡ Quick Summary
-(Write 1-2 concise sentences summarizing what the company does, and identify at least one key operational process or tech bottleneck, e.g. "Uses static contact forms, likely requiring manual booking data entry" or "Has an online booking flow but lacks CRM automation").
-
-(Do not include a massive executive summary or deep research report, as the user specifically disabled Deep Research for this query).
-
-Format: Markdown. Keep it direct and concise.`;
-        }
-
-        const data = await fetchAIChatCompletion({
-            model: 'deepseek-chat',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Here is the gathered data:\n\n${text.substring(0, 15000)}` }
-            ],
-            temperature: 0.3
-        }, log);
-        if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-            const content = data.choices[0].message.content.trim();
-            if (content.length < 10) throw new Error('AI returned empty/too short content');
-
-            // Validate headers
-            if (!content.includes('##')) {
-                // If AI decided to skip headers, force add them
-                return `## ⚡ Quick Summary\n${content.substring(0, 200)}...\n\n## 🔬 Deep Research\n${content}`;
-            }
-            return content;
-        }
-        throw new Error('No choices returned from API');
-
+        return report;
     } catch (e) {
-        console.error('AI Summary Generation Fatal Error:', e);
-        // Fallback that LOOKS like a summary so the UI doesn't show "No summary available"
+        console.error('Summary Generation Fatal Error:', e);
         return `## ⚡ Quick Summary\nAutomated research encountered an error: ${e.message}\n\n## 🔬 Deep Research\nCould not complete deep research due to an error.`;
     }
 }
@@ -1073,7 +1024,7 @@ async function scrapeWebsite(browser, url, log = console.log, notesContext = '',
                     });
 
                     if (accepted) {
-                        await new Promise(r => setTimeout(r, 1000));
+                        await new Promise(r => setTimeout(r, 3000));
                     }
                 } catch (e) { }
             };
@@ -1416,36 +1367,15 @@ export async function performDeepResearch(company, website, notesContext = '') {
             log(`Google search error: ${e.message}`);
         }
 
-        const systemPrompt = `You are an elite business intelligence researcher. 
-        Your task is to write a comprehensive "Deep Research" report (approx 600 words) about the target company.
-        
-        Focus Areas:
-        1. **Executive Summary**: What they do, their niche, their "vibe".
-        2. **Key People**: Identify CEO, Founders, or key roles if present in the data. *Crucial*: Try to find specific names.
-        3. **Social Presence**: Analyze their social media footprint (based on search results). What do they post? What do they like? Who is their audience?
-        4. **Business Data**: Briefly mention how we found them (Website, Search).
-        5. **Specific Observations**: Quirky details, specific "things they like" (e.g. they support a specific charity, they love coffee, they use specific tech).
-        
-        Tone: Professional but insightful. "Sherlock Holmes" style - deducing things from the data.
-        Format: Markdown. Use headers (##), bullet points, and bold text.
-        Length: Around 600 words. Be detailed.
-        
-        Input Data provided below (Website dumps + Google Search Snippets).`;
+        const report = `
+### Deep Research Report for ${company}
 
-        const data = await fetchAIChatCompletion({
-            model: 'deepseek-chat',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: aggregatedData }
-            ],
-            temperature: 0.7
-        }, log);
-        if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-            return data.choices[0].message.content;
-        } else {
-            throw new Error('No response from AI');
-        }
+**1. Executive Summary & Website Data**
+${aggregatedData}
 
+*Note: This data was collected automatically via the deep research scraper.*
+`;
+        return report;
     } catch (e) {
         log(`Deep Research Error: ${e.message}`);
         return `Failed to perform deep research: ${e.message}`;

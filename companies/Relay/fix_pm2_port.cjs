@@ -4,7 +4,7 @@ const conn = new Client();
 conn.on('ready', () => {
   const cmds = [
     'pm2 delete relay-backend',
-    'PORT=3000 pm2 start /root/Factory/companies/Relay/server/index.mjs --name relay-backend --max-memory-restart 3500M --node-args="--max-old-space-size=3500"',
+    'PORT=3000 pm2 start /root/Factory/companies/Relay/server/index.mjs --name relay-backend --max-memory-restart 1G --node-args="--max-old-space-size=1000"',
     'pm2 save'
   ].join(' && ');
 
