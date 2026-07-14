@@ -40,12 +40,11 @@ const UsageItem = ({
             Upgrade
           </button>
         ) : (
-          <div className="w-6 h-6 rounded-full border-[3px] rotate-45 transition-all duration-500" 
+          <div className={`w-6 h-6 rounded-full border-[3px] rotate-45 transition-all duration-500 ${ringColor}`} 
                style={{ 
                  borderColor: percentage !== undefined && percentage > 0 ? undefined : 'rgba(255,255,255,0.05)',
                  borderTopColor: percentage !== undefined && percentage > 0 ? 'transparent' : 'rgba(255,255,255,0.05)'
                }}
-               className={`w-6 h-6 rounded-full border-[3px] rotate-45 ${ringColor}`}
           />
         )}
       </div>

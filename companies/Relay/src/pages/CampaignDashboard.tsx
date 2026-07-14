@@ -94,17 +94,18 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
     const { data: schedules, error } = await supabase
       .from('scheduled_emails')
       .select('*')
-      .eq('campaign_id', campaign.id);
+      .eq('campaign_id', campaign.id)
+      .eq('status', 'scheduled');
 
     if (!error && schedules && schedules.length > 0) {
       setHasScheduledEntries(true);
-      if (campaign.status === 'Draft') {
+      if (campaign.status?.toLowerCase() === 'draft') {
         updateCampaign(campaign.id, { status: 'in_progress' });
       }
     } else {
       setHasScheduledEntries(false);
-      if (campaign.status === 'in_progress') {
-        updateCampaign(campaign.id, { status: 'Draft' });
+      if (campaign.status?.toLowerCase() === 'in_progress') {
+        updateCampaign(campaign.id, { status: 'draft' });
       }
     }
   };

@@ -33,17 +33,21 @@ export function transformDbCampaignToFrontend(dbCampaign: any): Campaign {
 }
 
 export function transformFrontendCampaignToDb(campaign: Partial<Campaign>): Partial<DbCampaign> {
-  const { replyRate, prospects, replies, objective, ...rest } = campaign;
+  const dbCampaign: Partial<any> = {};
+
+  if (campaign.id !== undefined) dbCampaign.id = campaign.id;
+  if (campaign.name !== undefined) dbCampaign.name = campaign.name;
+  if (campaign.status !== undefined) dbCampaign.status = campaign.status.toLowerCase();
+  if (campaign.niche !== undefined) dbCampaign.niche = campaign.niche;
+  if (campaign.schedule !== undefined) dbCampaign.schedule = campaign.schedule;
+  if (campaign.pitch !== undefined) dbCampaign.pitch = campaign.pitch;
   
-  return {
-    ...rest,
-    open_rate: 0, // open_rate no longer updated from frontend
-    prospects: prospects ? parseInt(prospects, 10) : 0,
-    replies: replies ? parseInt(replies, 10) : 0,
-    company_name: campaign.company_name,
-    contact_number: campaign.contact_number,
-    primary_email: campaign.primary_email,
-    pitch: campaign.pitch,
-    objective: objective
-  };
+  if (campaign.prospects !== undefined) {
+    dbCampaign.prospects = parseInt(campaign.prospects, 10);
+  }
+  if (campaign.replies !== undefined) {
+    dbCampaign.replies = parseInt(campaign.replies, 10);
+  }
+
+  return dbCampaign;
 }
