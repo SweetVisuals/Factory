@@ -62,6 +62,49 @@ const supabase = (supabaseUrl && supabaseServiceKey)
     ? createClient(supabaseUrl, supabaseKey)
     : null;
 
+const originalLog = console.log;
+const originalError = console.error;
+
+if (supabase) {
+  console.log = function (...args) {
+    originalLog.apply(console, args);
+    const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+    
+    // Auto-stream cron scheduler, email flow, and scrape events to db
+    if (
+      msg.startsWith('[') || 
+      msg.toLowerCase().includes('cron') || 
+      msg.toLowerCase().includes('scheduler') ||
+      msg.toLowerCase().includes('emailer') ||
+      msg.toLowerCase().includes('bounce') ||
+      msg.toLowerCase().includes('sync') ||
+      msg.toLowerCase().includes('research') ||
+      msg.toLowerCase().includes('processing')
+    ) {
+      supabase.from('debug_logs').insert({
+        level: 'info',
+        message: msg,
+        context: {}
+      }).then(({ error }) => {
+        if (error) originalError('[Logger error] Failed to insert log to DB:', error.message);
+      });
+    }
+  };
+
+  console.error = function (...args) {
+    originalError.apply(console, args);
+    const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+    
+    supabase.from('debug_logs').insert({
+      level: 'error',
+      message: msg,
+      context: {}
+    }).then(({ error }) => {
+      if (error) originalLog('[Logger error] Failed to insert error log to DB:', error.message);
+    });
+  };
+}
+
 const app = express();
 app.use(express.json());
 
