@@ -103,7 +103,7 @@ async function runScraperScheduler() {
                 location = isUS ? 'United States' : 'United Kingdom';
             }
 
-            console.log(`[Scraper Scheduler] Feeding campaign "${c.name}" — current leads: ${count}, requesting 500 more`);
+            console.log(`[Scraper Scheduler] Feeding campaign "${c.name}" — current leads: ${count}, requesting 20 more (controlled pace)`);
 
             try {
                 // Trigger Node.js scraper endpoint using the local loopback
@@ -116,10 +116,10 @@ async function runScraperScheduler() {
                     body: JSON.stringify({
                         business: niche,
                         location: location,
-                        limit: 250,
+                        limit: 20, // Heavily throttled - batch limit of 20 for controlled pacing
                         campaignId: c.id,
                         keywords: niche,
-                        deepResearch: false // Rely on regex fast-mode
+                        deepResearch: true // Force all new leads into deep research queue
                     })
                 });
 

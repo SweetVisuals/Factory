@@ -80,8 +80,10 @@ async function fetchWithTimeout(url, options, timeoutMs = 15000) {
 }
 
 /**
- * Robust AI chat completion with fallback to OpenRouter key cycling and free models.
- * Matches the interface of the OpenAI / DeepSeek completions API.
+ * Groq-only AI chat completion with multi-model retry chain:
+ * Llama 3.3 70B → Llama 3.1 8B → Mixtral
+ * 
+ * Retries each model with backoff. Does NOT fallback to other providers.
  * 
  * @param {object} params OpenAI-style chat completion params (messages, temperature, response_format, etc.)
  * @param {function} log Optional logger function
@@ -92,29 +94,29 @@ export async function fetchAIChatCompletion(params, log = console.log) {
     messages,
     temperature = 1.0,
     response_format,
-    model = 'openrouter/owl-alpha'
+    model = 'llama-3.3-70b-versatile'
   } = params;
 
-  // 0. Try Groq First if it's a Llama model or Groq key is present
   const groqKey = process.env.GROQ_API_KEY;
-  const isGroqModel = model.includes('llama') || model.includes('mixtral') || model.includes('gemma');
+  if (!groqKey) {
+    throw new Error('[AI-Client] GROQ_API_KEY is not configured. Cannot proceed without Groq.');
+  }
+
+  const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
   
-  if (groqKey && isGroqModel) {
-    let groqModel = model;
-    // Map standard names to Groq-specific ones if necessary
-    if (model === 'google/gemma-2-9b-it:free' || model === 'gemma-2-9b-it') groqModel = 'gemma2-9b-it';
-    if (model.includes('llama-3-8b')) groqModel = 'llama-3.1-8b-instant';
-    if (model.includes('llama-3.3-70b')) groqModel = 'llama-3.3-70b-versatile';
-    
-    log(`[AI-Client] Attempting Groq for model: ${groqModel}...`);
+  // Groq model fallback chain: Llama 3.3 70B (best) → Llama 3.1 8B (fast) → Mixtral (fallback)
+  const GROQ_MODEL_CHAIN = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+  
+  for (const groqModel of GROQ_MODEL_CHAIN) {
+    log(`[AI-Client] Attempting Groq model: ${groqModel}...`);
     
     let retries = 0;
-    const maxRetries = 3;
+    const maxRetries = 3; // Increased retries since we only have Groq
     let success = false;
     
     while (retries <= maxRetries && !success) {
       try {
-        const result = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
+        const result = await fetchWithTimeout(GROQ_BASE, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -126,265 +128,41 @@ export async function fetchAIChatCompletion(params, log = console.log) {
             messages,
             ...(response_format ? { response_format } : {})
           })
-        }, 15000);
+        }, 30000); // Increased timeout to 30s
 
         if (result.ok) {
           const data = result.body;
           if (data && !data.error) {
-            log(`[AI-Client] Groq success using ${groqModel}!`);
+            log(`[AI-Client] ✅ Groq success using ${groqModel}!`);
             return data;
           } else {
-            log(`[AI-Client] Groq API error: ${JSON.stringify(data?.error)}`);
-            break; // Don't retry on non-rate-limit errors
+            log(`[AI-Client] Groq API error on ${groqModel}: ${JSON.stringify(data?.error)}`);
+            break; // Don't retry on non-rate-limit errors for this model
           }
         } else {
-          log(`[AI-Client] Groq request failed (Status ${result.status}): ${typeof result.body === 'string' ? result.body : JSON.stringify(result.body)}`);
+          log(`[AI-Client] Groq ${groqModel} failed (Status ${result.status}): ${typeof result.body === 'string' ? result.body : JSON.stringify(result.body)}`);
           if (result.status === 429) {
             retries++;
             if (retries <= maxRetries) {
-               const backoffMs = 2000 * retries;
-               log(`[AI-Client] Groq rate limited. Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
-               await new Promise(r => setTimeout(r, backoffMs));
-               continue;
+              const backoffMs = 3000 * retries; // Exponential backoff: 3s, 6s, 9s
+              log(`[AI-Client] Groq rate limited. Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
+              await new Promise(r => setTimeout(r, backoffMs));
+              continue;
             }
           }
           break;
         }
       } catch (err) {
-        log(`[AI-Client] Groq network exception or timeout: ${err.message}`);
+        log(`[AI-Client] Groq ${groqModel} exception: ${err.message}`);
         retries++;
         if (retries <= maxRetries) {
-           await new Promise(r => setTimeout(r, 2000));
+          const backoffMs = 3000 * retries;
+          log(`[AI-Client] Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
+          await new Promise(r => setTimeout(r, backoffMs));
         }
       }
     }
   }
 
-  // 1. Load OpenRouter keys and try OpenRouter Next
-  const openRouterKeys = loadOpenRouterKeys();
-  const openRouterModel = model.includes('deepseek') ? 'openrouter/owl-alpha' : model;
-
-  // Check if DeepSeek is disabled in admin settings
-  let deepseekDisabled = false;
-  if (supabaseClient) {
-    try {
-      const { data } = await supabaseClient
-        .from('api_keys')
-        .select('key_value')
-        .eq('service', 'disable_deepseek')
-        .maybeSingle();
-      if (data && data.key_value === 'true') {
-        deepseekDisabled = true;
-      }
-    } catch (err) {
-      log(`[AI-Client] Error checking DeepSeek setting: ${err.message}`);
-    }
-  }
-
-  log(`[AI-Client] Loaded ${openRouterKeys.length} OpenRouter API keys.`);
-  log(`[AI-Client] Attempting primary model: ${openRouterModel} via OpenRouter...`);
-
-  // Cycle through each API Key for this model on OpenRouter
-  for (let i = 0; i < openRouterKeys.length; i++) {
-    const apiKey = openRouterKeys[i];
-    const keySnippet = `${apiKey.substring(0, 12)}...${apiKey.substring(apiKey.length - 8)}`;
-
-    const cooldownTime = keyCooldowns.get(apiKey);
-    if (cooldownTime && Date.now() < cooldownTime) {
-      const remaining = Math.round((cooldownTime - Date.now()) / 1000);
-      log(`[AI-Client] Skipping Key ${i + 1}/${openRouterKeys.length} (${keySnippet}) (on cooldown for another ${remaining}s)`);
-      continue;
-    }
-
-    log(`[AI-Client] Trying Key ${i + 1}/${openRouterKeys.length} (${keySnippet}) for ${openRouterModel} (with 15s timeout)...`);
-
-    try {
-      const result = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://github.com/Openclaw-Factory',
-          'X-Title': 'ColdSpark'
-        },
-        body: JSON.stringify({
-          model: openRouterModel,
-          temperature,
-          messages,
-          ...(response_format ? { response_format } : {})
-        })
-      }, 15000);
-
-      if (result.ok) {
-        const data = result.body;
-        if (data && !data.error) {
-          log(`[AI-Client] OpenRouter success using ${openRouterModel} with Key ${i + 1}!`);
-          return data;
-        } else {
-          const innerError = data?.error?.message || JSON.stringify(data?.error);
-          log(`[AI-Client] OpenRouter Key ${i + 1} responded with API error: ${innerError}`);
-          keyCooldowns.set(apiKey, Date.now() + KEY_COOLDOWN_MS);
-        }
-      } else {
-        const errorText = typeof result.body === 'string' ? result.body : JSON.stringify(result.body);
-        log(`[AI-Client] OpenRouter Key ${i + 1} request failed (Status ${result.status}): ${errorText}`);
-        keyCooldowns.set(apiKey, Date.now() + KEY_COOLDOWN_MS);
-      }
-    } catch (err) {
-      log(`[AI-Client] OpenRouter Key ${i + 1} network exception or timeout: ${err.message}`);
-      keyCooldowns.set(apiKey, Date.now() + KEY_COOLDOWN_MS);
-    }
-
-    log(`[AI-Client] Key ${i + 1} failed or hit limits. Cycling to the next key...`);
-  }
-
-  log(`[AI-Client] All OpenRouter keys exhausted or limited for model ${openRouterModel}. Falling back to DeepSeek...`);
-
-  // 2. Try DeepSeek (Fallback)
-  if (deepseekDisabled) {
-    log(`[AI-Client] DeepSeek model is disabled by admin setting. Skipping direct DeepSeek fallback...`);
-  } else {
-    const deepseekKey = process.env.DEEPSEEK_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
-    const deepseekUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
-    const deepseekModel = model.includes('deepseek') ? model : 'deepseek-chat';
-
-    log(`[AI-Client] Attempting fallback model: ${deepseekModel} via DeepSeek (with 15s timeout)...`);
-    try {
-      const result = await fetchWithTimeout(`${deepseekUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${deepseekKey}`
-        },
-        body: JSON.stringify({
-          model: deepseekModel,
-          temperature,
-          messages,
-          ...(response_format ? { response_format } : {})
-        })
-      }, 15000);
-
-      const isOutOfCredits = result.status === 402;
-      let data = result.ok ? result.body : null;
-
-      if (result.ok) {
-        if (data && !data.error) {
-          log(`[AI-Client] Fallback DeepSeek call succeeded.`);
-          
-          if (supabaseClient) {
-            try {
-              const balRes = await fetch('https://api.deepseek.com/user/balance', {
-                 headers: { 'Authorization': `Bearer ${deepseekKey}` }
-              });
-              if (balRes.ok) {
-                 const balData = await balRes.json();
-                 if (balData && balData.balance_infos && balData.balance_infos.length > 0) {
-                    let realBalance = parseFloat(balData.balance_infos[0].total_balance);
-                    await supabaseClient.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance: realBalance } }, { onConflict: 'key_name' });
-                    
-                    if (realBalance <= 0) {
-                       log(`[AI-Client] DeepSeek credit depletion detected! (Balance: ${realBalance})`);
-                       await supabaseClient.from('agent_memory').upsert({ key_name: 'factory_status', value: { status: 'paused', reason: 'insufficient_credits' } }, { onConflict: 'key_name' });
-                    }
-                 }
-              }
-            } catch (err) {
-              log(`[AI-Client] Error syncing DeepSeek balance: ${err.message}`);
-            }
-          }
-
-          return data;
-        }
-      }
-
-      // If we didn't return, parse error information if available
-      let errorMsg = `HTTP Error ${result.status}`;
-      try {
-        const errData = result.body;
-        if (errData?.error?.message) errorMsg = errData.error.message;
-        else if (typeof errData === 'string') errorMsg = errData;
-      } catch (_) {}
-
-      log(`[AI-Client] DeepSeek failed: ${errorMsg}. Status: ${result.status}`);
-
-      const isCreditError = isOutOfCredits || 
-        errorMsg.toLowerCase().includes('balance') || 
-        errorMsg.toLowerCase().includes('credit') || 
-        errorMsg.toLowerCase().includes('payment') || 
-        errorMsg.toLowerCase().includes('quota');
-
-      if (isCreditError) {
-        log(`[AI-Client] DeepSeek credit depletion detected!`);
-      }
-
-    } catch (error) {
-      log(`[AI-Client] DeepSeek network/runtime failure or timeout: ${error.message}.`);
-    }
-  }
-
-  log(`[AI-Client] DeepSeek failed. Trying other OpenRouter free models as a last resort fallback...`);
-
-  // 3. OpenRouter Free Models Last Resort Fallback Logic
-  for (const routerModel of OPENROUTER_MODELS) {
-    if (routerModel === openRouterModel) continue; // Skip since we already tried it
-    log(`[AI-Client] Trying OpenRouter model: ${routerModel}`);
-
-    // Cycle through each API Key for this model
-    for (let i = 0; i < openRouterKeys.length; i++) {
-      const apiKey = openRouterKeys[i];
-      const keySnippet = `${apiKey.substring(0, 12)}...${apiKey.substring(apiKey.length - 8)}`;
-
-      const cooldownTime = keyCooldowns.get(apiKey);
-      if (cooldownTime && Date.now() < cooldownTime) {
-        const remaining = Math.round((cooldownTime - Date.now()) / 1000);
-        log(`[AI-Client] Skipping Key ${i + 1}/${openRouterKeys.length} (${keySnippet}) (on cooldown for another ${remaining}s)`);
-        continue;
-      }
-
-      log(`[AI-Client] Trying Key ${i + 1}/${openRouterKeys.length} (${keySnippet}) for ${routerModel} (with 15s timeout)...`);
-
-      try {
-        const result = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'https://github.com/Openclaw-Factory',
-            'X-Title': 'ColdSpark'
-          },
-          body: JSON.stringify({
-            model: routerModel,
-            temperature,
-            messages,
-            ...(response_format ? { response_format } : {})
-          })
-        }, 15000);
-
-        if (result.ok) {
-          const data = result.body;
-          if (data && !data.error) {
-            log(`[AI-Client] OpenRouter success using ${routerModel} with Key ${i + 1}!`);
-            return data;
-          } else {
-            const innerError = data?.error?.message || JSON.stringify(data?.error);
-            log(`[AI-Client] OpenRouter Key ${i + 1} responded with API error: ${innerError}`);
-            keyCooldowns.set(apiKey, Date.now() + KEY_COOLDOWN_MS);
-          }
-        } else {
-          const errorText = typeof result.body === 'string' ? result.body : JSON.stringify(result.body);
-          log(`[AI-Client] OpenRouter Key ${i + 1} request failed (Status ${result.status}): ${errorText}`);
-          keyCooldowns.set(apiKey, Date.now() + KEY_COOLDOWN_MS);
-        }
-      } catch (err) {
-        log(`[AI-Client] OpenRouter Key ${i + 1} network exception or timeout: ${err.message}`);
-        keyCooldowns.set(apiKey, Date.now() + KEY_COOLDOWN_MS);
-      }
-
-      log(`[AI-Client] Key ${i + 1} failed or hit limits. Cycling to the next key...`);
-    }
-
-    log(`[AI-Client] All keys exhausted or limited for model ${routerModel}. Trying next free model...`);
-  }
-
-  throw new Error('[AI-Client] All AI providers, models, and keys have been exhausted and failed.');
+  throw new Error('[AI-Client] All Groq models exhausted after retries. Please try again later.');
 }

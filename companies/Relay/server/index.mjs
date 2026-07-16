@@ -27,6 +27,7 @@ import { scrapeLeadsNoPuppeteer } from './scraper_http.mjs';
 import { startCompaniesHouseCron } from './companies_house_cron.mjs';
 import { startAutoAssignCron } from './auto_assign_cron.mjs';
 import { startScraperSchedulerCron } from './scraper_scheduler_cron.mjs';
+import { startResearchCron } from './research_cron.mjs';
 import { startEmailerCron } from './emailer_cron.mjs';
 import { startBounceProcessorCron } from './bounce_processor_cron.mjs';
 import { startSyncEmailsCron } from './sync_emails_cron.mjs';
@@ -3366,6 +3367,8 @@ if (process.env.ENABLE_CRONS !== 'false') {
   startEmailerCron();
   startBounceProcessorCron();
   startSyncEmailsCron();
+  startResearchCron(); // Research cron always runs - processes deep research queue
+  console.log('[SYSTEM] Research cron started - processing deep research queue...');
 } else {
   console.log('[SYSTEM] Background services (crons) are DISABLED via ENABLE_CRONS=false.');
 }

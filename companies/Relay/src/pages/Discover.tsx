@@ -39,6 +39,7 @@ const Discover: React.FC = () => {
   const [companyFilter, setCompanyFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [requireFullProfile, setRequireFullProfile] = useState(false);
+  const [researchFilter, setResearchFilter] = useState('all'); // 'all', 'completed', 'pending', 'failed'
 
   // Debounced
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -150,6 +151,15 @@ const Discover: React.FC = () => {
       } else {
         query = query.neq('validation_status', 'invalid');
         query = query.neq('status', 'bounced');
+      }
+
+      // Deep Research Filter - only show leads that have passed deep research
+      if (researchFilter === 'completed') {
+        query = query.eq('research_status', 'completed').not('summary', 'is', null).neq('summary', '');
+      } else if (researchFilter === 'pending') {
+        query = query.or('research_status.is.null,research_status.neq.completed');
+      } else if (researchFilter === 'failed') {
+        query = query.in('research_status', ['failed', 'incomplete', 'error']);
       }
 
       if (requireFullProfile) {

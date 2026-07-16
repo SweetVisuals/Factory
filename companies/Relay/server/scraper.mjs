@@ -918,7 +918,7 @@ function fetchWithRateLimit(url, options, maxRetries = 3) {
     })();
 }
 
-// Helper: Generate AI Summary with strict Deep Research format
+// Helper: Generate AI Summary with Deep Research - Enhanced Investigative Journalist Prompt
 async function generateAISummary(text, notesContext = '', isDeepResearch = true) {
     const log = console.log;
     try {
@@ -929,33 +929,63 @@ async function generateAISummary(text, notesContext = '', isDeepResearch = true)
 
         log(`GENERATE_AI_SUMMARY: Generating summary for text length: ${text.length}, deepResearch: ${isDeepResearch}`);
 
-        // Use AI to generate a high quality summary
-        const prompt = `You are a B2B sales intelligence agent. Analyze the following scraped web data for a company.
-Your goal is to extract a "Deep Dive Summary" and a highly personalized "Conversation Starter" for a cold email.
+        // Use AI to generate a high quality summary - Investigative Journalist mode
+        const prompt = `You are an elite investigative business intelligence journalist. Your task is to produce a comprehensive "Deep Dive" business analysis report on the target company based on the scraped web data below.
 
 CRITICAL INSTRUCTIONS:
-1. Pay special attention to the [EXTERNAL_INTEL_SOCIAL] section. Summarize their social media presence, recent reviews, or public perception.
-2. The conversation starter should be 1-2 sentences, curiosity-driven, and reference a specific detail from their website or social media.
+1. Act as a detective analyzing the company's digital footprint.
+2. Identify their **niche specialization** — exactly what makes them unique in their market.
+3. Identify **conversion flaws** and UX issues — what's missing or suboptimal on their website.
+4. Analyze **revenue levers** — how they make money and how they could optimize.
+5. Provide **ROI projections** — estimate potential value from automation/optimization.
+6. Pay special attention to the [EXTERNAL_INTEL_SOCIAL] section. Summarize their social media presence, recent reviews, or public perception.
+7. The conversation starter should be 1-2 sentences, curiosity-driven, and reference a specific detail from their website or social media.
 
 RAW DATA:
-${text.substring(0, 10000)}
+${text.substring(0, 12000)}
 
 Format your response EXACTLY as follows (using markdown):
-## ⚡ Deep Dive Summary
-[Your 2-3 paragraph summary focusing on their business model, target audience, and social media presence]
 
-## 🔬 Conversation Starter
-> "[Your conversation starter]"`;
+## ⚡ Quick Summary
+[2-3 concise sentences summarizing the company and its key value proposition]
+
+## 🔬 Deep Research
+
+### 🎯 Niche & Market Analysis
+[Their specific niche, target market, competitive positioning]
+
+### 🔍 Website Flaws & UX Issues
+[Specific issues found: slow loading, missing CTAs, poor mobile experience, confusing navigation, etc.]
+
+### 💰 Revenue Levers & Growth Opportunities
+[How they make money, opportunities for optimization, cross-sell/upsell potential]
+
+### 📈 ROI Projections
+[Estimated potential value from automation or optimization efforts]
+
+### 💬 Conversation Starter
+> "[Your curiosity-driven conversation starter referencing a specific detail]"`;
 
         try {
             const aiRes = await fetchAIChatCompletion({
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,
-                model: 'llama-3.1-8b-instant' // Using Groq high-volume model
+                model: 'llama-3.3-70b-versatile' // Using advanced Llama model for deep research
             });
             
             if (aiRes && aiRes.choices && aiRes.choices[0]) {
-                return aiRes.choices[0].message.content;
+                const content = aiRes.choices[0].message.content;
+                // Validate that the deep dive contains required sections
+                const hasNicheSection = content.includes('Niche') || content.includes('Market');
+                const hasGrowthSection = content.includes('Growth') || content.includes('Revenue');
+                const hasROISection = content.includes('ROI') || content.includes('Projection');
+                
+                if (isDeepResearch && (!hasNicheSection || !hasGrowthSection || !hasROISection)) {
+                    log('GENERATE_AI_SUMMARY: Deep dive missing required sections, marking as incomplete.');
+                    return content + '\n\n⚠️ **Research Note**: This report may be incomplete. Critical sections (Niche Analysis, Growth Opportunities, or ROI Projections) were not fully generated.';
+                }
+                
+                return content;
             }
         } catch (aiErr) {
             log(`AI API failed: ${aiErr.message}`);
