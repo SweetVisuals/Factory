@@ -484,17 +484,6 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                       </td>
                       <td className="px-6 py-5 text-right pr-10">
                         <div className="flex items-center justify-end gap-2">
-                          {/* View Button */}
-                          <button
-                            onClick={() => setActiveSummaryLead(lead)}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 border",
-                              "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border-muted"
-                            )}
-                          >
-                            View <ChevronRight className="w-3 h-3" />
-                          </button>
-
                           {/* Social Media Icons */}
                           <div className="flex items-center gap-1">
                             {lead.linkedin && (
@@ -518,6 +507,17 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                               </a>
                             )}
                           </div>
+
+                          {/* View Button - Always on the right */}
+                          <button
+                            onClick={() => setActiveSummaryLead(lead)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ml-auto",
+                              "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border-muted"
+                            )}
+                          >
+                            View <ChevronRight className="w-3 h-3" />
+                          </button>
                         </div>
                       </td>
                     </tr>
