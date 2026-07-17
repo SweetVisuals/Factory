@@ -487,10 +487,12 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                           {/* View Button */}
                           <button
                             onClick={() => setActiveSummaryLead(lead)}
-                            className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"
-                            title="View Details"
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 border",
+                              "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border-muted"
+                            )}
                           >
-                            <Eye size={14} />
+                            View <ChevronRight className="w-3 h-3" />
                           </button>
 
                           {/* Social Media Icons */}
