@@ -207,7 +207,9 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
   };
 
   const filteredLeads = leads.filter((lead) =>
-    Object.values(lead).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase()))
+    Object.values(lead).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase())) ||
+    lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lead.website?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE);
@@ -513,33 +515,7 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                                 <Instagram size={12} />
                               </a>
                             )}
-                            {lead.website && (
-                              <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="Website">
-                                <Globe size={12} />
-                              </a>
-                            )}
                           </div>
-
-                          {/* Deep Research Button */}
-                          <button
-                            onClick={() => setActiveSummaryLead(lead)}
-                            className={cn(
-                              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
-                              hasSummary ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                            )}
-                            title={hasSummary ? "View Research" : "Run Deep Research"}
-                          >
-                            <BrainCircuit size={14} />
-                          </button>
-
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => handleDeleteLead(lead.id)}
-                            disabled={deletingId === lead.id}
-                            className="w-8 h-8 rounded-lg bg-transparent hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all flex items-center justify-center"
-                          >
-                            {deletingId === lead.id ? <RefreshCw size={14} className="animate-spin" /> : <Trash size={14} />}
-                          </button>
                         </div>
                       </td>
                     </tr>
