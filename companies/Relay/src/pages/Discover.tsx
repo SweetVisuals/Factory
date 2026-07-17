@@ -687,13 +687,25 @@ const Discover: React.FC = () => {
                   </div>
                 )}
 
-                {/* Summary */}
+                {/* Deep Research */}
                 {selectedLeadPanel.summary && (
                   <div className="space-y-4">
-                    <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Summary</h4>
-                    <p className="text-xs leading-relaxed text-white/60 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Deep Research</h4>
+                      {selectedLeadPanel.research_status && (
+                        <span className={cn(
+                          "text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full",
+                          selectedLeadPanel.research_status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
+                          selectedLeadPanel.research_status === 'error' ? 'bg-rose-500/10 text-rose-400' :
+                          'bg-amber-500/10 text-amber-400'
+                        )}>
+                          {selectedLeadPanel.research_status}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs leading-relaxed text-white/60 p-4 rounded-xl bg-white/[0.02] border border-white/5 whitespace-pre-wrap">
                       {selectedLeadPanel.summary}
-                    </p>
+                    </div>
                   </div>
                 )}
 
