@@ -2,9 +2,9 @@ import { DbCampaign } from '../../types/database.js';
 import { Campaign } from '../../types/index.js';
 
 export function transformDbCampaignToFrontend(dbCampaign: any): Campaign {
-  const prospectsCount = dbCampaign.actual_prospects || 0;
-  const repliesCount = dbCampaign.actual_replies || 0;
-  const sentCount = dbCampaign.actual_sent || 0;
+  const prospectsCount = typeof dbCampaign.prospects === 'number' ? dbCampaign.prospects : parseInt(dbCampaign.prospects) || 0;
+  const repliesCount = typeof dbCampaign.replies === 'number' ? dbCampaign.replies : parseInt(dbCampaign.replies) || 0;
+  const sentCount = typeof dbCampaign.actual_sent === 'number' ? dbCampaign.actual_sent : parseInt(dbCampaign.sent) || 0;
   
   const rate = prospectsCount > 0 
     ? Math.round((repliesCount / prospectsCount) * 100) 

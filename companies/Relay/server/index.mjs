@@ -1480,9 +1480,106 @@ app.post('/api/scrape-leads', async (req, res) => {
     let totalLeadsInThisRun = 0;
 
     const onResult = async (lead) => {
-      // We no longer discard leads without emails here to prevent endless API usage.
-      // Leads without emails will be saved and skipped by the email engine later.
+      // DEEP RESEARCH BEFORE SAVE: Run AI research synchronously before saving to DB.
+      // This ensures every lead in the database has completed deep research.
+      let researchSummary = lead.summary || '';
+      let researchStatus = lead.research_status || null;
+      const hasEmail = lead.email && lead.email.trim() !== '';
+      
+      if (deepResearch && !researchSummary) {
+        try {
+          log(`[Deep Research] Running synchronous AI research for ${lead.company || lead.name}...`);
+          const companyName = lead.company || lead.name || 'Unknown Company';
+          const website = lead.website || '';
+          
+          // Build aggregated data from the lead
+          const aggregatedData = `
+Company: ${companyName}
+Website: ${website || 'N/A'}
+Location: ${lead.location || 'N/A'}
+Email: ${lead.email || 'N/A'}
+Phone: ${lead.phone || 'N/A'}
+Source: ${lead.source || 'scraped'}
+Role: ${lead.role || 'N/A'}
+Social: LinkedIn=${lead.linkedin || ''} Facebook=${lead.facebook || ''} Twitter=${lead.twitter || ''} Instagram=${lead.instagram || ''}
+`;
 
+          // Use fetchAIChatCompletion directly (already imported via ai-client.mjs)
+          const prompt = `You are an elite investigative business intelligence journalist. Your task is to produce a comprehensive "Deep Dive" business analysis report on the target company based on the data below.
+
+**Target Company**: ${companyName}
+${website ? `**Website**: ${website}` : ''}
+**Location**: ${lead.location || 'N/A'}
+
+RAW DATA:
+${aggregatedData}
+
+CRITICAL INSTRUCTIONS:
+1. Act as a detective analyzing the company's digital footprint.
+2. Identify their **niche specialization** — exactly what makes them unique in their market.
+3. Identify **conversion flaws** and potential UX issues based on the data available.
+4. Analyze **revenue levers** — how they make money and how they could optimize.
+5. Provide **ROI projections** — estimate potential value from automation/optimization.
+6. The conversation starter should be 1-2 sentences, curiosity-driven.
+
+Format your response EXACTLY as follows (using markdown):
+
+## ⚡ Quick Summary
+[2-3 concise sentences summarizing the company and its key value proposition]
+
+## 🔬 Deep Research
+
+### 🎯 Niche & Market Analysis
+[Their specific niche, target market, competitive positioning]
+
+### 🔍 Website Flaws & UX Issues
+[Any observations about their digital presence or potential areas for improvement]
+
+### 💰 Revenue Levers & Growth Opportunities
+[How they make money, opportunities for optimization, cross-sell/upsell potential]
+
+### 📈 ROI Projections
+[Estimated potential value from automation or optimization efforts]
+
+### 💬 Conversation Starter
+> "[Your curiosity-driven conversation starter referencing a specific detail]"`;
+
+          const aiRes = await fetchAIChatCompletion({
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+            model: 'llama-3.3-70b-versatile'
+          }, log);
+
+          if (aiRes && aiRes.choices && aiRes.choices[0]) {
+            const content = aiRes.choices[0].message.content;
+            
+            // Validate deep dive quality
+            const hasNicheSection = content.includes('Niche') || content.includes('Market Analysis');
+            const hasGrowthSection = content.includes('Growth') || content.includes('Revenue');
+            const hasROISection = content.includes('ROI') || content.includes('Projection');
+            const hasQuickSummary = content.includes('Quick Summary');
+            
+            const isSuccessful = hasQuickSummary && hasNicheSection && hasGrowthSection && hasROISection;
+            
+            if (isSuccessful) {
+              researchSummary = content;
+              researchStatus = 'completed';
+              log(`[Deep Research] ✅ Research complete for ${companyName}`);
+            } else {
+              researchSummary = content;
+              researchStatus = 'incomplete';
+              log(`[Deep Research] ⚠️ Research incomplete for ${companyName} - missing required sections`);
+            }
+          } else {
+            researchStatus = 'failed';
+            log(`[Deep Research] ❌ AI call failed for ${companyName}`);
+          }
+        } catch (err) {
+          log(`[Deep Research] ❌ Error during research for ${lead.company}: ${err.message}`);
+          researchStatus = 'error';
+        }
+      }
+      
       // REGIONAL INTEGRITY FILTER: Prevent international "leaks" for US-focused campaigns
       const isUsTarget = countryCode === 'US' || 
                          (location && /usa|united states|,\s*us$|,\s*tx$|,\s*ca$|,\s*ny$|,\s*fl$|,\s*il$|,\s*pa$|,\s*oh$|,\s*ga$|,\s*nc$|,\s*mi$|,\s*nj$|,\s*va$|,\s*wa$|,\s*az$|,\s*ma$|,\s*tn$|,\s*in$|,\s*mo$|,\s*md$|,\s*wi$|,\s*co$|,\s*mn$|,\s*sc$|,\s*al$|,\s*la$|,\s*ky$|,\s*or$|,\s*ok$|,\s*ct$|,\s*ut$|,\s*ia$|,\s*nv$|,\s*ar$|,\s*ms$|,\s*ks$|,\s*nm$|,\s*ne$|,\s*id$|,\s*wv$|,\s*nh$|,\s*me$|,\s*mt$|,\s*ri$|,\s*sd$|,\s*nd$|,\s*vt$|,\s*ak$|,\s*hi$/i.test(location.trim()));
@@ -1556,6 +1653,10 @@ app.post('/api/scrape-leads', async (req, res) => {
           });
         }
 
+        // Mark leads without email as invalid so they are filtered out
+        const validationStatus = !hasEmail ? 'invalid' : (lead.validation_status || null);
+        const validationDetails = !hasEmail ? 'No email found during scrape' : (lead.validation_details || null);
+
         const leadData = {
           user_id: userId,
           company: lead.company || '',
@@ -1563,7 +1664,7 @@ app.post('/api/scrape-leads', async (req, res) => {
           website: lead.website || '',
           location: lead.location || '',
           phone: lead.phone || '',
-          summary: lead.summary || '',
+          summary: researchSummary || lead.summary || '',
           source: lead.source || 'scraped',
           status: 'new',
           facebook: lead.facebook || '',
@@ -1571,6 +1672,9 @@ app.post('/api/scrape-leads', async (req, res) => {
           instagram: lead.instagram || '',
           role: lead.role || '',
           name: lead.name || '',
+          research_status: researchStatus,
+          validation_status: validationStatus,
+          validation_details: validationDetails,
           updated_at: new Date().toISOString()
         };
 
