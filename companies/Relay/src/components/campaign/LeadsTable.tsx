@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 interface Props {
   campaignId: string;
   refreshTrigger?: boolean;
+  onViewLead?: (leadId: string) => void;
 }
 
 const ITEMS_PER_PAGE = 100;
@@ -481,6 +482,15 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                       </td>
                       <td className="px-6 py-5 text-right pr-10">
                         <div className="flex items-center justify-end gap-2">
+                          {/* View Button */}
+                          <button
+                            onClick={() => setActiveSummaryLead(lead)}
+                            className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"
+                            title="View Details"
+                          >
+                            <Eye size={14} />
+                          </button>
+
                           {/* Social Media Icons */}
                           <div className="flex items-center gap-1">
                             {lead.linkedin && (
