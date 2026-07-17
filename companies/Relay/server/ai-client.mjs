@@ -97,72 +97,90 @@ export async function fetchAIChatCompletion(params, log = console.log) {
     model = 'llama-3.3-70b-versatile'
   } = params;
 
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) {
-    throw new Error('[AI-Client] GROQ_API_KEY is not configured. Cannot proceed without Groq.');
-  }
+  // Provider fallback chain: Groq → Routeway (StepFun free)
+  const PROVIDER_CHAIN = [
+    {
+      name: 'Groq',
+      key: () => process.env.GROQ_API_KEY,
+      base: 'https://api.groq.com/openai/v1/chat/completions',
+      models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
+      headers: (key) => ({
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      })
+    },
+    {
+      name: 'Routeway',
+      key: () => process.env.ROUTEWAY_API_KEY || 'sk-Y7mZwBr2W1xdNK5Fu594MHALSlTV8E2Buvq0Bq8YwWwaM4I-oSTi9Hu97kVfZOQ',
+      base: 'https://api.routeway.ai/v1/chat/completions',
+      models: ['step-3.5-flash:free'],
+      headers: (key) => ({
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      })
+    }
+  ];
 
-  const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
-  
-  // Groq model fallback chain: Llama 3.3 70B (best) → Llama 3.1 8B (fast) → Mixtral (fallback)
-  const GROQ_MODEL_CHAIN = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
-  
-  for (const groqModel of GROQ_MODEL_CHAIN) {
-    log(`[AI-Client] Attempting Groq model: ${groqModel}...`);
-    
-    let retries = 0;
-    const maxRetries = 3; // Increased retries since we only have Groq
-    let success = false;
-    
-    while (retries <= maxRetries && !success) {
-      try {
-        const result = await fetchWithTimeout(GROQ_BASE, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${groqKey}`
-          },
-          body: JSON.stringify({
-            model: groqModel,
-            temperature,
-            messages,
-            ...(response_format ? { response_format } : {})
-          })
-        }, 30000); // Increased timeout to 30s
+  for (const provider of PROVIDER_CHAIN) {
+    const apiKey = provider.key();
+    if (!apiKey) {
+      log(`[AI-Client] Skipping ${provider.name}: no API key configured`);
+      continue;
+    }
 
-        if (result.ok) {
-          const data = result.body;
-          if (data && !data.error) {
-            log(`[AI-Client] ✅ Groq success using ${groqModel}!`);
-            return data;
-          } else {
-            log(`[AI-Client] Groq API error on ${groqModel}: ${JSON.stringify(data?.error)}`);
-            break; // Don't retry on non-rate-limit errors for this model
-          }
-        } else {
-          log(`[AI-Client] Groq ${groqModel} failed (Status ${result.status}): ${typeof result.body === 'string' ? result.body : JSON.stringify(result.body)}`);
-          if (result.status === 429) {
-            retries++;
-            if (retries <= maxRetries) {
-              const backoffMs = 3000 * retries; // Exponential backoff: 3s, 6s, 9s
-              log(`[AI-Client] Groq rate limited. Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
-              await new Promise(r => setTimeout(r, backoffMs));
-              continue;
+    for (const model of provider.models) {
+      log(`[AI-Client] Attempting ${provider.name} model: ${model}...`);
+      
+      let retries = 0;
+      const maxRetries = 2;
+      
+      while (retries <= maxRetries) {
+        try {
+          const result = await fetchWithTimeout(provider.base, {
+            method: 'POST',
+            headers: provider.headers(apiKey),
+            body: JSON.stringify({
+              model,
+              temperature,
+              messages,
+              ...(response_format ? { response_format } : {})
+            })
+          }, 30000);
+
+          if (result.ok) {
+            const data = result.body;
+            if (data && !data.error) {
+              log(`[AI-Client] ✅ ${provider.name} success using ${model}!`);
+              return data;
+            } else {
+              log(`[AI-Client] ${provider.name} API error on ${model}: ${JSON.stringify(data?.error)}`);
+              break;
             }
+          } else {
+            log(`[AI-Client] ${provider.name} ${model} failed (Status ${result.status}): ${typeof result.body === 'string' ? result.body : JSON.stringify(result.body)}`);
+            if (result.status === 429) {
+              retries++;
+              if (retries <= maxRetries) {
+                const backoffMs = 2000 * retries;
+                log(`[AI-Client] ${provider.name} rate limited. Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
+                await new Promise(r => setTimeout(r, backoffMs));
+                continue;
+              }
+            }
+            break;
           }
-          break;
-        }
-      } catch (err) {
-        log(`[AI-Client] Groq ${groqModel} exception: ${err.message}`);
-        retries++;
-        if (retries <= maxRetries) {
-          const backoffMs = 3000 * retries;
-          log(`[AI-Client] Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
-          await new Promise(r => setTimeout(r, backoffMs));
+        } catch (err) {
+          log(`[AI-Client] ${provider.name} ${model} exception: ${err.message}`);
+          retries++;
+          if (retries <= maxRetries) {
+            const backoffMs = 2000 * retries;
+            log(`[AI-Client] Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
+            await new Promise(r => setTimeout(r, backoffMs));
+          }
         }
       }
     }
   }
 
-  throw new Error('[AI-Client] All Groq models exhausted after retries. Please try again later.');
+  throw new Error('[AI-Client] All providers and models exhausted after retries. Please try again later.');
 }
