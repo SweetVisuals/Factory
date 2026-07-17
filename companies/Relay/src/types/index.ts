@@ -93,8 +93,9 @@ export interface Lead {
   status?: string;
   summary?: string;
   personalized_email?: string;
-  validation_status?: 'valid' | 'invalid' | 'warning';
+  validation_status?: 'valid' | 'invalid' | 'catch_all' | 'unverified' | undefined;
   validation_details?: string;
+  research_status?: 'completed' | 'pending' | 'failed' | 'incomplete' | 'error' | null;
 }
 
 export interface EmailMessage {

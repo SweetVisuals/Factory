@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, CheckCircle2, 
   XCircle, HelpCircle, Activity, Loader2, Sparkles, Plus, X, ArrowUpRight,
   Globe, Linkedin, Phone, Building2, MapPin, Briefcase, ArrowUpDown, ArrowUp, ArrowDown,
-  Copy, ExternalLink, ChevronDown, Hash, Filter
+  Copy, ExternalLink, ChevronDown, Hash, Filter, Facebook, Instagram, Twitter, BrainCircuit
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
@@ -60,6 +60,10 @@ const Discover: React.FC = () => {
 
   // Expanded row
   const [selectedLeadPanel, setSelectedLeadPanel] = useState<Lead | null>(null);
+
+  // Deep Research
+  const [researchingId, setResearchingId] = useState<string | null>(null);
+  const [deepResearchResults, setDeepResearchResults] = useState<Record<string, string>>({});
 
   // Mobile filters
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -214,6 +218,37 @@ const Discover: React.FC = () => {
   const handleOpenLeadPanel = (e: React.MouseEvent, lead: Lead) => {
     e.stopPropagation();
     setSelectedLeadPanel(prev => prev?.id === lead.id ? null : lead);
+  };
+
+  const handleDeepResearch = async (lead: Lead) => {
+    if (researchingId) return;
+    setResearchingId(lead.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const axios = (await import('axios')).default;
+      const res = await axios.post('/api/deep-research', {
+        company: lead.company,
+        website: lead.website,
+        notesContext: ''
+      }, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' }
+      });
+      if (res.data.success) {
+        const researchData = res.data.data;
+        setDeepResearchResults(prev => ({ ...prev, [lead.id]: researchData }));
+        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, summary: researchData, research_status: 'completed' } : l));
+        if (selectedLeadPanel?.id === lead.id) {
+          setSelectedLeadPanel({ ...lead, summary: researchData, research_status: 'completed' });
+        }
+        toast({ title: 'Research Complete', description: `AI research completed for ${lead.company}` });
+      }
+    } catch (e) {
+      toast({ title: 'Research Failed', description: 'AI failed to research this lead.', variant: 'destructive' });
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, research_status: 'failed' } : l));
+    } finally {
+      setResearchingId(null);
+    }
   };
 
   const clearAllFilters = () => {
@@ -483,13 +518,14 @@ const Discover: React.FC = () => {
                       <th onClick={() => handleSort('location')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
                         <div className="flex items-center gap-1.5">Location <SortIcon field="location" /></div>
                       </th>
-                      <th className="pr-6 pl-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest text-right">Details</th>
+                      <th className="pr-6 pl-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {leads.map((lead) => {
                       const isSelected = selectedLeadIds.includes(lead.id);
                       const isPanelOpen = selectedLeadPanel?.id === lead.id;
+                      const hasResearch = lead.summary || deepResearchResults[lead.id];
                       return (
                         <tr
                           key={lead.id}
@@ -529,7 +565,57 @@ const Discover: React.FC = () => {
                             <span className="text-white/40 text-xs">{lead.location || '—'}</span>
                           </td>
                           <td className="pr-6 pl-3 py-3 text-right">
-                            <div className="flex justify-end">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Social Media Icons */}
+                              <div className="flex items-center gap-1">
+                                {lead.linkedin && (
+                                  <a href={lead.linkedin} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/40 hover:text-[#0077b5] hover:border-[#0077b5]/30 transition-all" title="LinkedIn">
+                                    <Linkedin size={12} />
+                                  </a>
+                                )}
+                                {lead.twitter && (
+                                  <a href={lead.twitter} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/40 hover:text-blue-400 hover:border-blue-400/30 transition-all" title="Twitter">
+                                    <Twitter size={12} />
+                                  </a>
+                                )}
+                                {lead.facebook && (
+                                  <a href={lead.facebook} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/40 hover:text-blue-600 hover:border-blue-600/30 transition-all" title="Facebook">
+                                    <Facebook size={12} />
+                                  </a>
+                                )}
+                                {lead.instagram && (
+                                  <a href={lead.instagram} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/40 hover:text-pink-500 hover:border-pink-500/30 transition-all" title="Instagram">
+                                    <Instagram size={12} />
+                                  </a>
+                                )}
+                                {lead.website && (
+                                  <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/40 hover:text-primary hover:border-primary/30 transition-all" title="Website">
+                                    <Globe size={12} />
+                                  </a>
+                                )}
+                              </div>
+
+                              {/* Deep Research Button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeepResearch(lead);
+                                }}
+                                disabled={researchingId === lead.id}
+                                className={cn(
+                                  "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                                  hasResearch ? "bg-primary/20 text-primary hover:bg-primary/30" : "bg-white/[0.04] text-white/30 hover:bg-primary/10 hover:text-primary border border-white/5"
+                                )}
+                                title={hasResearch ? "View Research" : "Run Deep Research"}
+                              >
+                                {researchingId === lead.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <BrainCircuit className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+
+                              {/* View Details Button */}
                               <button 
                                 onClick={(e) => handleOpenLeadPanel(e, lead)}
                                 className={cn(

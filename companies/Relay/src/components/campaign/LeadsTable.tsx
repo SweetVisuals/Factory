@@ -4,7 +4,8 @@ import {
   Linkedin, Loader2, Eye, Download, XCircle, Ban,
   ExternalLink, Facebook, Instagram, Twitter, FileText,
   CheckCircle2, AlertTriangle, BrainCircuit, ChevronDown, ChevronUp,
-  Database, Activity, Target, ShieldAlert, RefreshCw, MoreVertical, Layers
+  Database, Activity, Target, ShieldAlert, RefreshCw, MoreVertical, Layers,
+  Copy, Globe
 } from 'lucide-react';
 import { Lead } from '@/types';
 import { LeadUploader } from './leads/LeadUploader';
@@ -392,20 +393,19 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
         <div className="overflow-x-auto custom-scrollbar">
           <table className="min-w-full border-none ">
             <thead>
-              <tr className="bg-muted/20 border-b border-border">
-                <th className="pl-10 pr-6 py-5 text-left w-20">
-                  <CustomCheckbox
-                    checked={filteredLeads.length > 0 && selectedLeads.size === filteredLeads.length}
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lead</th>
-                <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Company & Title</th>
-                <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Research</th>
-                <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</th>
-                <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Socials</th>
-                <th className="px-6 py-5 text-right pr-10 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Action</th>
-              </tr>
+                <tr className="bg-muted/20 border-b border-border">
+                  <th className="pl-10 pr-6 py-5 text-left w-20">
+                    <CustomCheckbox
+                      checked={filteredLeads.length > 0 && selectedLeads.size === filteredLeads.length}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
+                  <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contact</th>
+                  <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Company</th>
+                  <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</th>
+                  <th className="px-6 py-5 text-right pr-10 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {currentLeads.length === 0 ? (
@@ -450,13 +450,10 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                           </div>
                           <div className="space-y-0.5 min-w-[150px]">
                             <div className={cn(
-                              "text-sm font-bold transition-colors truncate flex items-center gap-2",
+                              "text-sm font-bold transition-colors truncate",
                               lead.status === 'bounced' ? "text-red-500" : "text-foreground group-hover/row:text-primary"
                             )}>
                               {lead.name || 'Unknown Lead'}
-                              {lead.status === 'bounced' && (
-                                <span className="text-[10px] font-black uppercase tracking-wider bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md">Bounced</span>
-                              )}
                             </div>
                             <div className={cn(
                               "text-xs font-medium truncate",
@@ -472,33 +469,68 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <button
-                          onClick={() => setActiveSummaryLead(lead)}
-                          className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm",
-                            hasSummary ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                          )}
-                        >
-                          <BrainCircuit size={16} />
-                        </button>
+                        <div className="flex items-center gap-2 group/email">
+                          <span className="font-mono text-[12px] text-foreground truncate max-w-[200px]">{lead.email}</span>
+                          <button onClick={() => { navigator.clipboard.writeText(lead.email); toast({ title: 'Copied', description: lead.email }); }} className="opacity-0 group-hover/email:opacity-100 text-muted-foreground hover:text-foreground transition-all" title="Copy">
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                       <td className="px-6 py-5">
                         <div className="text-sm font-semibold text-foreground truncate max-w-[150px]">{lead.location || 'Remote'}</div>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex gap-2">
-                          {lead.linkedin && <a href={lead.linkedin} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all"><Linkedin size={14} /></a>}
-                          {lead.website && <a href={lead.website} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"><ExternalLink size={14} /></a>}
-                        </div>
-                      </td>
                       <td className="px-6 py-5 text-right pr-10">
-                        <button
-                          onClick={() => handleDeleteLead(lead.id)}
-                          disabled={deletingId === lead.id}
-                          className="w-9 h-9 rounded-lg bg-transparent hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all flex items-center justify-center ml-auto"
-                        >
-                          {deletingId === lead.id ? <RefreshCw size={14} className="animate-spin" /> : <Trash size={16} />}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Social Media Icons */}
+                          <div className="flex items-center gap-1">
+                            {lead.linkedin && (
+                              <a href={lead.linkedin} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all" title="LinkedIn">
+                                <Linkedin size={12} />
+                              </a>
+                            )}
+                            {lead.twitter && (
+                              <a href={lead.twitter} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-400 hover:bg-blue-400/10 transition-all" title="Twitter">
+                                <Twitter size={12} />
+                              </a>
+                            )}
+                            {lead.facebook && (
+                              <a href={lead.facebook} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-600 hover:bg-blue-600/10 transition-all" title="Facebook">
+                                <Facebook size={12} />
+                              </a>
+                            )}
+                            {lead.instagram && (
+                              <a href={lead.instagram} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-pink-500 hover:bg-pink-500/10 transition-all" title="Instagram">
+                                <Instagram size={12} />
+                              </a>
+                            )}
+                            {lead.website && (
+                              <a href={`https://${lead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="Website">
+                                <Globe size={12} />
+                              </a>
+                            )}
+                          </div>
+
+                          {/* Deep Research Button */}
+                          <button
+                            onClick={() => setActiveSummaryLead(lead)}
+                            className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                              hasSummary ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                            )}
+                            title={hasSummary ? "View Research" : "Run Deep Research"}
+                          >
+                            <BrainCircuit size={14} />
+                          </button>
+
+                          {/* Delete Button */}
+                          <button
+                            onClick={() => handleDeleteLead(lead.id)}
+                            disabled={deletingId === lead.id}
+                            className="w-8 h-8 rounded-lg bg-transparent hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all flex items-center justify-center"
+                          >
+                            {deletingId === lead.id ? <RefreshCw size={14} className="animate-spin" /> : <Trash size={14} />}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
