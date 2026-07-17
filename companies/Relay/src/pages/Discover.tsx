@@ -149,7 +149,9 @@ const Discover: React.FC = () => {
       if (statusFilter !== 'all') {
         query = query.eq('validation_status', statusFilter);
       } else {
-        query = query.neq('validation_status', 'invalid');
+        // Show all leads except invalid ones
+        // Use or() to include both valid and null (unverified) leads
+        query = query.or('validation_status.is.null,validation_status.neq.invalid');
         query = query.neq('status', 'bounced');
       }
 
