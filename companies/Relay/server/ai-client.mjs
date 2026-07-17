@@ -97,7 +97,7 @@ export async function fetchAIChatCompletion(params, log = console.log) {
     model = 'llama-3.3-70b-versatile'
   } = params;
 
-  // Provider fallback chain: Groq → Routeway (StepFun free)
+  // Provider fallback chain: Groq → Routeway Step 3.5 Flash (free) → Routeway other models
   const PROVIDER_CHAIN = [
     {
       name: 'Groq',
@@ -113,7 +113,7 @@ export async function fetchAIChatCompletion(params, log = console.log) {
       name: 'Routeway',
       key: () => process.env.ROUTEWAY_API_KEY || 'sk-Y7mZwBr2W1xdNK5Fu594MHALSlTV8E2Buvq0Bq8YwWwaM4I-oSTi9Hu97kVfZOQ',
       base: 'https://api.routeway.ai/v1/chat/completions',
-      models: ['step-3.5-flash:free'],
+      models: ['step-3.5-flash:free', 'step-3.5-flash', 'step-2-16k:free'],
       headers: (key) => ({
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${key}`
