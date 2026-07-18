@@ -8,6 +8,17 @@
   html {
     zoom: 0.75;
   }
+  body {
+    width: 133.333333vw;
+    min-height: 133.333333vh;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }
+  #root {
+    width: 100%;
+    min-height: 100%;
+  }
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;

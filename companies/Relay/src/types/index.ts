@@ -42,6 +42,8 @@ export interface EmailAccount {
   warmupEmails?: number;
   healthScore?: string;
   warmup_start_date: string | null;
+  status?: string;
+  error_message?: string;
   warmupEmailsReceived?: number;
   warmupEmailsSent?: number;
   spamSaved?: number;

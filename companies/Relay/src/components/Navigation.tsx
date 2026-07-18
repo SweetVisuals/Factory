@@ -11,15 +11,16 @@ import Logo from './Logo';
 const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => void, isChatExpanded?: boolean }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [isPaused, setIsPaused] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [balance, setBalance] = useState<number>(10);
   const [apiLimit, setApiLimit] = useState<number>(0);
   const [dbSpace, setDbSpace] = useState<number>(0);
-  const STARTING_BALANCE = 10;
-  const MAX_API_LIMIT = 50000;
+
+  const isAdmin = user?.email === 'ptnmgmt@gmail.com';
+  const MAX_API_LIMIT = isAdmin ? 11000 : 500;
+  const MAX_DB_SPACE_MB = isAdmin ? 5120 : 250; // 5GB or 250MB
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -32,9 +33,10 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
       }
 
       // Fetch DB space estimation (leads count proxy)
+      // Assuming each lead is approx 1KB
       const { count: leadsCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
       if (leadsCount !== null) {
-        setDbSpace((leadsCount / 1000000) * 100); // Assuming 1M leads is 100%
+        setDbSpace(leadsCount / 1024); // Convert KB to MB
       }
     };
     fetchStatus();
@@ -137,10 +139,10 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
               <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[9px] font-bold text-foreground/50">
                   <span>Usage</span>
-                  <span className="text-white/90 font-mono">Free</span>
+                  <span className="text-white/90 font-mono">{Math.round((((apiLimit / MAX_API_LIMIT) + (dbSpace / MAX_DB_SPACE_MB)) / 2) * 100)}%</span>
                 </div>
                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-emerald-500/50 to-emerald-400 shadow-[0_0_2px_rgba(52,211,153,0.5)] transition-all duration-500" style={{ width: '45%' }} />
+                  <div className="h-full bg-gradient-to-r from-emerald-500/50 to-emerald-400 shadow-[0_0_2px_rgba(52,211,153,0.5)] transition-all duration-500" style={{ width: `${Math.min(100, (((apiLimit / MAX_API_LIMIT) + (dbSpace / MAX_DB_SPACE_MB)) / 2) * 100)}%` }} />
                 </div>
               </div>
             </div>
@@ -150,7 +152,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
               <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[9px] font-bold text-foreground/50">
                   <span>API Limit</span>
-                  <span>{((apiLimit / MAX_API_LIMIT) * 100).toFixed(1)}%</span>
+                  <span>{apiLimit}/{MAX_API_LIMIT >= 1000 ? `${(MAX_API_LIMIT/1000).toFixed(0)}k` : MAX_API_LIMIT}</span>
                 </div>
                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, (apiLimit / MAX_API_LIMIT) * 100)}%` }} />
@@ -163,10 +165,10 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
               <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[9px] font-bold text-foreground/50">
                   <span>DB Space</span>
-                  <span>{dbSpace.toFixed(1)}%</span>
+                  <span>{dbSpace < 1 ? '<1' : Math.round(dbSpace)}/{MAX_DB_SPACE_MB >= 1024 ? `${(MAX_DB_SPACE_MB/1024).toFixed(0)}GB` : `${MAX_DB_SPACE_MB}MB`}</span>
                 </div>
                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${Math.min(100, dbSpace)}%` }} />
+                  <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${Math.min(100, (dbSpace / MAX_DB_SPACE_MB) * 100)}%` }} />
                 </div>
               </div>
             </div>

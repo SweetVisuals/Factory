@@ -161,16 +161,16 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
 
         {/* Daily Progress Section */}
         <div className="mt-6 pt-6 border-t border-white/5">
-          <div className="grid grid-cols-3 gap-6">
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            <div className="space-y-2">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Sent Today</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-foreground">
+              <div className="flex items-baseline gap-2 h-[32px]">
+                <span className="text-2xl font-bold text-foreground leading-none">
                   {warmupStats.sent[new Date().toLocaleDateString('en-CA')] || 0}
                 </span>
-                <span className="text-xs text-muted-foreground">/ {account.warmup_daily_limit || 20}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">/ {account.warmup_daily_limit || 20}</span>
               </div>
-              <div className="w-full bg-white/5 rounded-none h-1.5 mt-2 overflow-hidden">
+              <div className="w-full bg-white/5 rounded-none h-1.5 overflow-hidden">
                 <div
                   className="bg-primary h-full rounded-none transition-all duration-500"
                   style={{ width: `${Math.min(100, ((warmupStats.sent[new Date().toLocaleDateString('en-CA')] || 0) / (account.warmup_daily_limit || 20)) * 100)}%` }}
@@ -178,15 +178,15 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Warmup Progress</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-foreground">
+              <div className="flex items-baseline gap-2 h-[32px]">
+                <span className="text-2xl font-bold text-foreground leading-none whitespace-nowrap">
                   Day {startDate ? Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0}
                 </span>
-                <span className="text-xs text-muted-foreground">of 30</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">of 30</span>
               </div>
-              <div className="w-full bg-white/5 rounded-none h-1.5 mt-2 overflow-hidden">
+              <div className="w-full bg-white/5 rounded-none h-1.5 overflow-hidden">
                 <div
                   className="bg-orange-500 h-full rounded-none transition-all duration-500"
                   style={{ width: `${Math.min(100, ((startDate ? Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0) / 30) * 100)}%` }}
@@ -194,14 +194,14 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Target</p>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-foreground">10 emails / day</span>
-                <span className="text-xs text-muted-foreground">for 30 days total</span>
+              <div className="flex items-baseline gap-2 h-[32px]">
+                <span className="text-sm font-medium text-foreground whitespace-nowrap leading-none">10 emails / day</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">for 30 days total</span>
               </div>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-none text-muted-foreground border-none border-white/5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-none text-muted-foreground border-none border-white/5 whitespace-nowrap">
                   {startDate ? Math.max(0, 30 - (Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)) : 30} days left
                 </span>
               </div>

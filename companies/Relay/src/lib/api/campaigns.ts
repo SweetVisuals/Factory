@@ -2,6 +2,8 @@ import { supabase } from '../supabase';
 import { Campaign } from '../../types';
 import { transformDbCampaignToFrontend, transformFrontendCampaignToDb } from '../utils/transformers';
 import { toast } from '../../components/ui/use-toast';
+import { getRandomSequence } from '../utils/emailSequences';
+import { createTemplate } from './templates';
 
 export async function createCampaign(campaign: Omit<Campaign, 'id'>) {
   try {
@@ -18,9 +20,26 @@ export async function createCampaign(campaign: Omit<Campaign, 'id'>) {
       .insert(dbCampaign)
       .select()
       .single();
-
     if (error) throw error;
-    return transformDbCampaignToFrontend(data);
+
+    const frontendCampaign = transformDbCampaignToFrontend(data);
+
+    // Load initial random templates
+    try {
+      const randomSequence = getRandomSequence();
+      for (let i = 0; i < randomSequence.length; i++) {
+        const step = randomSequence[i];
+        await createTemplate(frontendCampaign.id, {
+          name: `Step ${i + 1}`,
+          subject: step.subject,
+          content: step.body
+        });
+      }
+    } catch (templateError) {
+      console.error('Failed to create initial templates:', templateError);
+    }
+
+    return frontendCampaign;
   } catch (error) {
     console.error('Error creating campaign:', error);
     toast({
