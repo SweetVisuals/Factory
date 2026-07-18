@@ -6,7 +6,7 @@ import Layout from '../components/layout/Layout';
 import PageHeader from '../components/layout/PageHeader';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { AlertCircle, Zap, LayoutDashboard, Users, GitMerge, Calendar, Mail, Inbox, BarChart3, Settings2, Target, ChevronDown, ChevronRight, Database, Sparkles, Folder, Activity, MessageSquare, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Zap, LayoutDashboard, Users, GitMerge, Calendar, Mail, Inbox, BarChart3, Settings2, Target, ChevronDown, ChevronRight, Database, Sparkles, Folder, Activity, MessageSquare, ArrowLeft, Phone } from 'lucide-react';
 import CampaignStats from '../components/campaign/CampaignStats';
 import CampaignTabs from '../components/campaign/CampaignTabs';
 import LeadsTable from '../components/campaign/LeadsTable';
@@ -18,6 +18,7 @@ import CampaignInbox from '../components/campaign/CampaignInbox';
 import BackButton from '../components/common/BackButton';
 import ClosingTab from '../components/campaign/ClosingTab';
 import CampaignScraperTab from '../components/campaign/CampaignScraperTab';
+import ColdCallingTab from '../components/campaign/ColdCallingTab';
 import OptionsTab from '../components/campaign/OptionsTab';
 import ProgressTab from '../components/campaign/ProgressTab';
 import { cn } from '../lib/utils';
@@ -222,10 +223,10 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
             {/* Enhanced Pill Tab Navigation */}
             <div className="relative flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-lg w-fit shadow-sm">
               {[
-                { id: 'table', label: 'Prospect Database', icon: Database },
-                { id: 'scraper', label: 'AI Lead Scraper', icon: Sparkles },
-                { id: 'lists', label: 'Saved Sectors', icon: Folder }
-              ].map(sub => (
+                              { id: 'table', label: 'Prospect Database', icon: Database },
+                              { id: 'scraper', label: 'Neural Link Feed', icon: Activity },
+                              { id: 'cold_calling', label: 'Cold Calling', icon: Phone }
+                            ].map(sub => (
                 <button
                   key={sub.id}
                   onClick={() => setLeadsSubTab(sub.id as any)}
@@ -245,7 +246,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
             <div className="animate-in fade-in duration-300">
               {leadsSubTab === 'table' && <LeadsTable campaignId={campaign.id} refreshTrigger={refreshLeads} />}
               {leadsSubTab === 'scraper' && <CampaignScraperTab campaignId={campaign.id} />}
-              {leadsSubTab === 'lists' && <SavedLists campaignId={campaign.id} onLeadsAdded={handleLeadsRefresh} />}
+              {leadsSubTab === 'cold_calling' && <ColdCallingTab campaignId={campaign.id} />}
             </div>
           </div>
         );

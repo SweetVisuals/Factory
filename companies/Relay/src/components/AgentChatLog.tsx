@@ -13,6 +13,58 @@ interface ChatLogEntry {
   created_at: string;
 }
 
+const TelemetryLogsContainer = () => {
+  const [telemetryLogs, setTelemetryLogs] = useState<{ timestamp: string, message: string }[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let interval: any;
+    const fetchTelemetry = async () => {
+      try {
+        const { data: { session } } = await openclawSupabase.auth.getSession();
+        if (!session) return;
+        const config = { headers: { Authorization: `Bearer ${session.access_token}` } };
+        // We import the api module or fetch directly
+        const res = await fetch('/api/scraper-logs', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setTelemetryLogs(data);
+          }
+        }
+      } catch (e) {}
+    };
+    fetchTelemetry();
+    interval = setInterval(fetchTelemetry, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [telemetryLogs]);
+
+  return (
+    <div ref={scrollRef} className="max-h-[180px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+      {telemetryLogs.length === 0 ? (
+        <div className="text-muted-foreground/30 italic text-center py-4">Awaiting neural broadcast...</div>
+      ) : (
+        telemetryLogs.map((log, i) => (
+          <div key={i} className="flex gap-2 text-foreground/70">
+            <span className="text-primary/40 shrink-0 select-none">
+              [{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]
+            </span>
+            <span className="leading-relaxed break-words whitespace-pre-wrap">{log.message}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
 const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle: () => void }) => {
   const [logs, setLogs] = useState<ChatLogEntry[]>([]);
   const [command, setCommand] = useState('');
@@ -21,7 +73,6 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
   const [chatWidth, setChatWidth] = useState(450); 
   const [isResizing, setIsResizing] = useState(false);
   const endOfLogRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!isResizing) return;
     const handleMouseMove = (e: MouseEvent) => {
@@ -164,18 +215,32 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
       </div>
 
       {/* Logs Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-background scrollbar-thin">
-        {logs.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
-            <Terminal size={48} className="opacity-20" />
-            <p className="text-sm">No activity logged.</p>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-background scrollbar-thin flex flex-col">
+        {/* Render Neural Link Feed telemetry logs here */}
+        <div className="border-b border-border bg-black/20 p-4 font-mono text-[10px] space-y-2 max-h-[250px] overflow-y-auto shrink-0">
+          <div className="flex items-center justify-between mb-1 pb-1 border-b border-border/30">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-primary animate-pulse" />
+              <span className="text-foreground font-black uppercase tracking-widest text-[9px]">Neural Link Feed</span>
+            </div>
+            <span className="text-muted-foreground/40 uppercase tracking-tighter text-[8px]">Live Telemetry</span>
           </div>
-        ) : (
-          <div className="flex flex-col">
-            {logs.map(log => renderLogEntry(log))}
-            <div ref={endOfLogRef} className="h-4" />
-          </div>
-        )}
+          <TelemetryLogsContainer />
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {logs.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4 py-8">
+              <Terminal size={48} className="opacity-20" />
+              <p className="text-sm">No activity logged.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {logs.map(log => renderLogEntry(log))}
+              <div ref={endOfLogRef} className="h-4" />
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Input Area */}
