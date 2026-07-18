@@ -105,7 +105,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
     } else {
       setHasScheduledEntries(false);
       if (campaign.status?.toLowerCase() === 'in_progress') {
-        updateCampaign(campaign.id, { status: 'draft' });
+        updateCampaign(campaign.id, { status: 'Draft' });
       }
     }
   };
@@ -157,43 +157,45 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
     switch (activeTab) {
       case 'analytics':
         return (
-          <div className="space-y-8 animate-in fade-in duration-200">
+          <div className="space-y-4 animate-in fade-in duration-200">
             {/* Stats Row */}
             <CampaignStats campaignId={campaign.id} />
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-              {/* Left Column: Flow & Telemetry */}
-              <div className="xl:col-span-4 bg-card rounded-3xl p-8 shadow-sm border border-border/50">
-                <div className="mb-6 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Operations Monitor</h3>
-                  <Activity size={16} className="text-muted-foreground" />
-                </div>
-                <ProgressTab campaignId={campaign.id} />
+
+            <div className="bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden">
+              <div className="flex border-b border-border/50">
+                <button
+                  onClick={() => setLeadsSubTab('table')}
+                  className={cn(
+                    "flex-1 px-6 py-4 text-sm font-bold transition-all border-b-2",
+                    leadsSubTab === 'table' ? "border-primary text-primary bg-primary/5" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Conversation Registry
+                </button>
+                <button
+                  onClick={() => setLeadsSubTab('scraper')}
+                  className={cn(
+                    "flex-1 px-6 py-4 text-sm font-bold transition-all border-b-2",
+                    leadsSubTab === 'scraper' ? "border-primary text-primary bg-primary/5" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Operations Monitor
+                </button>
+                <button
+                  onClick={() => setLeadsSubTab('lists')}
+                  className={cn(
+                    "flex-1 px-6 py-4 text-sm font-bold transition-all border-b-2",
+                    leadsSubTab === 'lists' ? "border-primary text-primary bg-primary/5" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Settings
+                </button>
               </div>
 
-              {/* Right Column: Negotiation Hub */}
-              <div className="xl:col-span-8 flex flex-col h-[calc(100vh-14rem)] min-h-[600px]">
-                <ClosingTab campaignId={campaign.id} />
-              </div>
-            </div>
-
-            {/* Premium Settings Panel */}
-            <div className="bg-card rounded-3xl shadow-sm overflow-hidden transition-all duration-300 border border-border/50">
-              <button
-                onClick={() => setShowOptions(!showOptions)}
-                className="w-full flex items-center justify-between px-8 py-6 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-2.5 rounded-xl bg-muted">
-                    <Settings2 size={18} className="text-foreground" />
-                  </div>
-                  <span className="text-base font-bold text-foreground">Advanced Campaign Settings</span>
-                </div>
-                <div className="p-2 bg-muted rounded-full">
-                  {showOptions ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </div>
-              </button>
-              {showOptions && (
-                <div className="p-8 pt-2 border-t border-border/50 animate-in fade-in duration-300 bg-background/50">
+              <div className="p-5 min-h-[450px]">
+                {leadsSubTab === 'table' && <ClosingTab campaignId={campaign.id} />}
+                {leadsSubTab === 'scraper' && <ProgressTab campaignId={campaign.id} />}
+                {leadsSubTab === 'lists' && (
                   <OptionsTab
                     campaignId={campaign.id}
                     campaignName={campaign.name}
@@ -209,16 +211,16 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                         .eq('status', 'paused');
                     }}
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         );
       case 'leads':
         return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Enhanced Pill Tab Navigation */}
-            <div className="relative flex gap-2 p-1.5 bg-white/[0.02] border border-white/5 rounded-xl w-fit shadow-sm">
+            <div className="relative flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-lg w-fit shadow-sm">
               {[
                 { id: 'table', label: 'Prospect Database', icon: Database },
                 { id: 'scraper', label: 'AI Lead Scraper', icon: Sparkles },
@@ -228,13 +230,13 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                   key={sub.id}
                   onClick={() => setLeadsSubTab(sub.id as any)}
                   className={cn(
-                    "relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 z-10",
+                    "relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 z-10",
                     leadsSubTab === sub.id 
                       ? "text-primary bg-primary/10 shadow-sm" 
                       : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
                   )}
                 >
-                  <sub.icon size={16} className={leadsSubTab === sub.id ? "text-primary" : "text-muted-foreground"} />
+                  <sub.icon size={14} className={leadsSubTab === sub.id ? "text-primary" : "text-muted-foreground"} />
                   {sub.label}
                 </button>
               ))}
@@ -249,18 +251,18 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
         );
       case 'sequences':
         return (
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in duration-200">
-            <div className="xl:col-span-7 bg-card rounded-3xl p-8 shadow-sm">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-6">Sequence Orchestrator</h3>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 animate-in fade-in duration-200">
+            <div className="xl:col-span-7 bg-card rounded-2xl p-5 shadow-sm">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Sequence Orchestrator</h3>
               <SequenceEditor />
             </div>
-            <div className="xl:col-span-5 space-y-8 min-w-0">
-              <div className="bg-card rounded-3xl p-8 shadow-sm">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-6">Sender Channels</h3>
+            <div className="xl:col-span-5 space-y-4 min-w-0">
+              <div className="bg-card rounded-2xl p-5 shadow-sm">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Sender Channels</h3>
                 <CampaignEmails campaignId={campaign.id} />
               </div>
-              <div className="bg-card rounded-3xl p-8 shadow-sm">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-6">Execution Calendar</h3>
+              <div className="bg-card rounded-2xl p-5 shadow-sm">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Execution Calendar</h3>
                 <ScheduleEditor
                   campaignId={campaign.id}
                   onScheduleChange={() => checkScheduledEntries()}
@@ -271,7 +273,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
         );
       case 'inbox':
         return (
-          <div className="bg-card rounded-3xl shadow-sm border border-border h-full overflow-hidden flex flex-col">
+          <div className="bg-card rounded-2xl shadow-sm border border-border h-full overflow-hidden flex flex-col">
              <CampaignInbox campaignId={campaign.id} initialSearch={initialSearchTerm} />
           </div>
         );
@@ -301,33 +303,33 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
       )}>
         
         {/* Premium Header Layout */}
-        <div className="relative p-8 pb-4 shrink-0 overflow-hidden">
-          <div className="flex flex-col gap-8 max-w-none w-full relative z-10">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+        <div className="relative p-5 pb-2 shrink-0 overflow-hidden border-b border-border/40">
+          <div className="flex flex-col gap-4 max-w-none w-full relative z-10">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
               
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
                 <button 
                   onClick={() => navigate('/campaigns')}
-                  className="w-12 h-12 rounded-xl bg-muted/40 border border-border flex items-center justify-center hover:bg-muted hover:text-primary hover:border-primary/30 transition-all duration-300 shadow-sm shrink-0"
+                  className="w-9 h-9 rounded-lg bg-muted/40 border border-border flex items-center justify-center hover:bg-muted hover:text-primary hover:border-primary/30 transition-all duration-300 shadow-sm shrink-0"
                   title="Back to Campaigns"
                 >
-                  <ArrowLeft size={20} className="text-muted-foreground transition-colors" />
+                  <ArrowLeft size={16} className="text-muted-foreground transition-colors" />
                 </button>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-4">
-                    <h1 className="text-4xl font-black text-white tracking-tighter">{cleanName}</h1>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-black text-white tracking-tight">{cleanName}</h1>
                     {loc && (
-                      <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
+                      <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
                         {loc}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">{campaign.id.substring(0, 8)}</span>
-                    <div className="h-4 w-px bg-border" />
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${hasScheduledEntries ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
-                      <span className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">{campaign.id.substring(0, 8)}</span>
+                    <div className="h-3 w-px bg-border" />
+                    <div className="flex items-center gap-1.5">
+                      <div className={`w-1.5 h-1.5 rounded-full ${hasScheduledEntries ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
+                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">
                         {hasScheduledEntries ? 'Running' : campaign.status.replace('_', ' ')}
                       </span>
                     </div>
@@ -335,25 +337,25 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 bg-card border border-border p-3 px-6 rounded-2xl shadow-sm backdrop-blur-md">
-                <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4 bg-card border border-border p-2 px-4 rounded-xl shadow-sm backdrop-blur-md">
+                <div className="flex items-center gap-4">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prospects</span>
-                    <span className="text-xl font-black text-foreground">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Prospects</span>
+                    <span className="text-base font-black text-foreground">
                       <AnimatedNumber value={campaign.prospects} />
                     </span>
                   </div>
-                  <div className="h-8 w-px bg-border" />
+                  <div className="h-6 w-px bg-border" />
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Sent</span>
-                    <span className="text-xl font-black text-foreground">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Sent</span>
+                    <span className="text-base font-black text-foreground">
                       <AnimatedNumber value={campaign.sent || '0'} />
                     </span>
                   </div>
-                  <div className="h-8 w-px bg-border" />
+                  <div className="h-6 w-px bg-border" />
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Replies</span>
-                    <span className="text-xl font-black text-primary">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Replies</span>
+                    <span className="text-base font-black text-primary">
                       <AnimatedNumber value={campaign.replies || '0'} />
                     </span>
                   </div>
@@ -363,7 +365,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
             </div>
             
             {/* Elegant Main Tabs */}
-            <div className="relative flex gap-2 p-1.5 bg-white/[0.02] border border-white/5 rounded-2xl w-fit shadow-sm backdrop-blur-sm mt-4">
+            <div className="relative flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-xl w-fit shadow-sm backdrop-blur-sm mt-1">
               {[
                 { id: 'analytics', label: 'Analytics & Deal Flow', icon: BarChart3 },
                 { id: 'leads', label: 'Prospect Database', icon: Users },
@@ -374,13 +376,13 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    "relative flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 z-10",
+                    "relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 z-10",
                     activeTab === tab.id 
                       ? "text-primary bg-primary/10 shadow-sm" 
                       : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
                   )}
                 >
-                  <tab.icon size={18} className={activeTab === tab.id ? "text-primary" : "text-muted-foreground"} />
+                  <tab.icon size={14} className={activeTab === tab.id ? "text-primary" : "text-muted-foreground"} />
                   {tab.label}
                 </button>
               ))}
@@ -389,8 +391,8 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
         </div>
 
         <div className={cn(
-          "flex-1 p-10 max-w-none w-full",
-          activeTab === 'inbox' ? "overflow-hidden p-0 pt-6 px-10" : "animate-in fade-in duration-200"
+          "flex-1 p-5 max-w-none w-full",
+          activeTab === 'inbox' ? "overflow-hidden p-0 pt-3 px-5" : "animate-in fade-in duration-200"
         )}>
           {renderTabContent()}
         </div>

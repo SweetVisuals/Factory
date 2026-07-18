@@ -187,30 +187,30 @@ const CampaignStats = ({ campaignId }: CampaignStatsProps) => {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 bg-card border border-border rounded-3xl shadow-sm overflow-hidden">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         {stats.map((stat, index) => {
           const Icon = icons[index];
           return (
             <div 
               key={stat.label} 
               className={cn(
-                "p-6 flex flex-col group relative transition-all duration-500 hover:bg-muted/30",
+                "p-4 flex flex-col group relative transition-all duration-500 hover:bg-muted/30",
                 index < stats.length - 1 && "border-r border-border"
               )}
             >
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-primary transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider group-hover:text-primary transition-colors">
                   {stat.label}
                 </span>
-                <Icon size={16} className="text-muted-foreground/50 group-hover:text-primary/70 transition-colors" />
+                <Icon size={14} className="text-muted-foreground/50 group-hover:text-primary/70 transition-colors" />
               </div>
               
-              <div className="flex flex-col gap-1">
-                <span className="text-3xl font-bold text-foreground leading-none group-hover:scale-[1.02] transition-transform origin-left duration-500">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xl font-bold text-foreground leading-none group-hover:scale-[1.02] transition-transform origin-left duration-500">
                   {stat.value}
                 </span>
                 {stat.percentage && (
-                  <span className="text-xs font-medium text-primary/70 mt-1">
+                  <span className="text-[10px] font-medium text-primary/70 mt-1">
                     {stat.percentage}
                   </span>
                 )}
@@ -243,18 +243,18 @@ const CampaignStats = ({ campaignId }: CampaignStatsProps) => {
       )}
 
       {!hasData && (
-        <div className="bg-card border border-border rounded-3xl p-20 mt-6 flex flex-col items-center justify-center text-center space-y-6 relative overflow-hidden shadow-sm">
+        <div className="bg-card border border-border rounded-2xl p-10 mt-4 flex flex-col items-center justify-center text-center space-y-4 relative overflow-hidden shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-40" />
           
           <div className="relative">
-            <div className="w-20 h-20 bg-muted/40 rounded-full flex items-center justify-center animate-pulse border border-border">
-              <Cpu className="text-muted-foreground/40" size={32} />
+            <div className="w-12 h-12 bg-muted/40 rounded-full flex items-center justify-center animate-pulse border border-border">
+              <Cpu className="text-muted-foreground/40" size={20} />
             </div>
           </div>
 
-          <div className="space-y-2 relative">
-            <h3 className="text-xl font-bold text-foreground">Awaiting Campaign Data</h3>
-            <p className="text-sm font-medium text-muted-foreground max-w-sm leading-relaxed mx-auto">
+          <div className="space-y-1 relative">
+            <h3 className="text-base font-bold text-foreground">Awaiting Campaign Data</h3>
+            <p className="text-xs font-medium text-muted-foreground max-w-sm leading-relaxed mx-auto">
               Stats will populate once the campaign starts sending emails.
             </p>
           </div>

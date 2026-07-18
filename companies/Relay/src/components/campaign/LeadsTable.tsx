@@ -324,36 +324,36 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
   }
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Premium Toolbar */}
-      <div className="bg-card border border-border shadow-sm rounded-t-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-        <div className="flex items-center gap-6 w-full md:w-auto">
-          <div className="relative group flex-1 md:w-96">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+      <div className="bg-card border border-border shadow-sm rounded-t-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="relative group flex-1 md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               placeholder="Search leads..."
-              className="w-full bg-muted/40 border border-border rounded-xl pl-14 pr-6 py-3.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all placeholder:text-muted-foreground shadow-sm"
+              className="w-full bg-muted/40 border border-border rounded-lg pl-11 pr-4 py-2 text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all placeholder:text-muted-foreground shadow-sm"
             />
           </div>
           
-          <div className="flex items-center gap-3 bg-muted/30 border border-border px-5 py-3.5 rounded-xl shadow-sm">
-            <Activity className="w-4 h-4 text-primary" />
-            <span className="text-sm font-bold text-foreground">
+          <div className="flex items-center gap-2 bg-muted/30 border border-border px-3 py-2 rounded-lg shadow-sm">
+            <Activity className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-bold text-foreground">
               {leads.length.toLocaleString()} Active Leads
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto">
+        <div className="flex items-center gap-2.5 w-full md:w-auto">
           {bouncedCount > 0 && (
             <Button
               onClick={handlePurgeBounced}
               disabled={isDeletingBounced}
-              className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl px-6 h-12 font-bold text-sm transition-all gap-2"
+              className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-lg px-4 h-9 font-bold text-xs transition-all gap-1.5"
             >
-              {isDeletingBounced ? <RefreshCw className="h-4 w-4 animate-spin" /> : <><Ban size={16} /> Purge Bounced ({bouncedCount})</>}
+              {isDeletingBounced ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <><Ban size={14} /> Purge Bounced ({bouncedCount})</>}
             </Button>
           )}
           {selectedLeads.size > 0 && (
@@ -361,62 +361,62 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
               variant="destructive"
               onClick={handleBulkDelete}
               disabled={deletingId === 'BULK'}
-              className="bg-destructive/10 hover:bg-destructive/20 text-destructive border-none rounded-xl px-6 h-12 font-bold text-sm transition-all"
+              className="bg-destructive/10 hover:bg-destructive/20 text-destructive border-none rounded-lg px-4 h-9 font-bold text-xs transition-all"
             >
-              {deletingId === 'BULK' ? <RefreshCw className="h-4 w-4 animate-spin" /> : `Delete Selected (${selectedLeads.size})`}
+              {deletingId === 'BULK' ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : `Delete Selected (${selectedLeads.size})`}
             </Button>
           )}
           
           <Button
             onClick={exportCSV}
-            className="bg-card hover:bg-muted text-emerald-500 rounded-xl border border-border px-6 h-12 font-bold text-sm gap-2.5 transition-all shadow-sm"
+            className="bg-card hover:bg-muted text-emerald-500 rounded-lg border border-border px-4 h-9 font-bold text-xs gap-2 transition-all shadow-sm"
           >
-            <Download size={16} /> {selectedLeads.size > 0 ? `Export (${selectedLeads.size})` : 'Export CSV'}
+            <Download size={14} /> {selectedLeads.size > 0 ? `Export (${selectedLeads.size})` : 'Export CSV'}
           </Button>
 
           <Button
             onClick={() => setShowTestLead(true)}
-            className="bg-primary/10 hover:bg-primary/20 text-primary rounded-xl px-6 h-12 font-bold text-sm gap-2.5 transition-all shadow-sm"
+            className="bg-primary/10 hover:bg-primary/20 text-primary rounded-lg px-4 h-9 font-bold text-xs gap-2 transition-all shadow-sm"
           >
-            <Sparkles size={16} /> Sample Lead
+            <Sparkles size={14} /> Sample Lead
           </Button>
           
           <Button
             onClick={() => setShowAddLead(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 h-12 font-bold text-sm gap-2.5 shadow-md transition-all"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg px-4 h-9 font-bold text-xs gap-2 shadow-sm transition-all"
           >
-            <Plus size={18} /> Add Lead
+            <Plus size={14} /> Add Lead
           </Button>
         </div>
       </div>
 
-      <div className="bg-card border border-border shadow-sm rounded-b-3xl overflow-hidden -mt-10 pt-10">
+      <div className="bg-card border border-border shadow-sm rounded-b-2xl overflow-hidden -mt-4 pt-4">
         <LeadUploader onUpload={handleUploadLeads} />
         
         <div className="overflow-x-auto custom-scrollbar">
           <table className="min-w-full border-none ">
             <thead>
                 <tr className="bg-muted/20 border-b border-border">
-                  <th className="pl-10 pr-6 py-5 text-left w-20">
+                  <th className="pl-6 pr-4 py-3 text-left w-16">
                     <CustomCheckbox
                       checked={filteredLeads.length > 0 && selectedLeads.size === filteredLeads.length}
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contact</th>
-                  <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Company</th>
-                  <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-5 text-right pr-10 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Contact</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Company</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-3 text-right pr-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {currentLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-10 py-32 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-4 text-muted-foreground">
-                      <Layers size={48} className="opacity-40" />
-                      <p className="text-sm font-semibold">No leads found.</p>
+                  <td colSpan={7} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-3 text-muted-foreground">
+                      <Layers size={36} className="opacity-40" />
+                      <p className="text-xs font-semibold">No leads found.</p>
                     </div>
                   </td>
                 </tr>
@@ -434,76 +434,76 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                         lead.status === 'bounced' && "bg-red-500/5 hover:bg-red-500/10"
                       )}
                     >
-                      <td className="pl-10 pr-6 py-5">
+                      <td className="pl-6 pr-4 py-2.5">
                         <CustomCheckbox checked={isSelected} onChange={() => handleSelectOne(lead.id)} />
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-3">
                           <div className="relative">
                             <div className={cn(
-                              "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-all duration-300",
+                              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all duration-300",
                               lead.status === 'bounced' ? "bg-red-500/20 text-red-500 ring-2 ring-red-500/30" :
                               isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover/row:bg-primary/10 group-hover/row:text-primary"
                             )}>
-                              {lead.status === 'bounced' ? <XCircle size={18} /> : (lead.name || lead.email).charAt(0).toUpperCase()}
+                              {lead.status === 'bounced' ? <XCircle size={14} /> : (lead.name || lead.email).charAt(0).toUpperCase()}
                             </div>
                             {lead.status === 'bounced' && (
-                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-card animate-pulse" />
+                              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card animate-pulse" />
                             )}
                           </div>
-                          <div className="space-y-0.5 min-w-[150px]">
+                          <div className="space-y-0.5 min-w-[120px]">
                             <div className={cn(
-                              "text-sm font-bold transition-colors truncate",
+                              "text-xs font-bold transition-colors truncate",
                               lead.status === 'bounced' ? "text-red-500" : "text-foreground group-hover/row:text-primary"
                             )}>
                               {lead.name || 'Unknown Lead'}
                             </div>
                             <div className={cn(
-                              "text-xs font-medium truncate",
+                              "text-[10px] font-medium truncate",
                               lead.status === 'bounced' ? "text-red-400/70 line-through" : "text-muted-foreground"
                             )}>{lead.email}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
+                      <td className="px-4 py-2.5">
                         <div className="space-y-0.5">
-                          <div className="text-sm font-semibold text-foreground truncate max-w-[200px]">{lead.company || 'Direct'}</div>
-                          <div className="text-xs font-medium text-muted-foreground truncate max-w-[200px]">{lead.title || 'No Title'}</div>
+                          <div className="text-xs font-semibold text-foreground truncate max-w-[160px]">{lead.company || 'Direct'}</div>
+                          <div className="text-[10px] font-medium text-muted-foreground truncate max-w-[160px]">{lead.title || 'No Title'}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2 group/email">
-                          <span className="font-mono text-[12px] text-foreground truncate max-w-[200px]">{lead.email}</span>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5 group/email">
+                          <span className="font-mono text-[11px] text-foreground truncate max-w-[160px]">{lead.email}</span>
                           <button onClick={() => { navigator.clipboard.writeText(lead.email); toast({ title: 'Copied', description: lead.email }); }} className="opacity-0 group-hover/email:opacity-100 text-muted-foreground hover:text-foreground transition-all" title="Copy">
-                            <Copy className="w-3 h-3" />
+                            <Copy className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="text-sm font-semibold text-foreground truncate max-w-[150px]">{lead.location || 'Remote'}</div>
+                      <td className="px-4 py-2.5">
+                        <div className="text-xs font-semibold text-foreground truncate max-w-[120px]">{lead.location || 'Remote'}</div>
                       </td>
-                      <td className="px-6 py-5 text-right pr-10">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-4 py-2.5 text-right pr-6">
+                        <div className="flex items-center justify-end gap-1.5">
                           {/* Social Media Icons */}
                           <div className="flex items-center gap-1">
                             {lead.linkedin && (
-                              <a href={lead.linkedin} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all" title="LinkedIn">
-                                <Linkedin size={12} />
+                              <a href={lead.linkedin} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all" title="LinkedIn">
+                                <Linkedin size={10} />
                               </a>
                             )}
                             {lead.twitter && (
-                              <a href={lead.twitter} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-400 hover:bg-blue-400/10 transition-all" title="Twitter">
-                                <Twitter size={12} />
+                              <a href={lead.twitter} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-400 hover:bg-blue-400/10 transition-all" title="Twitter">
+                                <Twitter size={10} />
                               </a>
                             )}
                             {lead.facebook && (
-                              <a href={lead.facebook} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-600 hover:bg-blue-600/10 transition-all" title="Facebook">
-                                <Facebook size={12} />
+                              <a href={lead.facebook} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-blue-600 hover:bg-blue-600/10 transition-all" title="Facebook">
+                                <Facebook size={10} />
                               </a>
                             )}
                             {lead.instagram && (
-                              <a href={lead.instagram} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-pink-500 hover:bg-pink-500/10 transition-all" title="Instagram">
-                                <Instagram size={12} />
+                              <a href={lead.instagram} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-pink-500 hover:bg-pink-500/10 transition-all" title="Instagram">
+                                <Instagram size={10} />
                               </a>
                             )}
                           </div>
@@ -512,11 +512,11 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                           <button
                             onClick={() => setActiveSummaryLead(lead)}
                             className={cn(
-                              "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ml-auto",
+                              "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 border ml-auto",
                               "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border-muted"
                             )}
                           >
-                            View <ChevronRight className="w-3 h-3" />
+                            View <ChevronRight className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       </td>
