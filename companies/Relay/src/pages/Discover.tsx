@@ -682,9 +682,14 @@ const Discover: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Side Lead Panel */}
+          {/* Right Side Lead Panel / Mobile Full-Screen Modal */}
           {selectedLeadPanel && (
-            <div className="w-0 xl:w-[400px] shrink-0 bg-[#0A0A0A] border-l border-white/10 animate-in slide-in-from-right-8 duration-200 z-40 flex flex-col h-full shadow-2xl relative">
+            <>
+              <div 
+                className="fixed xl:hidden inset-0 bg-black/60 backdrop-blur-sm z-[190] transition-opacity duration-300"
+                onClick={() => setSelectedLeadPanel(null)}
+              />
+              <div className="fixed xl:relative inset-0 xl:inset-auto w-full xl:w-[400px] shrink-0 bg-[#0A0A0A] border-0 xl:border-l border-white/10 animate-in slide-in-from-right-8 duration-200 z-[200] xl:z-40 flex flex-col h-full shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between p-6 border-b border-white/5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-center text-sm font-black text-white/60 uppercase">
@@ -797,7 +802,8 @@ const Discover: React.FC = () => {
 
               </div>
             </div>
-          )}
+          </>
+        )}
 
         {/* Floating Action Toolbar */}
         {selectedLeadIds.length > 0 && (
