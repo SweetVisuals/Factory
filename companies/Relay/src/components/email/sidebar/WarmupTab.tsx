@@ -104,7 +104,7 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
   const startDate = account.warmup_start_date ? new Date(account.warmup_start_date) : null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Warmup Status Integration */}
       <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 transition-all duration-300">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

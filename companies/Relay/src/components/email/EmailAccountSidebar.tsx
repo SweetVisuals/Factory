@@ -135,8 +135,8 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
 
       {/* Sidebar */}
       <div className="fixed xl:relative inset-0 xl:inset-auto w-full xl:w-full h-full bg-gradient-to-b from-[#0f0f12] to-[#050506] xl:bg-[#0a0a0a] border-0 xl:border border-white/5 shadow-2xl xl:rounded-2xl transition-all duration-300 ease-in-out z-50 xl:z-auto flex flex-col overflow-hidden">
-        <div className="p-5 sm:p-8 pb-0 flex-shrink-0">
-          <div className="flex justify-between items-start mb-6 md:mb-8">
+        <div className="p-5 pb-0 flex-shrink-0">
+          <div className="flex justify-between items-start mb-4">
             <div className="flex flex-col gap-1.5 min-w-0 pr-4">
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate drop-shadow-sm">{currentAccount.email}</h2>
               <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] truncate">{currentAccount.name || 'No name set'}</p>
@@ -165,7 +165,7 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
             </div>
           </div>
 
-          <div className="flex gap-1.5 sm:gap-2 p-1.5 bg-black/40 border border-white/5 rounded-2xl w-full mb-6 md:mb-8">
+          <div className="flex gap-1.5 sm:gap-2 p-1.5 bg-black/40 border border-white/5 rounded-2xl w-full mb-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -184,7 +184,7 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-8 pt-0">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 pt-0">
           {renderTabContent()}
         </div>
       </div>
