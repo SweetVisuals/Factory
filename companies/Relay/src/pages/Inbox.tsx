@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
-import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X, Edit3 } from 'lucide-react';
+import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X, Edit3, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { EmailMessage, EmailAccount, Campaign } from '../types';
 import { fetchEmailAccounts } from '../lib/api/email-accounts';
@@ -416,7 +416,13 @@ const Inbox = () => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{threads.filter(t => t.folder !== 'archive').length} active threads</span>
+              <span className="hidden sm:inline text-[10px] font-bold text-white/30 uppercase tracking-widest">{threads.filter(t => t.folder !== 'archive').length} active threads</span>
+              <button 
+                onClick={() => setIsComposeOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-md hover:bg-primary/90 transition-all"
+              >
+                <Plus size={14} /> Compose
+              </button>
               <button onClick={handleRefresh} className={cn("p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all", refreshing && "animate-spin text-primary")}>
                 <RefreshCw size={14} />
               </button>

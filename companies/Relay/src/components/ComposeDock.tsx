@@ -256,11 +256,11 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
   return (
     <div 
       className={cn(
-        "fixed z-50 bg-[#1e1e1e] border border-white/10 rounded-t-xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-in-out",
+        "fixed z-[200] bg-[#1e1e1e] border border-white/10 rounded-t-xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-in-out",
         isMaximized 
-          ? "bottom-0 right-[5%] left-[5%] top-[10vh] md:right-24 md:left-24 rounded-b-none" 
-          : "bottom-0 right-4 w-[500px] sm:right-24",
-        isMinimized ? "h-12" : isMaximized ? "h-[90vh]" : "h-[500px]"
+          ? "bottom-0 right-0 left-0 top-0 sm:right-[5%] sm:left-[5%] sm:top-[10vh] md:right-24 md:left-24 rounded-b-none" 
+          : "bottom-0 right-0 left-0 sm:left-auto w-full sm:w-[500px] sm:right-24",
+        isMinimized ? "h-12" : isMaximized ? "h-full sm:h-[90vh]" : "h-[500px]"
       )}
     >
       {/* Header */}

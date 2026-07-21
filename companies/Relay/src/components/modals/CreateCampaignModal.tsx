@@ -67,7 +67,7 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
   const labelClassName = "block text-[10px] font-bold text-white/40 uppercase tracking-widest";
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[200] p-0 sm:p-4 animate-in fade-in duration-200">
       {/* Modal Container */}
       <div className="bg-[#0A0A0A] border-0 sm:border border-white/5 w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-[650px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         
