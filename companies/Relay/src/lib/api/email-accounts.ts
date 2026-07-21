@@ -394,6 +394,8 @@ export const updateEmailAccount = async (
   const cleanUpdates: any = {};
   if (updates.name !== undefined) cleanUpdates.name = updates.name;
   if (updates.signature !== undefined) cleanUpdates.signature = updates.signature;
+  if (updates.signatures !== undefined) cleanUpdates.signatures = updates.signatures;
+  if (updates.daily_limit !== undefined) cleanUpdates.daily_limit = updates.daily_limit;
   if (updates.warmup_daily_limit !== undefined) cleanUpdates.warmup_daily_limit = updates.warmup_daily_limit;
   if (updates.warmup_increase_per_day !== undefined) cleanUpdates.warmup_increase_per_day = updates.warmup_increase_per_day;
   if (updates.warmup_filter_tag !== undefined) cleanUpdates.warmup_filter_tag = updates.warmup_filter_tag;

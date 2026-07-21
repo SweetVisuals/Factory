@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { EmailAccount } from '../types';
-import { X, Paperclip, Send, Search, Image as ImageIcon, FileText, Bot, Settings, Minimize2, Maximize2, Minus, ChevronUp } from 'lucide-react';
+import { X, Paperclip, Send, Search, Image as ImageIcon, FileText, Bot, Settings, Minimize2, Maximize2, Minus, ChevronUp, Edit3 } from 'lucide-react';
 import { api } from '../lib/api/api';
 import { cn } from '../lib/utils';
 import { useToast } from './ui/use-toast';
@@ -48,6 +48,42 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
   
   // Attachments
   const [attachments, setAttachments] = useState<{name: string, content: string, type: string}[]>([]);
+  const [showSignatureDropdown, setShowSignatureDropdown] = useState(false);
+
+  const getSignatureHtml = (sig: any) => {
+    if (!sig) return '';
+    const textHtml = sig.content.replace(/\n/g, '<br/>');
+    const imgHtml = sig.imageUrl ? `<img src="${sig.imageUrl}" alt="Signature Logo" style="max-height: 50px; object-fit: contain; display: block; margin-top: 6px;" />` : '';
+    return `<div class="composer-signature-block" style="margin-top: 16px; color: #888; font-size: 13px; line-height: 1.5;">--<br/>${textHtml}${imgHtml}</div>`;
+  };
+
+  const injectSignature = (sig: any) => {
+    if (!editorRef.current) return;
+    
+    let currentHtml = editorRef.current.innerHTML;
+    
+    // Remove existing signature block
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(currentHtml, 'text/html');
+    const existingSig = doc.querySelector('.composer-signature-block');
+    if (existingSig) {
+      existingSig.remove();
+    }
+    
+    let cleanBody = doc.body.innerHTML.trim();
+    // Trim trailing linebreaks or spacing at the end of text
+    cleanBody = cleanBody.replace(/(?:<br\s*\/?>|\s)+$/, '');
+    if (cleanBody === '') {
+      cleanBody = '<div><br/></div>';
+    }
+    
+    const sigHtml = getSignatureHtml(sig);
+    const finalHtml = `${cleanBody}<br/>${sigHtml}`;
+    
+    setHtmlContent(finalHtml);
+    editorRef.current.innerHTML = finalHtml;
+    editorRef.current.focus();
+  };
 
   useEffect(() => {
     if (accounts.length > 0 && !selectedAccountId) {
@@ -59,8 +95,20 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
   useEffect(() => {
     const acc = accounts.find(a => a.id === selectedAccountId);
     if (acc) {
-      const sig = acc.signature || `<br/>Best,<br/>${acc.name || acc.email.split('@')[0]}`;
-      const newHtml = `<div><br/></div><div style="margin-top: 16px; color: #888;">--<br/>${sig}</div>`;
+      let defaultSig = null;
+      if (acc.signatures && Array.isArray(acc.signatures)) {
+        defaultSig = acc.signatures.find(s => s.isDefault) || acc.signatures[0];
+      }
+
+      let sigHtml = '';
+      if (defaultSig) {
+        sigHtml = getSignatureHtml(defaultSig);
+      } else {
+        const legacySig = acc.signature || `Best,<br/>${acc.name || acc.email.split('@')[0]}`;
+        sigHtml = `<div class="composer-signature-block" style="margin-top: 16px; color: #888; font-size: 13px; line-height: 1.5;">--<br/>${legacySig}</div>`;
+      }
+
+      const newHtml = `<div><br/></div><br/>${sigHtml}`;
       setHtmlContent(newHtml);
       if (editorRef.current) {
         editorRef.current.innerHTML = newHtml;
@@ -364,6 +412,42 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
                   <ImageIcon size={16} />
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileUpload} />
                 </label>
+                
+                {/* Signatures Selection */}
+                <div className="relative inline-block">
+                  <button 
+                    onClick={() => setShowSignatureDropdown(!showSignatureDropdown)}
+                    type="button"
+                    className="p-1.5 text-white/60 hover:bg-white/10 rounded transition-colors"
+                    title="Insert Signature"
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                  {showSignatureDropdown && selectedAccount && (
+                    <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl overflow-hidden z-20">
+                      <div className="px-3 py-2 border-b border-white/5 bg-[#1a1a1a]">
+                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Select Signature</span>
+                      </div>
+                      {selectedAccount.signatures && selectedAccount.signatures.length > 0 ? (
+                        selectedAccount.signatures.map(sig => (
+                          <button
+                            key={sig.id}
+                            type="button"
+                            onClick={() => { injectSignature(sig); setShowSignatureDropdown(false); }}
+                            className="w-full text-left px-3 py-2 text-xs text-white transition-colors hover:bg-white/5 flex items-center justify-between"
+                          >
+                            <span className="truncate">{sig.name}</span>
+                            {sig.isDefault && <span className="text-[8px] text-primary uppercase font-bold">Def</span>}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-white/40 italic">
+                          No custom signatures
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

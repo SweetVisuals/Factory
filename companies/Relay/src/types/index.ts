@@ -52,6 +52,13 @@ export interface EmailAccount {
     sent: Record<string, number>;
   };
   signature?: string;
+  signatures?: Array<{
+    id: string;
+    name: string;
+    content: string;
+    imageUrl?: string | null;
+  }>;
+  daily_limit?: number;
   smtp_password: string;
   password: string;
   encrypted_password?: string;
