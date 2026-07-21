@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PlusCircle, AlertCircle, Activity, ChevronDown, ChevronRight, Target, LayoutGrid, List } from 'lucide-react';
 import CampaignCard from '../components/CampaignCard';
 import EmptyState from '../components/EmptyState';
@@ -7,10 +7,22 @@ import { useApp } from '../context/AppContext';
 import LoadingSpinner from '../components/auth/LoadingSpinner';
 import Layout from '../components/layout/Layout';
 import { supabase } from '../lib/supabase';
+import CreateCampaignModal from '../components/modals/CreateCampaignModal';
 
 export const CampaignHub = () => {
   const navigate = useNavigate();
-  const { campaigns, loading, error } = useApp();
+  const location = useLocation();
+  const { campaigns, loading, error, refreshCampaigns } = useApp();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('create') === 'true') {
+      setShowCreateModal(true);
+      // Clean up query param
+      navigate('/campaigns', { replace: true });
+    }
+  }, [location, navigate]);
 
   const filteredCampaigns = campaigns;
 
@@ -90,7 +102,7 @@ export const CampaignHub = () => {
             </div>
             
             <button
-              onClick={() => navigate('/create-campaign')}
+              onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-3 bg-white text-black px-6 py-3 hover:bg-gray-200 transition-all group rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:-translate-y-1"
             >
               <PlusCircle size={16} className="group-hover:rotate-90 transition-transform duration-300" />
@@ -113,6 +125,13 @@ export const CampaignHub = () => {
           {renderContent()}
         </div>
       </div>
+
+      {showCreateModal && (
+        <CreateCampaignModal 
+          onClose={() => setShowCreateModal(false)} 
+          onSuccess={refreshCampaigns}
+        />
+      )}
     </Layout>
   );
 };

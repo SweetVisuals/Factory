@@ -50,6 +50,8 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
   const [activeSummaryLead, setActiveSummaryLead] = useState<Lead | null>(null);
   const [deepResearchResults, setDeepResearchResults] = useState<Record<string, string>>({});
   const [isDeletingBounced, setIsDeletingBounced] = useState(false);
+  const [activeStatusTab, setActiveStatusTab] = useState<'prospects' | 'step1_complete' | 'replies' | 'bounced' | 'all'>('prospects');
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
   React.useEffect(() => {
     loadLeads();
@@ -206,7 +208,84 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
     }
   };
 
-  const filteredLeads = leads.filter((lead) =>
+  const handleMarkStep1Complete = async () => {
+    if (selectedLeads.size === 0) return;
+    setIsMarkingComplete(true);
+    try {
+      const { data: schedules, error: schedError } = await supabase
+        .from('scheduled_emails')
+        .select('id')
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      if (schedError) throw schedError;
+      
+      const step1ScheduleId = schedules?.[0]?.id;
+      if (!step1ScheduleId) {
+        throw new Error("No schedule/sequence module found for this campaign. Please create one in Sequences first.");
+      }
+
+      const selectedArray = Array.from(selectedLeads);
+
+      const progressEntries = selectedArray.map(leadId => ({
+        campaign_id: campaignId,
+        schedule_id: step1ScheduleId,
+        lead_id: leadId,
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error: progError } = await supabase
+        .from('campaign_progress')
+        .upsert(progressEntries, { onConflict: 'campaign_id,schedule_id,lead_id' });
+
+      if (progError) throw progError;
+
+      const { error: leadsError } = await supabase
+        .from('leads')
+        .update({ status: 'contacted' })
+        .in('id', selectedArray);
+
+      if (leadsError) throw leadsError;
+
+      await loadLeads();
+      setSelectedLeads(new Set());
+      toast({
+        title: "Marked Complete",
+        description: `Successfully marked ${selectedArray.length} leads as Step 1 Complete.`
+      });
+    } catch (error: any) {
+      console.error('Error marking Step 1 Complete:', error);
+      toast({
+        title: "Action Failed",
+        description: error.message || "Failed to mark leads as Step 1 Complete.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsMarkingComplete(false);
+    }
+  };
+
+  const tabFilteredLeads = leads.filter((lead) => {
+    const status = (lead.status || 'new').toLowerCase();
+    switch (activeStatusTab) {
+      case 'prospects':
+        return status === 'new' || status === 'pending' || !['contacted', 'interested', 'replied', 'bounced', 'unsubscribed'].includes(status);
+      case 'step1_complete':
+        return status === 'contacted';
+      case 'replies':
+        return status === 'interested' || status === 'replied';
+      case 'bounced':
+        return status === 'bounced';
+      case 'all':
+      default:
+        return true;
+    }
+  });
+
+  const filteredLeads = tabFilteredLeads.filter((lead) =>
     Object.values(lead).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase())) ||
     lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lead.website?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -325,6 +404,41 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Segment Tabs */}
+      <div className="flex border-b border-border/40 gap-6 px-1 mb-2">
+        {[
+          { id: 'prospects', label: 'Prospect Database' },
+          { id: 'step1_complete', label: 'Step 1 Complete' },
+          { id: 'replies', label: 'Replies / Interested' },
+          { id: 'bounced', label: 'Bounced' },
+          { id: 'all', label: 'All Leads' }
+        ].map((tab) => {
+          const count = leads.filter((lead) => {
+            const status = (lead.status || 'new').toLowerCase();
+            if (tab.id === 'prospects') return status === 'new' || status === 'pending' || !['contacted', 'interested', 'replied', 'bounced', 'unsubscribed'].includes(status);
+            if (tab.id === 'step1_complete') return status === 'contacted';
+            if (tab.id === 'replies') return status === 'interested' || status === 'replied';
+            if (tab.id === 'bounced') return status === 'bounced';
+            return true;
+          }).length;
+
+          return (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveStatusTab(tab.id as any); setCurrentPage(1); setSelectedLeads(new Set()); }}
+              className={cn(
+                "pb-3 text-xs font-bold transition-all relative border-b-2",
+                activeStatusTab === tab.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.label} <span className="ml-1 text-[10px] opacity-60 font-semibold">({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Premium Toolbar */}
       <div className="bg-card border border-border shadow-sm rounded-t-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
         <div className="flex items-center gap-4 w-full md:w-auto">
@@ -341,12 +455,12 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
           <div className="flex items-center gap-2 bg-muted/30 border border-border px-3 py-2 rounded-lg shadow-sm">
             <Activity className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-bold text-foreground">
-              {leads.length.toLocaleString()} Active Leads
+              {filteredLeads.length.toLocaleString()} Leads shown
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto">
+        <div className="flex items-center gap-2.5 w-full md:w-auto flex-wrap">
           {bouncedCount > 0 && (
             <Button
               onClick={handlePurgeBounced}
@@ -354,6 +468,15 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
               className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-lg px-4 h-9 font-bold text-xs transition-all gap-1.5"
             >
               {isDeletingBounced ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <><Ban size={14} /> Purge Bounced ({bouncedCount})</>}
+            </Button>
+          )}
+          {selectedLeads.size > 0 && (
+            <Button
+              onClick={handleMarkStep1Complete}
+              disabled={isMarkingComplete}
+              className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 rounded-lg px-4 h-9 font-bold text-xs transition-all gap-1.5"
+            >
+              {isMarkingComplete ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <><CheckCircle2 size={14} /> Mark Step 1 Complete ({selectedLeads.size})</>}
             </Button>
           )}
           {selectedLeads.size > 0 && (

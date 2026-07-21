@@ -134,17 +134,17 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
       />
 
       {/* Sidebar */}
-      <div className="fixed xl:relative inset-y-0 right-0 w-full sm:w-[500px] xl:w-full h-full bg-[#0A0A0A] border-l border-white/5 shadow-2xl xl:shadow-none transform xl:transform-none transition-transform duration-300 ease-in-out z-50 xl:z-auto flex flex-col">
-        <div className="p-8 pb-0 flex-shrink-0">
-          <div className="flex justify-between items-start mb-8">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-2xl font-black text-white tracking-tight">{currentAccount.email}</h2>
-              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">{currentAccount.name || 'No name set'}</p>
+      <div className="fixed xl:relative inset-0 xl:inset-y-0 xl:right-0 xl:left-auto w-full xl:w-full h-full bg-[#0A0A0A] border-l border-white/5 shadow-2xl xl:shadow-none transition-all duration-300 ease-in-out z-50 xl:z-auto flex flex-col">
+        <div className="p-4 sm:p-8 pb-0 flex-shrink-0">
+          <div className="flex justify-between items-start mb-6 md:mb-8">
+            <div className="flex flex-col gap-1 min-w-0 pr-4">
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">{currentAccount.email}</h2>
+              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] truncate">{currentAccount.name || 'No name set'}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <button
                 onClick={() => setIsDeleteDialogOpen(true)}
-                className="p-2.5 text-white/40 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
+                className="p-2 sm:p-2.5 text-white/40 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
                 title="Delete account"
               >
                 <Trash2 size={16} />
@@ -158,33 +158,33 @@ const EmailAccountSidebar = ({ account, onClose, onToggleWarmup, onDeleteAccount
               />
               <button
                 onClick={onClose}
-                className="p-2.5 text-white/40 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                className="p-2 sm:p-2.5 text-white/40 hover:text-white hover:bg-white/10 rounded-xl transition-all"
               >
                 <X size={16} />
               </button>
             </div>
           </div>
 
-          <div className="flex gap-2 p-1.5 bg-white/[0.03] border border-white/5 rounded-2xl w-full mb-8">
+          <div className="flex gap-1.5 sm:gap-2 p-1 bg-white/[0.03] border border-white/5 rounded-2xl w-full mb-6 md:mb-8">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                  "flex-1 flex items-center justify-center space-x-1.5 sm:space-x-2 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all",
                   activeTab === tab.id
                     ? "bg-white/10 text-white shadow-sm"
                     : "text-white/40 hover:text-white hover:bg-white/5"
                 )}
               >
-                <tab.icon size={14} />
+                <tab.icon size={12} className="sm:w-3.5 sm:h-3.5" />
                 <span>{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-0">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8 pt-0">
           {renderTabContent()}
         </div>
       </div>

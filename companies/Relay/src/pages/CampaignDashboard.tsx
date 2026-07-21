@@ -100,14 +100,8 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
 
     if (!error && schedules && schedules.length > 0) {
       setHasScheduledEntries(true);
-      if (campaign.status?.toLowerCase() === 'draft') {
-        updateCampaign(campaign.id, { status: 'in_progress' });
-      }
     } else {
       setHasScheduledEntries(false);
-      if (campaign.status?.toLowerCase() === 'in_progress') {
-        updateCampaign(campaign.id, { status: 'Draft' });
-      }
     }
   };
 

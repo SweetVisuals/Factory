@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
-import { CheckCircle2, FileEdit, Activity, Users, Mail, MessageSquare, ArrowUpRight } from 'lucide-react';
+import { CheckCircle2, FileEdit, Activity, Users, Mail, MessageSquare, ArrowUpRight, PauseCircle } from 'lucide-react';
 import { AnimatedNumber } from './AnimatedNumber';
 
 interface CampaignCardProps {
@@ -78,7 +78,18 @@ const CampaignCard = ({
   
   const isCompleted = status?.toLowerCase() === 'completed' || (progressPct >= 100 && prospectsVal > 0);
   const isDraft = (status?.toLowerCase() === 'draft' || status?.toLowerCase() === 'pending') && !isCompleted;
+  const isPaused = status?.toLowerCase() === 'paused';
   const { loc, cleanName } = parseLocationFromName(name);
+
+  let badgeColor = activeColor;
+  let badgeRgb = rgbColor;
+  if (isPaused) {
+    badgeColor = '#f59e0b';
+    badgeRgb = '245, 158, 11';
+  } else if (isDraft) {
+    badgeColor = '#a3a3a3';
+    badgeRgb = '163, 163, 163';
+  }
 
   return (
     <div 
@@ -94,15 +105,19 @@ const CampaignCard = ({
       <div 
         className="absolute top-0 left-0 right-0 h-1 transition-all duration-500 group-hover:h-1.5"
         style={{ 
-          background: `linear-gradient(90deg, rgba(${rgbColor},0.8) 0%, rgba(${rgbColor},0.2) 100%)`,
-          boxShadow: `0 2px 15px rgba(${rgbColor}, 0.4)`
+          background: isPaused 
+            ? 'linear-gradient(90deg, rgba(245,158,11,0.8) 0%, rgba(245,158,11,0.2) 100%)' 
+            : `linear-gradient(90deg, rgba(${rgbColor},0.8) 0%, rgba(${rgbColor},0.2) 100%)`,
+          boxShadow: isPaused 
+            ? '0 2px 15px rgba(245, 158, 11, 0.4)' 
+            : `0 2px 15px rgba(${rgbColor}, 0.4)`
         }}
       />
       
       {/* Header */}
       <div className="p-6 pb-4 flex justify-between items-start">
         <div className="flex flex-col gap-1 min-w-0 pr-4">
-          <div className="flex gap-2 text-xs font-semibold uppercase tracking-wider" style={{ color: activeColor }}>
+          <div className="flex gap-2 text-xs font-semibold uppercase tracking-wider" style={{ color: isPaused ? '#f59e0b' : activeColor }}>
             <span>{bizLabel}</span>
             {loc && <span>• {loc}</span>}
           </div>
@@ -113,13 +128,21 @@ const CampaignCard = ({
         <span 
           className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase rounded-full border shadow-sm transition-colors"
           style={{ 
-            backgroundColor: `rgba(${rgbColor}, 0.1)`, 
-            borderColor: `rgba(${rgbColor}, 0.2)`,
-            color: activeColor 
+            backgroundColor: `rgba(${badgeRgb}, 0.1)`, 
+            borderColor: `rgba(${badgeRgb}, 0.2)`,
+            color: badgeColor 
           }}
         >
-          {isCompleted ? <CheckCircle2 size={12} /> : isDraft ? <FileEdit size={12} /> : <Activity size={12} className="animate-pulse" />}
-          {isCompleted ? 'Agent Completed' : isDraft ? 'Agent Idle' : 'Agent Active'}
+          {isCompleted ? (
+            <CheckCircle2 size={12} />
+          ) : isPaused ? (
+            <PauseCircle size={12} />
+          ) : isDraft ? (
+            <FileEdit size={12} />
+          ) : (
+            <Activity size={12} className="animate-pulse" />
+          )}
+          {isCompleted ? 'Agent Completed' : isPaused ? 'Agent Paused' : isDraft ? 'Agent Idle' : 'Agent Active'}
         </span>
       </div>
 
