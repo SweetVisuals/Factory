@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
-import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X } from 'lucide-react';
+import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X, Edit3 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { EmailMessage, EmailAccount, Campaign } from '../types';
 import { fetchEmailAccounts } from '../lib/api/email-accounts';
@@ -45,6 +45,9 @@ const Inbox = () => {
   const [isDrafting, setIsDrafting] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [replyFromAccountId, setReplyFromAccountId] = useState('');
+  const [showReplySignatureDropdown, setShowReplySignatureDropdown] = useState(false);
+  const [showReplyFromDropdown, setShowReplyFromDropdown] = useState(false);
+  const replyEditorRef = useRef<HTMLDivElement>(null);
   
   // Compose State
   const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -214,6 +217,63 @@ const Inbox = () => {
       }
     }
   }, [selectedThread?.id]);
+
+  useEffect(() => {
+    if (replyEditorRef.current && replyContent !== replyEditorRef.current.innerHTML) {
+      replyEditorRef.current.innerHTML = replyContent;
+    }
+  }, [replyContent]);
+
+  const getSignatureHtml = (sig: any) => {
+    if (!sig) return '';
+    const textHtml = sig.content.replace(/\n/g, '<br/>');
+    const imgHtml = sig.imageUrl ? `<img src="${sig.imageUrl}" alt="Signature Logo" style="max-height: 50px; object-fit: contain; display: block; margin-top: 6px;" />` : '';
+    return `<div class="composer-signature-block" style="margin-top: 16px; color: #888; font-size: 13px; line-height: 1.5;">--<br/>${textHtml}${imgHtml}</div>`;
+  };
+
+  const injectReplySignature = (sig: any) => {
+    if (!replyEditorRef.current) return;
+    
+    let currentHtml = replyEditorRef.current.innerHTML;
+    
+    // Remove existing signature block
+    const doc = new DOMParser().parseFromString(currentHtml, 'text/html');
+    const existingSig = doc.querySelector('.composer-signature-block');
+    if (existingSig) {
+      existingSig.remove();
+    }
+    
+    // Clean up trailing line breaks to avoid signature stacking gaps
+    let cleanedBody = doc.body.innerHTML;
+    cleanedBody = cleanedBody.replace(/(?:<br\s*\/?>|\s)+$/, '');
+    
+    const sigHtml = getSignatureHtml(sig);
+    const newHtml = cleanedBody + sigHtml;
+    
+    replyEditorRef.current.innerHTML = newHtml;
+    setReplyContent(newHtml);
+  };
+
+  useEffect(() => {
+    const selectedAccount = accounts.find(a => a.id === replyFromAccountId);
+    if (selectedAccount?.signatures) {
+      try {
+        const sigs = typeof selectedAccount.signatures === 'string' 
+          ? JSON.parse(selectedAccount.signatures) 
+          : selectedAccount.signatures;
+        if (Array.isArray(sigs)) {
+          const defSig = sigs.find((s: any) => s.isDefault);
+          if (defSig) {
+            injectReplySignature(defSig);
+          } else {
+            injectReplySignature(null);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [replyFromAccountId, accounts, selectedThread?.id]);
 
   const filteredThreads = useMemo(() => {
     return threads.filter(thread => {
@@ -579,42 +639,150 @@ const Inbox = () => {
                 {/* Reply Box */}
                 <div className="p-4 border-t border-white/5 shrink-0">
                   <div className="max-w-3xl mx-auto">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden focus-within:border-primary/30 transition-colors">
+                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden focus-within:border-primary/30 transition-colors">
                       {/* From Selector */}
                       <div className="flex items-center px-4 py-2.5 border-b border-white/5 bg-white/[0.01]">
                         <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest mr-3">From:</span>
-                        <div className="relative flex-1 flex items-center">
-                          <select 
-                            className="w-full bg-transparent text-white/80 text-xs font-medium focus:outline-none cursor-pointer appearance-none z-10"
-                            value={replyFromAccountId}
-                            onChange={e => setReplyFromAccountId(e.target.value)}
+                        <div className="relative inline-block z-20">
+                          <button
+                            type="button"
+                            onClick={() => setShowReplyFromDropdown(!showReplyFromDropdown)}
+                            className="bg-black/20 border border-white/5 px-2.5 py-1 rounded-lg text-xs text-white/70 hover:text-white transition-colors flex items-center gap-1 min-w-[140px] justify-between"
                           >
-                            {accounts.map(acc => (
-                              <option key={acc.id} value={acc.id} className="bg-[#111] text-white">{acc.email}</option>
-                            ))}
-                          </select>
-                          <ChevronDown size={12} className="text-white/30 absolute right-2 pointer-events-none" />
+                            <span className="truncate max-w-[120px]">{accounts.find(a => a.id === replyFromAccountId)?.email || 'Select Account'}</span>
+                            <ChevronDown size={12} className="opacity-50" />
+                          </button>
+                          {showReplyFromDropdown && (
+                            <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl overflow-hidden">
+                              <div className="px-3 py-2 border-b border-white/5 bg-[#1a1a1a]">
+                                <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Send Reply From</span>
+                              </div>
+                              <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                                {accounts.map(acc => (
+                                  <button
+                                    key={acc.id}
+                                    type="button"
+                                    onClick={() => { setReplyFromAccountId(acc.id); setShowReplyFromDropdown(false); }}
+                                    className={cn(
+                                      "w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/5 flex items-center justify-between",
+                                      replyFromAccountId === acc.id ? "bg-primary/10 text-primary font-bold" : "text-white"
+                                    )}
+                                  >
+                                    <span className="truncate">{acc.email}</span>
+                                    {acc.status === 'active' && <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <textarea
-                        value={replyContent}
-                        onChange={(e) => setReplyContent(e.target.value)}
+                      {/* Rich Text Editor */}
+                      <div
+                        ref={replyEditorRef}
+                        contentEditable
+                        onInput={(e) => setReplyContent(e.currentTarget.innerHTML)}
+                        className="w-full bg-transparent p-4 text-sm focus:outline-none min-h-[120px] text-white overflow-y-auto max-h-48 prose prose-invert focus:ring-0 empty:before:content-[attr(placeholder)] empty:before:text-white/20 empty:before:pointer-events-none"
                         placeholder={`Reply to ${selectedThread.contactName}...`}
-                        className="w-full bg-transparent p-4 text-sm resize-none focus:outline-none min-h-[100px] text-white placeholder:text-white/20"
+                        style={{ outline: 'none' }}
                       />
-                      <div className="flex items-center justify-between p-3 border-t border-white/5">
-                        <button
-                          onClick={handleAIDraft}
-                          disabled={isDrafting}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-40"
-                        >
-                          <Bot size={12} /> {isDrafting ? 'Drafting...' : 'Draft with AI'}
-                        </button>
+
+                      {/* Toolbar & Send Actions */}
+                      <div className="flex items-center justify-between p-3 border-t border-white/5 bg-black/10">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleAIDraft}
+                            disabled={isDrafting}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-40"
+                          >
+                            <Bot size={12} /> {isDrafting ? 'Drafting...' : 'Draft with AI'}
+                          </button>
+
+                          {/* Formatting Actions */}
+                          <div className="flex items-center gap-1 border-l border-white/5 pl-2 ml-1">
+                            <button
+                              type="button"
+                              onClick={() => document.execCommand('bold')}
+                              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
+                              title="Bold"
+                            >
+                              <span className="font-bold text-xs">B</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => document.execCommand('italic')}
+                              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
+                              title="Italic"
+                            >
+                              <span className="italic text-xs font-serif">I</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => document.execCommand('underline')}
+                              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
+                              title="Underline"
+                            >
+                              <span className="underline text-xs">U</span>
+                            </button>
+                          </div>
+
+                          {/* Signature Selector */}
+                          <div className="relative inline-block ml-1">
+                            <button
+                              type="button"
+                              onClick={() => setShowReplySignatureDropdown(!showReplySignatureDropdown)}
+                              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors flex items-center"
+                              title="Insert Signature"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            {showReplySignatureDropdown && (
+                              <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl overflow-hidden z-20">
+                                <div className="px-3 py-1.5 border-b border-white/5 bg-[#1a1a1a]">
+                                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Select Signature</span>
+                                </div>
+                                <div className="max-h-36 overflow-y-auto custom-scrollbar">
+                                  {(() => {
+                                    const acc = accounts.find(a => a.id === replyFromAccountId);
+                                    let sigList: any[] = [];
+                                    if (acc?.signatures) {
+                                      try {
+                                        sigList = typeof acc.signatures === 'string' ? JSON.parse(acc.signatures) : acc.signatures;
+                                      } catch (e) {
+                                        console.error(e);
+                                      }
+                                    }
+                                    if (sigList.length > 0) {
+                                      return sigList.map((sig: any, index: number) => (
+                                        <button
+                                          key={index}
+                                          type="button"
+                                          onClick={() => { injectReplySignature(sig); setShowReplySignatureDropdown(false); }}
+                                          className="w-full text-left px-3 py-2 text-xs text-white hover:bg-white/5 transition-colors flex items-center justify-between"
+                                        >
+                                          <span className="truncate">{sig.name}</span>
+                                          {sig.isDefault && <span className="text-[8px] text-primary uppercase font-bold">Def</span>}
+                                        </button>
+                                      ));
+                                    }
+                                    return (
+                                      <div className="px-3 py-2 text-[10px] text-white/40 italic">
+                                        No custom signatures
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
                         <button
                           onClick={handleSendReply}
                           disabled={!replyContent.trim() || isSending}
-                          className="flex items-center gap-2 bg-white text-black px-5 py-2 rounded-lg hover:bg-gray-200 transition-all font-black uppercase tracking-widest text-[10px] disabled:opacity-40 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                          className="flex items-center gap-2 bg-white text-black px-5 py-2 rounded-xl hover:bg-gray-200 transition-all font-black uppercase tracking-widest text-[10px] disabled:opacity-40 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
                         >
                           {isSending ? 'Sending...' : 'Send'} <Send size={12} />
                         </button>

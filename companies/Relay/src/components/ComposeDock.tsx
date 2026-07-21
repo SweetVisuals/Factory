@@ -49,6 +49,7 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
   // Attachments
   const [attachments, setAttachments] = useState<{name: string, content: string, type: string}[]>([]);
   const [showSignatureDropdown, setShowSignatureDropdown] = useState(false);
+  const [showFromDropdown, setShowFromDropdown] = useState(false);
 
   const getSignatureHtml = (sig: any) => {
     if (!sig) return '';
@@ -453,15 +454,39 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
 
             <div className="flex items-center gap-2 relative">
               <span className="text-xs text-white/40">From:</span>
-              <select 
-                value={selectedAccountId} 
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                className="bg-transparent border-none text-xs text-white/60 focus:outline-none appearance-none cursor-pointer max-w-[100px] truncate"
-              >
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id} className="bg-[#2a2a2a] text-white">{acc.email}</option>
-                ))}
-              </select>
+              <div className="relative inline-block">
+                <button
+                  type="button"
+                  onClick={() => setShowFromDropdown(!showFromDropdown)}
+                  className="bg-black/20 border border-white/5 px-2.5 py-1 rounded-lg text-xs text-white/70 hover:text-white transition-colors flex items-center gap-1 min-w-[110px] justify-between"
+                >
+                  <span className="truncate max-w-[90px]">{selectedAccount?.email || 'Select Account'}</span>
+                  <ChevronDown size={12} className="opacity-50" />
+                </button>
+                {showFromDropdown && (
+                  <div className="absolute bottom-full right-0 mb-2 w-56 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl overflow-hidden z-20">
+                    <div className="px-3 py-2 border-b border-white/5 bg-[#1a1a1a]">
+                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Send Email As</span>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                      {accounts.map(acc => (
+                        <button
+                          key={acc.id}
+                          type="button"
+                          onClick={() => { setSelectedAccountId(acc.id); setShowFromDropdown(false); }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/5 flex items-center justify-between",
+                            selectedAccountId === acc.id ? "bg-primary/10 text-primary font-bold" : "text-white"
+                          )}
+                        >
+                          <span className="truncate">{acc.email}</span>
+                          {acc.status === 'active' && <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="border-l border-white/10 pl-2 ml-1">
                 <button 
