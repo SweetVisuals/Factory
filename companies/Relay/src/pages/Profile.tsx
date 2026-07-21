@@ -11,6 +11,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import UsageDashboard from '../components/UsageDashboard';
 
 interface Business { id: string; name: string; slug: string; overview_md: string | null; status: string; }
+interface EmailTone { id: string; name: string; slug: string; content_md: string | null; created_at: string; }
 
 export default function ProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -37,6 +38,15 @@ export default function ProfilePage() {
   const [isSavingBiz, setIsSavingBiz] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Email Tone States
+  const [tones, setTones] = useState<EmailTone[]>([]);
+  const [selectedTone, setSelectedTone] = useState<EmailTone | null>(null);
+  const [isEditingTone, setIsEditingTone] = useState(false);
+  const [editToneContent, setEditToneContent] = useState('');
+  const [isSavingTone, setIsSavingTone] = useState(false);
+  const [showToneUpload, setShowToneUpload] = useState(false);
+  const toneFileRef = useRef<HTMLInputElement>(null);
 
   // Groq AI Refiner States
   const [aiPrompt, setAiPrompt] = useState('');
@@ -72,6 +82,19 @@ export default function ProfilePage() {
     };
     initBusiness();
   }, []);
+
+  useEffect(() => {
+    const initTones = async () => {
+      const { data } = await supabase.from('email_tones').select('*').order('created_at');
+      if (data) {
+        setTones(data);
+        if (data.length > 0 && !selectedTone) {
+          setSelectedTone(data[0]);
+        }
+      }
+    };
+    initTones();
+  }, [activeTab]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +175,77 @@ export default function ProfilePage() {
         variant: 'destructive'
       });
     } finally {
-      setIsLoading(false); // To clear outer spinner
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleToneUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file || !file.name.endsWith('.md')) return;
+    const text = await file.text();
+    const name = file.name.replace('.md', '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const { data, error } = await supabase.from('email_tones').insert({ name, slug, content_md: text }).select().single();
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to upload tone guide.', variant: 'destructive' });
+    } else if (data) {
+      setTones(p => [...p, data]);
+      setSelectedTone(data);
+      setShowToneUpload(false);
+      toast({ title: 'Email Tone Added', description: `${name} has been imported successfully.` });
+    }
+  };
+
+  const handleSaveTone = async () => {
+    if (!selectedTone) return;
+    setIsSavingTone(true);
+    const { error } = await supabase.from('email_tones').update({ content_md: editToneContent }).eq('id', selectedTone.id);
+    setIsSavingTone(false);
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to save changes.', variant: 'destructive' });
+    } else {
+      setTones(prev => prev.map(t => t.id === selectedTone.id ? { ...t, content_md: editToneContent } : t));
+      setSelectedTone(prev => prev ? { ...prev, content_md: editToneContent } : null);
+      toast({ title: 'Saved', description: 'Email tone guide updated successfully.' });
+      setIsEditingTone(false);
+    }
+  };
+
+  const handleAiToneEdit = async () => {
+    if (!aiPrompt.trim()) {
+      toast({ title: 'Error', description: 'Please enter a prompt for the AI' });
+      return;
+    }
+    setIsAiLoading(true);
+    try {
+      const response = await fetch('/api/edit-brief-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: aiPrompt,
+          markdown: editToneContent,
+          userId: user?.id
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to refine tone guide with AI');
+      }
+      setEditToneContent(data.markdown);
+      setAiPrompt('');
+      if (data.usageCount !== undefined) {
+        setGroqUsageCount(data.usageCount);
+      }
+      toast({
+        title: 'Success',
+        description: `Tone guide refined successfully with Groq Llama 3! Daily usage: ${data.usageCount}/5`,
+      });
+    } catch (error) {
+      toast({
+        title: 'AI Edit Failed',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive'
+      });
+    } finally {
       setIsAiLoading(false);
     }
   };
@@ -184,7 +277,8 @@ export default function ProfilePage() {
                 { id: 'profile', label: 'My Profile' },
                 { id: 'usage', label: 'System Usage' },
                 { id: 'subscription', label: 'Subscription & Billing' },
-                { id: 'business', label: 'Business AI Profiles' }
+                { id: 'business', label: 'Business AI Profiles' },
+                { id: 'tone', label: 'Email Tone Guides' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -528,6 +622,158 @@ export default function ProfilePage() {
                       <h3 className="text-lg font-bold text-foreground mb-2">{b.name}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-3">
                         {b.overview_md ? b.overview_md.substring(0, 150) + '...' : 'No context provided.'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: EMAIL TONE GUIDES */}
+          {activeTab === 'tone' && (
+            <div className="space-y-8 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground max-w-xl">
+                  Configure tone profiles to teach the AI how to write natural, conversational cold outreach emails. Highlight example templates, DO's, and NOT-to-DO's to hide the "AI look".
+                </p>
+                <button 
+                  onClick={() => setShowToneUpload(!showToneUpload)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
+                >
+                  <Plus size={18} />
+                  New Tone Guide
+                </button>
+              </div>
+
+              {showToneUpload && (
+                <div className="p-8 bg-card border border-border rounded-3xl animate-in slide-in-from-top-4 duration-300">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl p-12 text-center">
+                    <div className="p-4 bg-muted rounded-full mb-4">
+                      <Upload size={24} className="text-muted-foreground" />
+                    </div>
+                    <h4 className="text-lg font-bold text-foreground mb-2">Upload Tone Document</h4>
+                    <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+                      Upload a Markdown (.md) file containing email rules, guidelines, or templates.
+                    </p>
+                    <input ref={toneFileRef} type="file" accept=".md" onChange={handleToneUpload} className="hidden" />
+                    <button 
+                      onClick={() => toneFileRef.current?.click()}
+                      className="px-6 py-3 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
+                    >
+                      Select File
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {selectedTone ? (
+                <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => { setSelectedTone(null); setIsEditingTone(false); }}
+                        className="p-2 bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+                      >
+                        <ArrowLeft size={18} />
+                      </button>
+                      <h3 className="text-xl font-bold text-foreground">{selectedTone.name}</h3>
+                    </div>
+                    {isEditingTone ? (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => setIsEditingTone(false)}
+                          className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={handleSaveTone}
+                          disabled={isSavingTone}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all flex items-center gap-2"
+                        >
+                          {isSavingTone ? <RefreshCw size={14} className="animate-spin" /> : <Settings size={14} />}
+                          Save Changes
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => { setEditToneContent(selectedTone.content_md || ''); setIsEditingTone(true); }}
+                        className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
+                      >
+                        Edit Markdown
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingTone ? (
+                    <div className="space-y-4">
+                      <textarea 
+                        value={editToneContent}
+                        onChange={(e) => setEditToneContent(e.target.value)}
+                        className="w-full h-96 bg-background border border-border rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                      />
+                      
+                      {/* AI Assistant Section */}
+                      <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-amber-400" /> Groq AI Refiner (Free Llama 3)
+                          </label>
+                          {groqUsageCount !== null && (
+                            <span className="text-[10px] font-bold text-muted-foreground px-2 py-0.5 bg-muted rounded-full uppercase tracking-wider">
+                              Daily Used: {groqUsageCount}/5 edits
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                            disabled={isAiLoading}
+                            placeholder="e.g. 'Add follow-up subject lines' or 'Change tone to casual'..."
+                            className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAiToneEdit}
+                            disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                            Refine
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-6 bg-background border border-border rounded-xl">
+                      <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
+                        {selectedTone.content_md || 'No content available.'}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {tones.map(t => (
+                    <div 
+                      key={t.id} 
+                      onClick={() => setSelectedTone(t)}
+                      className="p-6 bg-card border border-border rounded-3xl shadow-sm group hover:border-primary/30 transition-colors cursor-pointer"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-primary/10 rounded-xl">
+                          <Mail size={20} className="text-primary" />
+                        </div>
+                        <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
+                          Active
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-foreground mb-2">{t.name}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {t.content_md ? t.content_md.substring(0, 150) + '...' : 'No guidelines provided.'}
                       </p>
                     </div>
                   ))}
