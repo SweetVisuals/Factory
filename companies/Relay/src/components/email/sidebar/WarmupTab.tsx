@@ -155,11 +155,11 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
 
         {/* Daily Progress Section */}
         <div className="mt-6 pt-6 border-t border-white/5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+          <div className="flex flex-col gap-5">
             <div className="space-y-2">
               <p className="text-xs text-white/40 uppercase tracking-wider font-bold">Sent Today</p>
-              <div className="flex items-baseline gap-2 h-[32px]">
-                <span className="text-2xl font-black text-white leading-none">
+              <div className="flex items-baseline gap-2 h-[24px]">
+                <span className="text-xl font-black text-white leading-none">
                   {warmupStats.sent[new Date().toLocaleDateString('en-CA')] || 0}
                 </span>
                 <span className="text-xs text-white/30 font-bold">/ {account.warmup_daily_limit || 20}</span>
@@ -174,8 +174,8 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
 
             <div className="space-y-2">
               <p className="text-xs text-white/40 uppercase tracking-wider font-bold">Warmup Progress</p>
-              <div className="flex items-baseline gap-2 h-[32px]">
-                <span className="text-2xl font-black text-white leading-none whitespace-nowrap">
+              <div className="flex items-baseline gap-2 h-[24px]">
+                <span className="text-xl font-black text-white leading-none whitespace-nowrap">
                   Day {startDate ? Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0}
                 </span>
                 <span className="text-xs text-white/30 font-bold">of 30</span>
@@ -190,7 +190,7 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
 
             <div className="space-y-2">
               <p className="text-xs text-white/40 uppercase tracking-wider font-bold">Target</p>
-              <div className="flex items-baseline gap-2 h-[32px]">
+              <div className="flex items-baseline gap-2 h-[24px]">
                 <span className="text-xs font-bold text-white whitespace-nowrap leading-none uppercase">10 emails / day</span>
                 <span className="text-[10px] text-white/30 font-medium whitespace-nowrap">for 30 days total</span>
               </div>
@@ -262,22 +262,38 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Received', value: totals.received, icon: Inbox, color: 'text-blue-400', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.1)]' },
-          { label: 'Sent', value: totals.sent, icon: Send, color: 'text-green-400', glow: 'shadow-[0_0_15px_rgba(74,222,128,0.1)]' },
-          { label: 'Saved from Spam', value: account.spamSaved || 0, icon: ShieldCheck, color: 'text-amber-400', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.1)]' }
-        ].map((stat, i) => (
-          <div key={i} className={`bg-white/[0.01] border border-white/5 rounded-2xl p-5 hover:-translate-y-0.5 hover:bg-white/[0.02] hover:border-white/10 transition-all duration-300 flex flex-col justify-between min-h-[110px] ${stat.glow}`}>
-            <div className="flex items-center gap-2 mb-3">
-              <stat.icon size={16} className={stat.color} />
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{stat.label}</p>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { label: 'Received', value: totals.received, icon: Inbox, color: 'text-blue-400', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.1)]' },
+            { label: 'Sent', value: totals.sent, icon: Send, color: 'text-green-400', glow: 'shadow-[0_0_15px_rgba(74,222,128,0.1)]' },
+          ].map((stat, i) => (
+            <div key={i} className={`bg-white/[0.01] border border-white/5 rounded-2xl p-5 hover:-translate-y-0.5 hover:bg-white/[0.02] hover:border-white/10 transition-all duration-300 flex flex-col justify-between min-h-[110px] ${stat.glow}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <stat.icon size={16} className={stat.color} />
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{stat.label}</p>
+              </div>
+              <p className="text-3xl font-black text-white tracking-tight">
+                {stat.value}
+              </p>
             </div>
-            <p className="text-3xl font-black text-white tracking-tight">
-              {stat.value}
-            </p>
+          ))}
+        </div>
+
+        <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-5 hover:-translate-y-0.5 hover:bg-white/[0.02] hover:border-white/10 transition-all duration-300 flex items-center justify-between min-h-[80px] shadow-[0_0_15px_rgba(245,158,11,0.05)] w-full">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/10 rounded-xl">
+              <ShieldCheck size={20} className="text-amber-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Saved from Spam</p>
+              <p className="text-xs text-white/30 font-medium mt-0.5">Automated deliverability rescue logs</p>
+            </div>
           </div>
-        ))}
+          <p className="text-3xl font-black text-white tracking-tight pr-2">
+            {account.spamSaved || 0}
+          </p>
+        </div>
       </div>
 
       {/* Activity Chart */}
