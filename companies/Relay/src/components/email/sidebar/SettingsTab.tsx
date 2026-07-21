@@ -130,10 +130,10 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
   };
 
   return (
-    <div className="space-y-8 p-4">
+    <div className="space-y-5 p-4">
       
       {/* Sender Details */}
-      <section className="space-y-6">
+      <section className="space-y-3">
         <div className="flex items-center space-x-3">
           <User className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-white">Sender Details</h3>
@@ -157,13 +157,13 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
       </section>
 
       {/* Campaign Settings (Now fully functional!) */}
-      <section className="space-y-6">
+      <section className="space-y-3">
         <div className="flex items-center space-x-3">
           <Send className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-white">Campaign Settings</h3>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="dailyLimit" className="text-sm font-medium text-white/77">Daily campaign limit</Label>
             <div className="flex items-center gap-3">
@@ -180,14 +180,14 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
                   }
                 }}
               />
-              <span className="text-xs text-white/40 font-bold uppercase tracking-wider">emails / day</span>
+              <span className="text-xs text-white/40 font-medium">emails per day</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Signature Manager */}
-      <section className="space-y-6">
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -251,22 +251,25 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
           </form>
         )}
 
-        {/* Signatures List */}
+        {/* Existing Signatures List */}
         <div className="space-y-3">
           {signatures.length === 0 ? (
-            <div className="text-center py-6 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
-              <span className="text-xs text-white/30 font-bold uppercase">No signatures configured</span>
+            <div className="p-4 border border-dashed border-white/10 rounded-2xl text-center bg-white/[0.01]">
+              <p className="text-xs text-white/40">No custom signatures saved yet.</p>
             </div>
           ) : (
             signatures.map((sig) => (
               <div 
                 key={sig.id}
-                className={`p-4 border rounded-2xl transition-all flex flex-col justify-between gap-3 ${sig.isDefault ? 'border-primary/40 bg-primary/[0.02]' : 'border-white/5 bg-white/[0.01] hover:bg-white/[0.02]'}`}
+                className={cn(
+                  "p-4 border rounded-2xl transition-all bg-white/[0.01]",
+                  sig.isDefault ? "border-primary/40 bg-primary/[0.02]" : "border-white/5 hover:border-white/10"
+                )}
               >
-                <div className="flex justify-between items-start gap-4">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-white truncate">{sig.name}</span>
+                      <span className="text-xs font-bold text-white truncate">{sig.name}</span>
                       {sig.isDefault && (
                         <span className="px-2 py-0.5 rounded-full bg-primary/20 border border-primary/30 text-[8px] font-black text-primary uppercase tracking-widest">
                           Default
@@ -310,13 +313,13 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
       </section>
 
       {/* Warmup Limits */}
-      <section className="space-y-6">
+      <section className="space-y-3">
         <div className="flex items-center space-x-3">
           <Activity className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-white">Warmup Settings</h3>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="filterTag" className="text-sm font-medium text-white/70">Warmup filter tag</Label>
             <Input
