@@ -41,8 +41,6 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
       const receivedMap: Record<string, number> = {};
 
       progress.forEach(p => {
-        // Store as YYYY-MM-DD
-        // Handle both YYYY-MM-DD and YYYY-MM-DDT... formats
         const dateKey = p.date.includes('T') ? p.date.split('T')[0] : p.date;
         sentMap[dateKey] = p.emails_sent;
         receivedMap[dateKey] = p.emails_received;
@@ -55,16 +53,14 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
     }
   }, [account.id]);
 
-  // Fetch latest account data on mount and when account prop changes
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
   const getWeekRange = (offset: number): { start: Date; end: Date } => {
     const start = new Date();
-    // Adjust to Monday of the current week
     const day = start.getDay();
-    const diff = start.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    const diff = start.getDate() - day + (day === 0 ? -6 : 1);
     start.setDate(diff + (offset * 7));
     start.setHours(0, 0, 0, 0);
 
@@ -87,7 +83,6 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
     return days.map((day, index) => {
       const date = new Date(start);
       date.setDate(start.getDate() + index);
-      // Use local date string to match the keys in warmupStats
       const dateStr = format(date, 'yyyy-MM-dd');
 
       return {
@@ -99,60 +94,59 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
     });
   };
 
-  // Generate chart data from fetched stats
   const chartData = getChartData(currentWeekOffset);
 
   const maxValue = Math.max(
-    1, // Avoid division by zero
+    1,
     ...chartData.map(d => Math.max(d.received, d.sent))
   );
 
   const startDate = account.warmup_start_date ? new Date(account.warmup_start_date) : null;
 
-
   return (
     <div className="space-y-8">
       {/* Warmup Status Integration */}
-      <div className="bg-white/5 rounded-none p-6 transition-all duration-300">
-        <div className="flex items-center justify-between">
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 transition-all duration-300">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className={`transition-colors duration-300 ${account.warmup_status === 'enabled' ? 'text-green-400' : 'text-muted-foreground'}`}>
+            <div className={`transition-colors duration-300 ${account.warmup_status === 'enabled' ? 'text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]' : 'text-muted-foreground'}`}>
               <Activity size={24} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground uppercase tracking-wider">Warmup Status</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-none ${account.warmup_status === 'enabled' ? 'bg-green-500/10 text-green-400' :
-                  account.warmup_status === 'paused' ? 'bg-yellow-500/10 text-yellow-500' :
-                    'bg-white/5 text-muted-foreground'
-                  }`}>
+              <p className="text-sm font-semibold text-white uppercase tracking-wider">Warmup Status</p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className={`text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-wider border ${
+                  account.warmup_status === 'enabled' ? 'bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_10px_rgba(74,222,128,0.1)]' :
+                  account.warmup_status === 'paused' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                  'bg-white/5 text-white/40 border-white/5'
+                }`}>
                   {account.warmup_status === 'enabled' ? 'Active' :
                     account.warmup_status === 'paused' ? 'Paused' : 'Disabled'}
                 </span>
-                <span className="text-xs text-muted-foreground">• Started {startDate ? startDate.toLocaleDateString() : 'N/A'}</span>
+                <span className="text-xs text-white/30 font-medium">• Started {startDate ? startDate.toLocaleDateString() : 'N/A'}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             {account.warmup_status === 'enabled' && onToggleWarmup && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={(e) => onToggleWarmup(account, e)}
-                className="bg-white/5 hover:bg-white/10 text-foreground border-none h-9 px-4 gap-2 rounded-none transition-all"
+                className="bg-white/5 hover:bg-white/10 text-white border border-white/10 h-9 px-4 gap-2 rounded-xl transition-all w-full sm:w-auto text-xs uppercase tracking-wider font-bold"
               >
-                <Pause size={16} />
+                <Pause size={14} />
                 Pause
               </Button>
             )}
             {(account.warmup_status === 'paused' || account.warmup_status === 'disabled') && onToggleWarmup && (
               <Button
                 size="sm"
-                onClick={(e) => onToggleWarmup(account, e, true)} // Resume or enable
-                className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 gap-2 rounded-none shadow-lg transition-all"
+                onClick={(e) => onToggleWarmup(account, e, true)}
+                className="bg-primary hover:bg-primary/95 text-white border-0 h-9 px-4 gap-2 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all w-full sm:w-auto text-xs uppercase tracking-widest font-black"
               >
-                <Play size={16} />
+                <Play size={14} />
                 {account.warmup_status === 'paused' ? 'Resume' : 'Start Warmup'}
               </Button>
             )}
@@ -163,45 +157,45 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
         <div className="mt-6 pt-6 border-t border-white/5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Sent Today</p>
+              <p className="text-xs text-white/40 uppercase tracking-wider font-bold">Sent Today</p>
               <div className="flex items-baseline gap-2 h-[32px]">
-                <span className="text-2xl font-bold text-foreground leading-none">
+                <span className="text-2xl font-black text-white leading-none">
                   {warmupStats.sent[new Date().toLocaleDateString('en-CA')] || 0}
                 </span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">/ {account.warmup_daily_limit || 20}</span>
+                <span className="text-xs text-white/30 font-bold">/ {account.warmup_daily_limit || 20}</span>
               </div>
-              <div className="w-full bg-white/5 rounded-none h-1.5 overflow-hidden">
+              <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/5">
                 <div
-                  className="bg-primary h-full rounded-none transition-all duration-500"
+                  className="bg-primary h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(139,92,246,0.6)]"
                   style={{ width: `${Math.min(100, ((warmupStats.sent[new Date().toLocaleDateString('en-CA')] || 0) / (account.warmup_daily_limit || 20)) * 100)}%` }}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Warmup Progress</p>
+              <p className="text-xs text-white/40 uppercase tracking-wider font-bold">Warmup Progress</p>
               <div className="flex items-baseline gap-2 h-[32px]">
-                <span className="text-2xl font-bold text-foreground leading-none whitespace-nowrap">
+                <span className="text-2xl font-black text-white leading-none whitespace-nowrap">
                   Day {startDate ? Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0}
                 </span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">of 30</span>
+                <span className="text-xs text-white/30 font-bold">of 30</span>
               </div>
-              <div className="w-full bg-white/5 rounded-none h-1.5 overflow-hidden">
+              <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/5">
                 <div
-                  className="bg-orange-500 h-full rounded-none transition-all duration-500"
+                  className="bg-amber-500 h-full rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, ((startDate ? Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0) / 30) * 100)}%` }}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Target</p>
+              <p className="text-xs text-white/40 uppercase tracking-wider font-bold">Target</p>
               <div className="flex items-baseline gap-2 h-[32px]">
-                <span className="text-sm font-medium text-foreground whitespace-nowrap leading-none">10 emails / day</span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">for 30 days total</span>
+                <span className="text-xs font-bold text-white whitespace-nowrap leading-none uppercase">10 emails / day</span>
+                <span className="text-[10px] text-white/30 font-medium whitespace-nowrap">for 30 days total</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-none text-muted-foreground border-none border-white/5 whitespace-nowrap">
+                <span className="text-[10px] bg-white/5 px-2.5 py-1 rounded-lg text-white/50 border border-white/5 font-black uppercase tracking-wider whitespace-nowrap">
                   {startDate ? Math.max(0, 30 - (Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)) : 30} days left
                 </span>
               </div>
@@ -246,7 +240,6 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
                     variant: 'default'
                   });
 
-                  // Refresh stats
                   setTimeout(() => {
                     fetchStats();
                   }, 2000);
@@ -259,9 +252,9 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
                   });
                 }
               }}
-              className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-2 transition-colors py-1.5 px-3 rounded-none hover:bg-primary/10"
+              className="text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-2 transition-all py-2 px-4 rounded-xl border border-primary/20 hover:bg-primary/10 uppercase tracking-wider"
             >
-              <Send size={14} />
+              <Send size={12} />
               Send Test Email
             </button>
           </div>
@@ -271,16 +264,16 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Received', value: totals.received, icon: Inbox, color: 'text-blue-400' },
-          { label: 'Sent', value: totals.sent, icon: Send, color: 'text-green-400' },
-          { label: 'Saved from Spam', value: account.spamSaved || 0, icon: ShieldCheck, color: 'text-amber-400' }
+          { label: 'Received', value: totals.received, icon: Inbox, color: 'text-blue-400', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.1)]' },
+          { label: 'Sent', value: totals.sent, icon: Send, color: 'text-green-400', glow: 'shadow-[0_0_15px_rgba(74,222,128,0.1)]' },
+          { label: 'Saved from Spam', value: account.spamSaved || 0, icon: ShieldCheck, color: 'text-amber-400', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.1)]' }
         ].map((stat, i) => (
-          <div key={i} className="bg-white/5 rounded-none p-5 transition-all duration-300 hover:bg-white/[0.08]">
-            <div className="flex items-center gap-3 mb-3">
-              <stat.icon size={18} className={stat.color} />
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+          <div key={i} className={`bg-white/[0.01] border border-white/5 rounded-2xl p-5 hover:-translate-y-0.5 hover:bg-white/[0.02] hover:border-white/10 transition-all duration-300 flex flex-col justify-between min-h-[110px] ${stat.glow}`}>
+            <div className="flex items-center gap-2 mb-3">
+              <stat.icon size={16} className={stat.color} />
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{stat.label}</p>
             </div>
-            <p className="text-3xl font-bold text-foreground tracking-tight">
+            <p className="text-3xl font-black text-white tracking-tight">
               {stat.value}
             </p>
           </div>
@@ -288,26 +281,26 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
       </div>
 
       {/* Activity Chart */}
-      <div className="bg-white/5 rounded-none p-6">
-        <div className="flex items-center justify-between mb-8">
+      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h3 className="text-base font-bold text-foreground">Warmup Activity</h3>
-            <p className="text-xs text-muted-foreground mt-1">Daily Breakdown</p>
+            <h3 className="text-base font-bold text-white tracking-tight">Warmup Activity</h3>
+            <p className="text-xs text-white/30 mt-1 font-medium">Daily Breakdown</p>
           </div>
-          <div className="flex items-center gap-2 bg-white/5 p-1 rounded-none">
+          <div className="flex items-center gap-1 bg-black/45 border border-white/5 p-1 rounded-xl w-full sm:w-auto justify-between">
             <button
               onClick={() => handleWeekNavigation(-1)}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-none transition-all disabled:opacity-30"
+              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all disabled:opacity-30"
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="text-xs font-bold text-foreground px-2 min-w-[120px] text-center">
+            <span className="text-[10px] font-black text-white px-2 min-w-[120px] text-center uppercase tracking-widest">
               {getWeekRange(currentWeekOffset).start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {' '}
               {getWeekRange(currentWeekOffset).end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
             <button
               onClick={() => handleWeekNavigation(1)}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-none transition-all"
+              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all"
               disabled={currentWeekOffset === 0}
             >
               <ChevronRight size={16} />
@@ -315,16 +308,16 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
           </div>
         </div>
 
-        <div className="h-48 flex items-end space-x-4">
+        <div className="h-48 flex items-end space-x-3 sm:space-x-4">
           {chartData.map((day) => (
             <div key={day.dateStr} className="flex-1 flex flex-col items-center group">
-              <div className="w-full relative h-full flex items-end justify-center space-x-2 transition-colors">
+              <div className="w-full relative h-full flex items-end justify-center space-x-1 transition-colors">
                 {/* Received Bar */}
                 <Tooltip.Provider key={`${day.dateStr}-received`}>
                   <Tooltip.Root delayDuration={0}>
                     <Tooltip.Trigger asChild>
                       <div
-                        className="w-full max-w-[12px] bg-blue-500/80 hover:bg-blue-500 rounded-none transition-all relative"
+                        className="w-full max-w-[12px] bg-blue-500/80 hover:bg-blue-500 rounded-t-md rounded-b-none transition-all relative"
                         style={{
                           height: `${Math.max(6, (day.received / maxValue) * 100)}%`,
                         }}
@@ -332,17 +325,17 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
                     </Tooltip.Trigger>
                     <Tooltip.Content
                       side="top"
-                      className="bg-popover text-popover-foreground px-3 py-2 rounded-none text-xs shadow-2xl border-none z-50 glass"
+                      className="bg-black/90 text-white px-3 py-2 rounded-xl text-xs shadow-2xl border border-white/10 z-50 backdrop-blur-md"
                       sideOffset={8}
                     >
                       <div className="text-center">
                         <p className="font-bold mb-1 opacity-60 uppercase tracking-widest text-[9px]">{day.day}, {day.dateStr}</p>
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-none bg-blue-400" />
+                          <div className="w-2 h-2 rounded bg-blue-400" />
                           <span className="font-bold text-sm">{day.received} Received</span>
                         </div>
                       </div>
-                      <Tooltip.Arrow className="fill-popover" />
+                      <Tooltip.Arrow className="fill-black/90" />
                     </Tooltip.Content>
                   </Tooltip.Root>
                 </Tooltip.Provider>
@@ -352,7 +345,7 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
                   <Tooltip.Root delayDuration={0}>
                     <Tooltip.Trigger asChild>
                       <div
-                        className="w-full max-w-[12px] bg-primary/80 hover:bg-primary rounded-none transition-all relative"
+                        className="w-full max-w-[12px] bg-primary/80 hover:bg-primary rounded-t-md rounded-b-none transition-all relative"
                         style={{
                           height: `${Math.max(6, (day.sent / maxValue) * 100)}%`,
                         }}
@@ -360,22 +353,22 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
                     </Tooltip.Trigger>
                     <Tooltip.Content
                       side="top"
-                      className="bg-popover text-popover-foreground px-3 py-2 rounded-none text-xs shadow-2xl border-none z-50 glass"
+                      className="bg-black/90 text-white px-3 py-2 rounded-xl text-xs shadow-2xl border border-white/10 z-50 backdrop-blur-md"
                       sideOffset={8}
                     >
                       <div className="text-center">
                         <p className="font-bold mb-1 opacity-60 uppercase tracking-widest text-[9px]">{day.day}, {day.dateStr}</p>
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-none bg-primary" />
+                          <div className="w-2 h-2 rounded bg-primary" />
                           <span className="font-bold text-sm">{day.sent} Sent</span>
                         </div>
                       </div>
-                      <Tooltip.Arrow className="fill-popover" />
+                      <Tooltip.Arrow className="fill-black/90" />
                     </Tooltip.Content>
                   </Tooltip.Root>
                 </Tooltip.Provider>
               </div>
-              <p className="text-[10px] font-bold mt-4 text-muted-foreground uppercase tracking-widest group-hover:text-primary transition-colors">{day.day}</p>
+              <p className="text-[9px] font-black mt-4 text-white/40 uppercase tracking-widest group-hover:text-primary transition-colors">{day.day}</p>
             </div>
           ))}
         </div>
