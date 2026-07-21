@@ -28,6 +28,7 @@ import { startCompaniesHouseCron } from './companies_house_cron.mjs';
 import { startAutoAssignCron } from './auto_assign_cron.mjs';
 import { startScraperSchedulerCron } from './scraper_scheduler_cron.mjs';
 import { startResearchCron } from './research_cron.mjs';
+import { researchAndSummarizeLead, AIRateLimitError } from './research_helper.mjs';
 import { startEmailerCron } from './emailer_cron.mjs';
 import { startBounceProcessorCron } from './bounce_processor_cron.mjs';
 import { startSyncEmailsCron } from './sync_emails_cron.mjs';
@@ -838,13 +839,13 @@ app.post('/api/send-closing-reply', async (req, res) => {
     if (senderIdentifier) {
       const { data: canSend, error: limitError } = await scopedSupabase.rpc('increment_domain_email_count', {
         p_domain: senderIdentifier,
-        p_max_limit: 50 // Default limit is 50 per account
+        p_max_limit: 30 // Default limit is 30 per domain
       });
       
       if (limitError) {
         console.error('Domain limit check error:', limitError);
       } else if (!canSend) {
-        throw new Error(`Domain ${senderDomain} has exceeded the max emails per hour (50) allowed. Message will be reattempted later.`);
+        throw new Error(`Domain ${senderDomain} has exceeded the max emails per hour (30) allowed. Message will be reattempted later.`);
       }
     }
 
@@ -1437,7 +1438,13 @@ app.post('/api/scrape-leads', async (req, res) => {
       const timestamp = new Date().toISOString();
       console.log(`[Scraper] ${message}`);
       
-      try { fs.appendFileSync('scraper_endpoint.log', `[${timestamp}] [Scraper] ${message}\n`); } catch (e) { }
+      try { 
+        const epLogPath = 'scraper_endpoint.log';
+        if (fs.existsSync(epLogPath) && fs.statSync(epLogPath).size > 5 * 1024 * 1024) {
+          fs.writeFileSync(epLogPath, `[${timestamp}] [Log Rotated - 5MB Limit Reached]\n`);
+        }
+        fs.appendFileSync(epLogPath, `[${timestamp}] [Scraper] ${message}\n`); 
+      } catch (e) { }
 
       // Persistence store
       try {
@@ -1487,96 +1494,42 @@ app.post('/api/scrape-leads', async (req, res) => {
       const hasEmail = lead.email && lead.email.trim() !== '';
       
       if (deepResearch && !researchSummary) {
-        try {
-          log(`[Deep Research] Running synchronous AI research for ${lead.company || lead.name}...`);
-          const companyName = lead.company || lead.name || 'Unknown Company';
-          const website = lead.website || '';
-          
-          // Build aggregated data from the lead
-          const aggregatedData = `
-Company: ${companyName}
-Website: ${website || 'N/A'}
-Location: ${lead.location || 'N/A'}
-Email: ${lead.email || 'N/A'}
-Phone: ${lead.phone || 'N/A'}
-Source: ${lead.source || 'scraped'}
-Role: ${lead.role || 'N/A'}
-Social: LinkedIn=${lead.linkedin || ''} Facebook=${lead.facebook || ''} Twitter=${lead.twitter || ''} Instagram=${lead.instagram || ''}
-`;
-
-          // Use fetchAIChatCompletion directly (already imported via ai-client.mjs)
-          const prompt = `You are an elite investigative business intelligence journalist. Your task is to produce a comprehensive "Deep Dive" business analysis report on the target company based on the data below.
-
-**Target Company**: ${companyName}
-${website ? `**Website**: ${website}` : ''}
-**Location**: ${lead.location || 'N/A'}
-
-RAW DATA:
-${aggregatedData}
-
-CRITICAL INSTRUCTIONS:
-1. Act as a detective analyzing the company's digital footprint.
-2. Identify their **niche specialization** — exactly what makes them unique in their market.
-3. Identify **conversion flaws** and potential UX issues based on the data available.
-4. Analyze **revenue levers** — how they make money and how they could optimize.
-5. Provide **ROI projections** — estimate potential value from automation/optimization.
-6. The conversation starter should be 1-2 sentences, curiosity-driven.
-
-Format your response EXACTLY as follows (using markdown):
-
-## ⚡ Quick Summary
-[2-3 concise sentences summarizing the company and its key value proposition]
-
-## 🔬 Deep Research
-
-### 🎯 Niche & Market Analysis
-[Their specific niche, target market, competitive positioning]
-
-### 🔍 Website Flaws & UX Issues
-[Any observations about their digital presence or potential areas for improvement]
-
-### 💰 Revenue Levers & Growth Opportunities
-[How they make money, opportunities for optimization, cross-sell/upsell potential]
-
-### 📈 ROI Projections
-[Estimated potential value from automation or optimization efforts]
-
-### 💬 Conversation Starter
-> "[Your curiosity-driven conversation starter referencing a specific detail]"`;
-
-          const aiRes = await fetchAIChatCompletion({
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-            model: 'llama-3.3-70b-versatile'
-          }, log);
-
-          if (aiRes && aiRes.choices && aiRes.choices[0]) {
-            const content = aiRes.choices[0].message.content;
-            
-            // Validate deep dive quality
-            const hasNicheSection = content.includes('Niche') || content.includes('Market Analysis');
-            const hasGrowthSection = content.includes('Growth') || content.includes('Revenue');
-            const hasROISection = content.includes('ROI') || content.includes('Projection');
-            const hasQuickSummary = content.includes('Quick Summary');
-            
-            const isSuccessful = hasQuickSummary && hasNicheSection && hasGrowthSection && hasROISection;
-            
-            if (isSuccessful) {
-              researchSummary = content;
-              researchStatus = 'completed';
-              log(`[Deep Research] ✅ Research complete for ${companyName}`);
+        let attempts = 0;
+        const maxResearchAttempts = 5;
+        while (attempts < maxResearchAttempts) {
+          try {
+            log(`[Deep Research] Running synchronous AI research for ${lead.company || lead.name}...`);
+            const res = await researchAndSummarizeLead(lead, log);
+            researchSummary = res.summary;
+            researchStatus = res.status;
+            break;
+          } catch (err) {
+            if (err instanceof AIRateLimitError) {
+              log(`[Deep Research] Rate limit hit. Pausing scraper task for 60 seconds before retry...`);
+              if (taskId) {
+                try {
+                  await client.from('tasks').update({
+                    description: `[Paused] AI Rate Limit Hit. Waiting 60s for reset...`
+                  }).eq('id', taskId);
+                } catch (dbErr) {
+                  console.error('Failed to update task description on rate limit:', dbErr.message);
+                }
+              }
+              await new Promise(resolve => setTimeout(resolve, 60000));
+              attempts++;
+              if (taskId) {
+                try {
+                  await client.from('tasks').update({
+                    description: `[Scraping - Retrying Research] ${business} in ${lead.location || 'current location'}`
+                  }).eq('id', taskId);
+                } catch (dbErr) {}
+              }
             } else {
-              researchSummary = content;
-              researchStatus = 'incomplete';
-              log(`[Deep Research] ⚠️ Research incomplete for ${companyName} - missing required sections`);
+              log(`[Deep Research] ❌ Error during research for ${lead.company || 'unknown'}: ${err.message}`);
+              researchStatus = 'error';
+              break;
             }
-          } else {
-            researchStatus = 'failed';
-            log(`[Deep Research] ❌ AI call failed for ${companyName}`);
           }
-        } catch (err) {
-          log(`[Deep Research] ❌ Error during research for ${lead.company}: ${err.message}`);
-          researchStatus = 'error';
         }
       }
       
@@ -1671,7 +1624,7 @@ Format your response EXACTLY as follows (using markdown):
           twitter: lead.twitter || '',
           instagram: lead.instagram || '',
           role: lead.role || '',
-          name: lead.name || '',
+          name: (lead.name && lead.name.trim() && lead.name.trim().toLowerCase() !== 'unknown') ? lead.name.trim() : (lead.company || ''),
           research_status: researchStatus,
           validation_status: validationStatus,
           validation_details: validationDetails,
@@ -3222,13 +3175,13 @@ app.post('/api/send-email', async (req, res) => {
     if (senderIdentifier) {
       const { data: canSend, error: limitError } = await scopedSupabase.rpc('increment_domain_email_count', {
         p_domain: senderIdentifier,
-        p_max_limit: 50 // Changed to 50 per individual account instead of 500 per domain
+        p_max_limit: 30 // Set to 30 emails per hour per domain
       });
       
       if (limitError) {
         console.error('Domain limit check error:', limitError);
       } else if (!canSend) {
-        throw new Error(`Domain ${senderDomain} has exceeded the max emails per hour (50) allowed. Message will be reattempted later.`);
+        throw new Error(`Domain ${senderDomain} has exceeded the max emails per hour (30) allowed. Message will be reattempted later.`);
       }
     }
 
@@ -3483,6 +3436,28 @@ app.listen(PORT, () => {
   // Log startup config
   if (!process.env.SUPABASE_URL) console.warn('WARNING: Missing SUPABASE_URL');
   if (!process.env.SUPABASE_ANON_KEY) console.warn('WARNING: Missing SUPABASE_ANON_KEY');
+
+  // Automated 24-hour Log Pruning Routine (Keep DB and disk clean)
+  const pruneOldLogs = async () => {
+    try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const client = supabase || createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+      if (client) {
+        await client.from('scraper_logs').delete().lt('timestamp', sevenDaysAgo);
+      }
+      // Truncate local logs if larger than 5MB
+      ['scraper_debug.log', 'scraper_endpoint.log'].forEach(file => {
+        if (fs.existsSync(file) && fs.statSync(file).size > 5 * 1024 * 1024) {
+          fs.writeFileSync(file, `[${new Date().toISOString()}] [Auto Log Rotation]\n`);
+        }
+      });
+    } catch (e) {
+      console.error('[Log Prune] Error during automated log cleanup:', e.message);
+    }
+  };
+
+  pruneOldLogs();
+  setInterval(pruneOldLogs, 24 * 60 * 60 * 1000); // Run daily
 });
 
 export default app;

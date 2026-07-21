@@ -140,10 +140,26 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
               </p>
             </div>
 
+            {/* Automated Deliverability & Safety Defaults */}
+            <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 border border-primary/20 rounded-2xl p-4 flex items-center gap-3">
+              <div className="p-2.5 bg-primary/20 rounded-xl text-primary shrink-0">
+                <Network size={20} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Automated Domain Rate Limit</h4>
+                  <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-500/30">Auto-Enforced</span>
+                </div>
+                <p className="text-[11px] text-white/70 mt-0.5">
+                  Set automatically to <strong className="text-white font-black">30 emails/hour per domain</strong> to maintain 99%+ deliverability and safeguard inbox reputation.
+                </p>
+              </div>
+            </div>
+
             {/* Limits & Schedule */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 border-t border-white/5 pt-6">
               <div className="space-y-1">
-                <label className={labelClassName}>Daily Send Limit</label>
+                <label className={labelClassName}>Emails Per Day (per domain)</label>
                 <input
                   type="number"
                   required
@@ -152,9 +168,9 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                   value={formData.maxEmailsPerDay}
                   onChange={(e) => setFormData({ ...formData, maxEmailsPerDay: e.target.value })}
                   className={inputClassName}
-                  placeholder="100"
+                  placeholder="720"
                 />
-                <span className="text-[9px] text-white/30 block mt-1">Max recommended limit: 1,000/day</span>
+                <span className="text-[9px] text-white/40 block mt-1 font-medium">Auto-capped at 30 emails/hr per domain</span>
               </div>
               <div className="space-y-1">
                 <label className={labelClassName}>Sending Frequency</label>
@@ -164,7 +180,7 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                     onChange={(e) => setFormData({ ...formData, frequency: e.target.value as 'daily' | 'weekly' })}
                     className="block w-full rounded-xl border border-white/10 bg-[#111] px-4 py-3 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all appearance-none"
                   >
-                    <option value="daily">Daily Sequence</option>
+                    <option value="daily">Daily Sequence (30/hr domain cap)</option>
                     <option value="weekly">Weekly Sequence</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-white/40">

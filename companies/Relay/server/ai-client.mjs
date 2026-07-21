@@ -59,8 +59,8 @@ export async function fetchAIChatCompletion(params, log = console.log) {
 
   const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
   
-  // Groq-only model chain: Llama 3.3 70B (best) → Llama 3.1 8B (fast) → Mixtral (fallback)
-  const GROQ_MODEL_CHAIN = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+  // Groq-only model chain: Llama 3.3 70B (best) → Llama 3.1 8B (fast) → Llama 3 8B (fallback)
+  const GROQ_MODEL_CHAIN = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama3-8b-8192'];
   
   for (const groqModel of GROQ_MODEL_CHAIN) {
     log(`[AI-Client] Attempting Groq model: ${groqModel}...`);

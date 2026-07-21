@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchAIChatCompletion } from './ai-client.mjs';
+import { researchAndSummarizeLead, AIRateLimitError } from './research_helper.mjs';
 
 let supabase = null;
 
@@ -37,170 +38,63 @@ async function runResearchCron() {
     console.log(`[Research Cron] Processing ${leads.length} leads for deep research...`);
     
     for (const lead of leads) {
-      try {
-        // Build research data from lead info
-        const companyName = lead.company || lead.name || 'Unknown Company';
-        const website = lead.website || '';
-        const aggregatedData = `
-Company: ${companyName}
-Website: ${website || 'N/A'}
-Location: ${lead.location || 'N/A'}
-Email: ${lead.email || 'N/A'}
-Phone: ${lead.phone || 'N/A'}
-Source: ${lead.source || 'scraped'}
-Role: ${lead.role || 'N/A'}
-Social: LinkedIn=${lead.linkedin || ''} Facebook=${lead.facebook || ''} Twitter=${lead.twitter || ''} Instagram=${lead.instagram || ''}
-`;
-
-        console.log(`[Research Cron] Running deep research on: ${companyName} (${lead.email})`);
-        
-        // Use the investigative journalist prompt for deep research
-        const prompt = `You are an elite investigative business intelligence journalist. Your task is to produce a comprehensive "Deep Dive" business analysis report on the target company based on the data below.
-
-**Target Company**: ${companyName}
-${website ? `**Website**: ${website}` : ''}
-**Location**: ${lead.location || 'N/A'}
-
-RAW DATA:
-${aggregatedData}
-
-CRITICAL INSTRUCTIONS:
-1. Act as a detective analyzing the company's digital footprint.
-2. Identify their **niche specialization** — exactly what makes them unique in their market.
-3. Identify **conversion flaws** and potential UX issues based on the data available.
-4. Analyze **revenue levers** — how they make money and how they could optimize.
-5. Provide **ROI projections** — estimate potential value from automation/optimization.
-6. The conversation starter should be 1-2 sentences, curiosity-driven.
-
-Format your response EXACTLY as follows (using markdown):
-
-## ⚡ Quick Summary
-[2-3 concise sentences summarizing the company and its key value proposition]
-
-## 🔬 Deep Research
-
-### 🎯 Niche & Market Analysis
-[Their specific niche, target market, competitive positioning]
-
-### 🔍 Website Flaws & UX Issues
-[Any observations about their digital presence or potential areas for improvement]
-
-### 💰 Revenue Levers & Growth Opportunities
-[How they make money, opportunities for optimization, cross-sell/upsell potential]
-
-### 📈 ROI Projections
-[Estimated potential value from automation or optimization efforts]
-
-### 💬 Conversation Starter
-> "[Your curiosity-driven conversation starter referencing a specific detail]"`;
-
-        const aiRes = await fetchAIChatCompletion({
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-          model: 'llama-3.3-70b-versatile'
-        }, console.log);
-        
-        if (aiRes && aiRes.choices && aiRes.choices[0]) {
-          const content = aiRes.choices[0].message.content;
+      let attempts = 0;
+      const maxAttempts = 3;
+      let success = false;
+      
+      while (attempts < maxAttempts && !success) {
+        try {
+          const companyName = lead.company || lead.name || 'Unknown Company';
+          console.log(`[Research Cron] Running deep research on: ${companyName} (${lead.email})`);
           
-          // Validate deep dive quality - must contain required sections
-          const hasNicheSection = content.includes('Niche') || content.includes('Market Analysis');
-          const hasGrowthSection = content.includes('Growth') || content.includes('Revenue');
-          const hasROISection = content.includes('ROI') || content.includes('Projection');
-          const hasQuickSummary = content.includes('Quick Summary');
+          const res = await researchAndSummarizeLead(lead, console.log);
           
-          const isSuccessful = hasQuickSummary && hasNicheSection && hasGrowthSection && hasROISection;
-          
-          if (isSuccessful) {
-            console.log(`[Research Cron] ✅ Deep research successful for ${companyName}`);
+          // Update lead with research and mark as completed/incomplete
+          await supabase
+            .from('leads')
+            .update({
+              summary: res.summary,
+              research_status: res.status,
+              research_attempts: 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', lead.id);
             
-            // Update lead with research and mark as completed
-            await supabase
-              .from('leads')
-              .update({
-                summary: content,
-                research_status: 'completed',
-                research_attempts: 0,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', lead.id);
-            
+          if (res.status === 'completed') {
             // Find and link to campaigns (conditional campaign linking)
             await linkLeadToCampaigns(lead.id, companyName, lead.location);
-            
+          }
+          
+          success = true;
+        } catch (err) {
+          if (err instanceof AIRateLimitError) {
+            console.log(`[Research Cron] Rate limit hit. Pausing research cron for 60 seconds before retry...`);
+            await new Promise(r => setTimeout(r, 60000));
+            attempts++;
           } else {
-            console.log(`[Research Cron] ⚠️ Research incomplete for ${companyName} - missing required sections`);
-            
-            // Increment attempts
+            console.error(`[Research Cron] Error processing lead ${lead.id}:`, err.message);
             const newAttempts = (lead.research_attempts || 0) + 1;
             
             if (newAttempts >= 3) {
-              console.log(`[Research Cron] 🗑️ Auto-deleting lead ${companyName} after ${newAttempts} failed research attempts`);
-              await supabase
-                .from('leads')
-                .delete()
-                .eq('id', lead.id);
+              console.log(`[Research Cron] 🗑️ Auto-deleting lead ${lead.company || lead.name} after error`);
+              await supabase.from('leads').delete().eq('id', lead.id);
             } else {
-              // Save partial research and increment attempts
               await supabase
                 .from('leads')
                 .update({
-                  summary: content,
-                  research_status: 'incomplete',
+                  research_status: 'error',
                   research_attempts: newAttempts,
                   updated_at: new Date().toISOString()
                 })
                 .eq('id', lead.id);
             }
+            break;
           }
-        } else {
-          // AI call failed entirely
-          const newAttempts = (lead.research_attempts || 0) + 1;
-          
-          if (newAttempts >= 3) {
-            console.log(`[Research Cron] 🗑️ Auto-deleting lead ${companyName} after ${newAttempts} failed AI attempts`);
-            await supabase
-              .from('leads')
-              .delete()
-              .eq('id', lead.id);
-          } else {
-            await supabase
-              .from('leads')
-              .update({
-                research_status: 'failed',
-                research_attempts: newAttempts,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', lead.id);
-          }
-        }
-        
-        // Small delay to avoid rate limits
-        await new Promise(r => setTimeout(r, 1500));
-        
-      } catch (err) {
-        console.error(`[Research Cron] Error processing lead ${lead.id}:`, err.message);
-        
-        // Increment attempts on error
-        const newAttempts = (lead.research_attempts || 0) + 1;
-        
-        if (newAttempts >= 3) {
-          console.log(`[Research Cron] 🗑️ Auto-deleting lead ${lead.company || lead.name} after error`);
-          await supabase
-            .from('leads')
-            .delete()
-            .eq('id', lead.id);
-        } else {
-          await supabase
-            .from('leads')
-            .update({
-              research_status: 'error',
-              research_attempts: newAttempts,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', lead.id);
         }
       }
+      
+      // Small delay to avoid rate limits
+      await new Promise(r => setTimeout(r, 2000));
     }
     
     console.log(`[Research Cron] Batch complete. Processed ${leads.length} leads.`);

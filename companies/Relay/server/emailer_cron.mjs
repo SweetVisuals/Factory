@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { runProcessCampaign } from './process_campaign_node.mjs';
-import { performDeepResearch } from './scraper.mjs';
+import { researchAndSummarizeLead, AIRateLimitError } from './research_helper.mjs';
 
 let supabase = null;
 let isRunning = false;
@@ -42,18 +42,26 @@ async function runAutoResearch() {
       if (!lead?.website) continue;
       try {
         const company = lead.company || lead.name || 'Unknown';
-        const website = lead.website.startsWith('http') ? lead.website : `https://${lead.website}`;
-        console.log(`[Auto-Research] Researching ${company} (${website})...`);
-        const report = await performDeepResearch(company, website);
-        if (report) {
+        console.log(`[Auto-Research] Researching ${company} (${lead.website})...`);
+        const res = await researchAndSummarizeLead(lead, console.log);
+        if (res.summary) {
           await supabase
             .from('leads')
-            .update({ summary: report })
+            .update({ 
+              summary: res.summary,
+              research_status: res.status,
+              updated_at: new Date().toISOString()
+            })
             .eq('id', lead.id);
           console.log(`[Auto-Research] ✅ Saved research for ${company}`);
         }
       } catch (err) {
-        console.error(`[Auto-Research] ❌ Failed for ${lead.company || 'Unknown'}: ${err.message}`);
+        if (err instanceof AIRateLimitError) {
+          console.log(`[Auto-Research] Rate limit hit. Pausing auto-research cron for 60 seconds...`);
+          await new Promise(r => setTimeout(r, 60000));
+        } else {
+          console.error(`[Auto-Research] ❌ Failed for ${lead.company || 'Unknown'}: ${err.message}`);
+        }
       }
     }
   } catch (err) {

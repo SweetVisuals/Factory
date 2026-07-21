@@ -124,13 +124,18 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
 
         {/* Volume Metrics */}
         <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/[0.02] rounded-none">
-              <Shield className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/[0.02] rounded-none">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-tighter">Volume Protocols</h4>
+                <p className="text-[9px] text-white/20 uppercase tracking-widest font-black">Safety and performance limits</p>
+              </div>
             </div>
-            <div>
-              <h4 className="text-sm font-black uppercase tracking-tighter">Volume Protocols</h4>
-              <p className="text-[9px] text-white/20 uppercase tracking-widest font-black">Safety and performance limits</p>
+            <div className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-none text-[9px] font-black text-primary uppercase tracking-widest">
+              30 Emails/Hr per Domain
             </div>
           </div>
 

@@ -16,17 +16,16 @@ const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supaba
 
 const createLogger = (onLog) => (message) => {
     try {
-        fs.appendFileSync('scraper_debug.log', `[${new Date().toISOString()}] ${message}\n`);
+        const logPath = 'scraper_debug.log';
+        if (fs.existsSync(logPath) && fs.statSync(logPath).size > 5 * 1024 * 1024) {
+            fs.writeFileSync(logPath, `[${new Date().toISOString()}] [Log Rotated - 5MB Limit Reached]\n`);
+        }
+        fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${message}\n`);
     } catch (e) {
         console.error('Error writing to scraper_debug.log:', e);
     }
     console.log(message);
-    if (supabase) {
-        // Fire and forget to Supabase
-        supabase.from('debug_logs').insert({ message }).then(({error}) => {
-            if (error) console.error('Supabase log error:', error.message);
-        });
-    }
+    // Supabase debug log insert removed to prevent database storage bloat
     if (onLog && typeof onLog === 'function') {
         try {
             onLog(message);

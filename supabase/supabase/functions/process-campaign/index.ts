@@ -788,15 +788,15 @@ Deno.serve(async (req) => {
                  continue; 
              }
 
-             // Check domain email limit
+             // Check domain email limit (strictly defaulted to 30 emails/hour per domain)
              const senderIdentifier = account.email.toLowerCase();
              if (senderIdentifier) {
                  const { data: canSend } = await supabaseAdmin.rpc('increment_domain_email_count', {
                      p_domain: senderIdentifier,
-                     p_max_limit: 500 
+                     p_max_limit: 30 
                  });
                  if (!canSend) {
-                     console.log(`Account limit reached for ${senderIdentifier}.`);
+                     console.log(`Domain rate limit (30/hr) reached for ${senderIdentifier}.`);
                      continue;
                  }
              }

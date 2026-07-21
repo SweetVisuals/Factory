@@ -110,8 +110,8 @@ export default function UsageDashboard() {
             />
             <UsageItem 
               title="Database Size" 
-              value={`0.012 / 0.5 GB (2%)`}
-              percentage={2}
+              value={`${Math.round((stats.prospects || 0) / 1024)} MB / 5 GB (<1%)`}
+              percentage={Math.min(100, Math.round((((stats.prospects || 0) / 1024) / 5120) * 100))}
             />
             <UsageItem 
               title="Priority Support" 

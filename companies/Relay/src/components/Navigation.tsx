@@ -165,7 +165,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
               <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[9px] font-bold text-foreground/50">
                   <span>DB Space</span>
-                  <span>{dbSpace < 1 ? '<1' : Math.round(dbSpace)}/{MAX_DB_SPACE_MB >= 1024 ? `${(MAX_DB_SPACE_MB/1024).toFixed(0)}GB` : `${MAX_DB_SPACE_MB}MB`}</span>
+                  <span>{dbSpace < 1024 ? `${Math.round(dbSpace)} MB` : `${(dbSpace/1024).toFixed(1)} GB`} / {MAX_DB_SPACE_MB >= 1024 ? `${(MAX_DB_SPACE_MB/1024).toFixed(0)} GB` : `${MAX_DB_SPACE_MB} MB`}</span>
                 </div>
                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${Math.min(100, (dbSpace / MAX_DB_SPACE_MB) * 100)}%` }} />

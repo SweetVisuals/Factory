@@ -73,6 +73,13 @@ const NewCampaignModal: React.FC<Props> = ({ onClose }) => {
             />
           </div>
 
+          <div className="bg-primary/10 border border-primary/20 p-3 rounded-none flex items-center justify-between text-xs text-foreground">
+            <div>
+              <span className="font-semibold">Automated Domain Cap:</span> 30 emails/hr per domain
+            </div>
+            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 font-bold uppercase tracking-wider">Active</span>
+          </div>
+
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Emails Per Day</label>
@@ -85,6 +92,7 @@ const NewCampaignModal: React.FC<Props> = ({ onClose }) => {
                 onChange={(e) => setFormData({ ...formData, maxEmailsPerDay: e.target.value })}
                 className="w-full bg-background border-none  rounded-none px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
               />
+              <span className="text-[10px] text-muted-foreground block">Automatically limited to 30 emails/hr per domain</span>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Frequency</label>
@@ -93,8 +101,8 @@ const NewCampaignModal: React.FC<Props> = ({ onClose }) => {
                 onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
                 className="w-full bg-background border-none  rounded-none px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none"
               >
-                <option value="daily" className="bg-card text-foreground">Daily</option>
-                <option value="weekly" className="bg-card text-foreground">Weekly</option>
+                <option value="daily" className="bg-card text-foreground font-medium">Daily (30/hr domain limit)</option>
+                <option value="weekly" className="bg-card text-foreground font-medium">Weekly</option>
               </select>
             </div>
           </div>

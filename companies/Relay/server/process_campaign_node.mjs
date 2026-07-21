@@ -1,6 +1,9 @@
 "use strict";
 import { createClient as Ne } from "@supabase/supabase-js";
 import De from "nodemailer";
+import { generateEmail as engineGenerateEmail } from './email_engine.mjs';
+import { resetRunCounters, canSendEmail, recordEmailSent, recordBounce, canCallAI, recordAICall, getUsageSummary } from './rate_limiter.mjs';
+const USE_AI = process.env.USE_AI_PERSONALIZATION === 'true';
 const Te =
     process.env["DEEPSEEK_API_KEY"] || "sk-6733c8ac2b83402b8626e5e253824488",
   Pe = "https://api.deepseek.com",
@@ -158,6 +161,8 @@ function generateFallbackEmail(lead, niche) {
 export async function runProcessCampaign() {
   let qe = null;
   try {
+    // ═══ RATE LIMITER: Reset per-run counters ═══
+    resetRunCounters();
     const n = Ne(Ae, Re),
       { data: pe } = await n
         .from("api_keys")
@@ -210,9 +215,9 @@ export async function runProcessCampaign() {
         `
             *,
             campaigns!scheduled_emails_campaign_id_fkey!inner (
-                id, name, status, company_name, contact_number, primary_email, business_id, niche,
+                id, name, status, company_name, contact_number, primary_email, business_id, niche, objective, email_tone_id,
                 businesses!inner (
-                    id, name, status, signature_template
+                    id, name, status, signature_template, overview_md
                 )
             ),
             templates!scheduled_emails_template_id_fkey!inner (*)
@@ -599,36 +604,67 @@ export async function runProcessCampaign() {
         }
         let S = t.personalized_email,
           E = t.personalized_subject;
-        const he = v === 0,
-          ye =
-            e.templates.content.includes("{") ||
-            e.templates.content.includes("[") ||
-            e.templates.subject.includes("{") ||
-            e.templates.subject.includes("[");
+        const he = v === 0;
         
-        const hasValidSummary = t.summary && 
-                                t.summary.trim() !== "" && 
-                                !t.summary.toLowerCase().includes("failed to perform") &&
-                                !t.summary.toLowerCase().includes("could not complete");
+        // ═══ EMAIL ENGINE: Rule-based personalization (default) ═══
+        // Loads email tone if campaign has one assigned
+        let emailToneData = null;
+        if (e.campaigns?.email_tone_id) {
+          const { data: toneRow } = await n.from('email_tones').select('*').eq('id', e.campaigns.email_tone_id).maybeSingle();
+          emailToneData = toneRow;
+        }
 
-        const needsPersonalization = true; // User requested ALL emails to be personalized (No 2 emails should be the same)
+        // Count total steps for this campaign (from campaign schedules)
+        const campaignSchedules = $.get(e.campaign_id) || [];
+        const totalSequenceSteps = campaignSchedules.length;
+
+        // Determine if we should use AI or rule-based engine
+        const useAiForThisLead = USE_AI && !ge; // USE_AI env flag AND DeepSeek not disabled
         
-        if (needsPersonalization && !hasValidSummary) {
-          console.log(`[PERSONALIZATION BLOCK] Lead ${t.email} has no summary. Using rule-based fallback personalizer...`);
+        // ═══ AI RATE LIMIT CHECK ═══
+        let aiAllowed = false;
+        if (useAiForThisLead) {
+          const aiCheck = await canCallAI(n);
+          if (!aiCheck.allowed) {
+            console.log(`[AI Rate Limit] ${aiCheck.reason}. Using rule-based engine for ${t.email}.`);
+          } else {
+            aiAllowed = true;
+          }
+        }
+        
+        if (!aiAllowed) {
+          // ═══ RULE-BASED ENGINE (default — no AI) ═══
           try {
-            const fallback = generateFallbackEmail(t, e.campaigns?.niche || "");
-            S = fallback.body;
-            E = fallback.subject;
-            console.log(`[Fallback Personalizer] Personalization succeeded for ${t.email}`);
+            const engineResult = engineGenerateEmail({
+              lead: t,
+              campaign: e.campaigns,
+              business: e.campaigns?.businesses,
+              emailTone: emailToneData,
+              stepIndex: v,
+              totalSteps: totalSequenceSteps,
+              senderAccount: a
+            });
+            S = engineResult.body;
+            E = engineResult.subject;
+            console.log(`[Email Engine] Generated step ${v + 1} for ${t.email} (rule-based)`);
             await n
               .from("leads")
               .update({ personalized_email: S, personalized_subject: E })
               .eq("id", t.id);
-          } catch (fallbackErr) {
-            console.error("Fallback personalization failed:", fallbackErr);
-            continue;
+          } catch (engineErr) {
+            console.error("Email Engine failed, trying legacy fallback:", engineErr.message);
+            try {
+              const fallback = generateFallbackEmail(t, e.campaigns?.niche || "");
+              S = fallback.body;
+              E = fallback.subject;
+              await n.from("leads").update({ personalized_email: S, personalized_subject: E }).eq("id", t.id);
+            } catch (fallbackErr) {
+              console.error("All personalization failed:", fallbackErr);
+              continue;
+            }
           }
-        } else if (needsPersonalization && hasValidSummary) {
+        } else {
+          // ═══ AI PERSONALIZATION (opt-in via USE_AI_PERSONALIZATION=true) ═══
           try {
             const s = y;
             let i = e.templates.content
@@ -637,135 +673,53 @@ export async function runProcessCampaign() {
               .replace(/\n*\[Sender Name\][\s\S]*$/i, "")
               .replace(/\n*<company>[\s\S]*$/i, "")
               .trim();
+            // Include business overview context for AI
+            const bizOverview = e.campaigns?.businesses?.overview_md || '';
+            const toneGuide = emailToneData?.content_md || '';
             const k =
                 `You are a witty, world-class B2B cold outreach specialist. You write curiosity-based emails that make prospects think about their own pain points — NOT sales pitches.
 
-CRITICAL RULES:
+${bizOverview ? 'BUSINESS CONTEXT:\n' + bizOverview.substring(0, 2000) + '\n\n' : ''}${toneGuide ? 'TONE GUIDE:\n' + toneGuide + '\n\n' : ''}CRITICAL RULES:
 1. Start with EXACTLY: "Hi " + lead's first name + ",". If no name, use "Hi there,". NEVER just "there,".
 2. DO NOT return placeholders. Return the FINISHED email.
-3. Write a SHORT curiosity-based message (max 60 words). Frame it as a QUESTION about their pain point, NOT a pitch. Be conversational, direct, and human. Inquire about current struggles and hurdles. NO 2 EMAILS SHOULD BE THE SAME!
-4. DO NOT pitch our services directly. Instead, hint at a better way and ask if they'd be curious to see it. The goal is to start a conversation, not close a deal.
-5. ABSOLUTELY DO NOT include any sign-off, closing, or signature. No Best, Regards, Cheers, Thanks, Sincerely, or ANY name at the end. The system auto-appends the sender signature.
+3. Write a SHORT curiosity-based message (max 60 words). Frame it as a QUESTION about their pain point, NOT a pitch. Be conversational, direct, and human. NO 2 EMAILS SHOULD BE THE SAME!
+4. DO NOT pitch our services directly. Instead, hint at a better way and ask if they'd be curious to see it.
+5. ABSOLUTELY DO NOT include any sign-off, closing, or signature. The system auto-appends the sender signature.
 6. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off" }
-7. The subject line MUST be hyper-personalized to the lead's website, email, and goals. It should be curiosity-driven and under 9 words. No salesy subjects.`,
-              R =
-                'Original Template Subject: "' +
-                e.templates.subject +
-                `"
-Original Template Body: "` +
-                i +
-                `"
-Lead Name: ` +
-                s +
-                `
-Lead Company: ` +
-                (t.company || "their business") +
-                `
-Lead Email: ` +
-                (t.email || "Unknown") +
-                `
-Lead Website: ` +
-                (t.website || "Unknown") +
-                `
-Lead Goals & Notes: "` +
-                (t.summary || "") +
-                `"
-
-Instructions: You MUST deeply personalize BOTH the subject and the body to this specific lead using their website, email, and goals/notes. No two emails should be the same. Ensure the transition from the personalized opening to the core message is seamless.`;
+7. The subject line MUST be hyper-personalized. Curiosity-driven and under 9 words. No salesy subjects.`;
+            const R =
+                'Original Template Subject: "' + e.templates.subject + '"\nOriginal Template Body: "' + i + '"\nLead Name: ' + s + '\nLead Company: ' + (t.company || "their business") + '\nLead Email: ' + (t.email || "Unknown") + '\nLead Website: ' + (t.website || "Unknown") + '\nLead Goals & Notes: "' + (t.summary || "") + '"\n\nInstructions: Deeply personalize BOTH the subject and body. No two emails should be the same.';
             let r;
             if (ge) {
-              console.log(
-                "DeepSeek is disabled. Trying OpenRouter key cycling...",
-              );
+              console.log("DeepSeek is disabled. Trying OpenRouter key cycling...");
               let c = !1;
               for (let d = 0; d < ue.length; d++) {
                 const U = ue[d];
                 try {
-                  const l = await fetch(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${U}`,
-                        "HTTP-Referer": "https://github.com/Openclaw-Factory",
-                        "X-Title": "ColdSpark",
-                      },
-                      body: JSON.stringify({
-                        model: "openrouter/owl-alpha",
-                        messages: [
-                          { role: "system", content: k },
-                          { role: "user", content: R },
-                        ],
-                        response_format: { type: "json_object" },
-                      }),
-                    },
-                  );
+                  const l = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${U}`, "HTTP-Referer": "https://github.com/Openclaw-Factory", "X-Title": "ColdSpark" },
+                    body: JSON.stringify({ model: "openrouter/owl-alpha", messages: [{ role: "system", content: k }, { role: "user", content: R }], response_format: { type: "json_object" } }),
+                  });
                   if (l.ok) {
                     const I = await l.json();
-                    if (I && !I.error && I.choices?.[0]) {
-                      ((r = {
-                        status: 200,
-                        ok: !0,
-                        json: async () => I,
-                        text: async () => JSON.stringify(I),
-                      }),
-                        (c = !0));
-                      break;
-                    } else
-                      console.error(
-                        `OpenRouter Key ${d + 1} API Error:`,
-                        I?.error?.message || JSON.stringify(I?.error),
-                      );
-                  } else
-                    console.error(
-                      `OpenRouter Key ${d + 1} Status Error:`,
-                      l.status,
-                      await l.text(),
-                    );
-                } catch (l) {
-                  console.error(
-                    `OpenRouter Key ${d + 1} Network/Timeout Error:`,
-                    l,
-                  );
-                }
+                    if (I && !I.error && I.choices?.[0]) { r = { status: 200, ok: !0, json: async () => I, text: async () => JSON.stringify(I) }; c = !0; break; }
+                    else console.error(`OpenRouter Key ${d + 1} API Error:`, I?.error?.message || JSON.stringify(I?.error));
+                  } else console.error(`OpenRouter Key ${d + 1} Status Error:`, l.status, await l.text());
+                } catch (l) { console.error(`OpenRouter Key ${d + 1} Network Error:`, l); }
               }
-              c ||
-                (r = {
-                  status: 402,
-                  ok: !1,
-                  json: async () => ({ error: "All OpenRouter keys failed" }),
-                  text: async () => "All OpenRouter keys failed",
-                });
+              c || (r = { status: 402, ok: !1, json: async () => ({ error: "All OpenRouter keys failed" }), text: async () => "All OpenRouter keys failed" });
             } else
               r = await fetch(Pe + "/chat/completions", {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: "Bearer " + Te,
-                },
-                body: JSON.stringify({
-                  model: "deepseek-chat",
-                  messages: [
-                    { role: "system", content: k },
-                    { role: "user", content: R },
-                  ],
-                  response_format: { type: "json_object" },
-                }),
+                headers: { "Content-Type": "application/json", Authorization: "Bearer " + Te },
+                body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "system", content: k }, { role: "user", content: R }], response_format: { type: "json_object" } }),
               });
             if (r.status === 402 || r.status === 429 || !r.ok) {
               const c = await r.text();
-              console.error(`DeepSeek API Error (status ${r.status}):`, c);
-              if (
-                r.status === 402 ||
-                c.toLowerCase().includes("balance") ||
-                c.toLowerCase().includes("credit") ||
-                c.toLowerCase().includes("insufficient")
-              ) {
-                console.log("Credit exhaustion detected! Triggering rule-based fallback...");
-                throw new Error("AI_CREDITS_EXHAUSTED");
-              }
-              throw new Error(`DeepSeek API non-ok response (${r.status}): ${c}`);
+              console.error(`AI API Error (status ${r.status}):`, c);
+              await recordAICall(n, { provider: ge ? 'openrouter' : 'deepseek', model: ge ? 'owl-alpha' : 'deepseek-chat', success: false, errorMessage: c.substring(0, 500), campaignId: e.campaign_id, leadId: t.id });
+              throw new Error("AI_CREDITS_EXHAUSTED");
             } else {
               const c = await r.json();
               if (c.choices && c.choices[0]) {
@@ -777,25 +731,33 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
                   E = l.subject || l.Subject || "";
                 } catch (err) {
                   const bodyMatch = d.match(/"body"\s*:\s*"([\s\S]*?)"\s*\}?/i);
-                  if (bodyMatch && bodyMatch[1]) {
-                    S = bodyMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
-                  } else {
-                    S = d.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "").trim();
-                  }
+                  if (bodyMatch && bodyMatch[1]) { S = bodyMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'); }
+                  else { S = d.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "").trim(); }
                 }
-                await n
-                  .from("leads")
-                  .update({ personalized_email: S, personalized_subject: E })
-                  .eq("id", t.id);
+                await n.from("leads").update({ personalized_email: S, personalized_subject: E }).eq("id", t.id);
+                // ═══ RATE LIMITER: Record AI call success ═══
+                const _usage = c.usage || {};
+                await recordAICall(n, { 
+                  provider: ge ? 'openrouter' : 'deepseek', 
+                  model: ge ? 'owl-alpha' : 'deepseek-chat',
+                  tokensPrompt: _usage.prompt_tokens || 0,
+                  tokensCompletion: _usage.completion_tokens || 0,
+                  costUsd: ((_usage.prompt_tokens || 0) * 0.000001) + ((_usage.completion_tokens || 0) * 0.000002), // Estimated cost
+                  campaignId: e.campaign_id, 
+                  leadId: t.id 
+                });
               }
             }
           } catch (s) {
-            console.error("AI Personalization Failed, attempting fallback:", s.message || s);
+            console.error("AI Personalization Failed, using rule-based engine:", s.message || s);
             try {
-              const fallback = generateFallbackEmail(t, e.campaigns?.niche || "");
-              S = fallback.body;
-              E = fallback.subject;
-              console.log(`[Fallback Personalizer] Personalization succeeded for ${t.email}`);
+              const engineResult = engineGenerateEmail({
+                lead: t, campaign: e.campaigns, business: e.campaigns?.businesses,
+                emailTone: emailToneData, stepIndex: v, totalSteps: totalSequenceSteps, senderAccount: a
+              });
+              S = engineResult.body;
+              E = engineResult.subject;
+              console.log(`[Email Engine Fallback] Generated for ${t.email}`);
               await n
                 .from("leads")
                 .update({ personalized_email: S, personalized_subject: E })
@@ -998,17 +960,34 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
         }
         const B = a.email.toLowerCase();
         if (B) {
-          // Track limits per individual email account (500 emails per account)
+          // Track limits per domain (30 emails per hour per domain)
           const { data: s } = await n.rpc("increment_domain_email_count", {
-            p_domain: B, // B is now the full email address, tracking per account
-            p_max_limit: 500,
+            p_domain: B,
+            p_max_limit: 30,
           });
           if (!s) {
-            console.log(`Account limit reached for ${B}. Skipping account.`);
+            console.log(`Domain limit reached for ${B}. Skipping account.`);
             continue;
           }
         }
         try {
+          // ═══ RATE LIMIT CHECK BEFORE SEND ═══
+          const sendCheck = await canSendEmail(n, {
+            accountId: a.id,
+            accountEmail: a.email,
+            campaignId: e.campaign_id,
+            accountDailyLimit: a.daily_limit || 100
+          });
+          if (!sendCheck.allowed) {
+            console.log(`[Rate Limit] ${sendCheck.reason}`);
+            // If it's a global or account limit, break out of the lead loop
+            if (sendCheck.reason.includes('Global') || sendCheck.reason.includes('CIRCUIT BREAKER')) {
+              console.log('[Rate Limit] Global/circuit breaker limit hit — stopping this campaign run.');
+              break;
+            }
+            continue; // Skip this lead, try next
+          }
+
           if (!smtpPool.has(a.id)) {
             smtpPool.set(a.id, De.createTransport({
               host: a.smtp_host,
@@ -1025,6 +1004,8 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
             subject: T,
             text: g,
           }),
+            // ═══ RATE LIMITER: Record successful send ═══
+            await recordEmailSent(n, { accountId: a.id, campaignId: e.campaign_id }),
             await n
               .from("campaign_progress")
               .upsert(
@@ -1085,8 +1066,10 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
           const isPermanentBounce = errCode >= 500 || /5\d{2}|rejected|does not exist|mailbox not found|user unknown|no such user|invalid recipient/i.test(errMsg);
           
           if (isPermanentBounce) {
-            console.error(`\u274C Send bounced (code ${errCode}):`, errMsg);
-            await n
+             console.error(`\u274C Send bounced (code ${errCode}):`, errMsg);
+             // ═══ RATE LIMITER: Record bounce ═══
+             await recordBounce(n, { accountId: a.id });
+             await n
                 .from("campaign_progress")
                 .upsert(
                   {
@@ -1136,6 +1119,15 @@ Instructions: You MUST deeply personalize BOTH the subject and the body to this 
       transporter.close();
     }
     console.log(`[SMTP POOL] Gracefully closed ${smtpPool.size} active SMTP connections.`);
+    
+    // ═══ RATE LIMITER: Log usage summary ═══
+    try {
+      const usage = await getUsageSummary(n);
+      console.log(`[Usage Summary] Emails: ${usage.emails.sent}/${usage.emails.limit} | Bounces: ${usage.emails.bounces} (${usage.emails.bounceRate}) | AI: ${usage.ai.calls}/${usage.ai.limit} calls, ${usage.ai.cost}/${usage.ai.budgetLimit} | This Run: ${usage.thisRun.emails} emails, ${usage.thisRun.aiCalls} AI calls`);
+    } catch (usageErr) {
+      console.warn('[Usage Summary] Failed to log:', usageErr.message);
+    }
+    
     return JSON.stringify({ success: !0, processed: z });
   } catch (n) {
     return JSON.stringify({ success: false, error: String(n?.message ?? n) });

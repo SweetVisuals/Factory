@@ -102,7 +102,7 @@ function applyTemplate(templateStr, lead, isSubject = false) {
     firstName = name.split(' ')[0];
     // Make sure it's actually a person's name, not a company name repeated
     const lowerFirst = firstName.toLowerCase();
-    if (lowerFirst === 'the' || lowerFirst === 'a' || lowerFirst === 'an' || 
+    if (lowerFirst === 'the' || lowerFirst === 'a' || lowerFirst === 'an' || lowerFirst === 'unknown' ||
         lowerFirst === company.toLowerCase() || firstName.length <= 1) {
       firstName = '';
     }
