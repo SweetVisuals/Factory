@@ -144,7 +144,7 @@ const WarmupTab = ({ account, onToggleWarmup }: WarmupTabProps) => {
               <Button
                 size="sm"
                 onClick={(e) => onToggleWarmup(account, e, true)}
-                className="bg-primary hover:bg-primary/95 text-white border-0 h-9 px-4 gap-2 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all w-full sm:w-auto text-xs uppercase tracking-widest font-black"
+                className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white border-0 h-9 px-4 gap-2 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all w-full sm:w-auto text-xs uppercase tracking-widest font-black"
               >
                 <Play size={14} />
                 {account.warmup_status === 'paused' ? 'Resume' : 'Start Warmup'}
