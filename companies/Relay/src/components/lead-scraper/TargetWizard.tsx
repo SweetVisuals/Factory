@@ -26,7 +26,7 @@ const TargetWizard: React.FC<TargetWizardProps> = ({ onSearch }) => {
       google: true,
       linkedin: false,
       general: false,
-      companieshouse: false,
+      companieshouse: true,
       bing: false,
       yell: false,
       hermes: false,

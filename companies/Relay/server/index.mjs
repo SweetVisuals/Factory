@@ -1794,7 +1794,10 @@ app.post('/api/scrape-leads', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing business/niche parameter. Cannot scrape without a target.' });
     }
     
-    if (Object.keys(platforms).length === 0) platforms.google = true;
+    if (Object.keys(platforms).length === 0) {
+      platforms.google = true;
+      platforms.companieshouse = true;
+    }
 
     const authHeader = req.headers.authorization;
     if (!authHeader) {

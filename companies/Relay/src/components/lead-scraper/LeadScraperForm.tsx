@@ -21,7 +21,7 @@ const LeadScraperForm: React.FC<LeadScraperFormProps> = ({ onSearch }) => {
       google: true,
       linkedin: false,
       general: false,
-      companieshouse: false,
+      companieshouse: true,
       bing: false,
       yell: false,
       hermes: false,
