@@ -51,41 +51,51 @@ export async function researchAndSummarizeLead(lead, log = console.log) {
     scrapedReport = `No website URL provided.`;
   }
 
-  // Define strict instructions for the AI
-  const prompt = `You are an elite business intelligence researcher. Your task is to analyze the scraped website content and search results for the target company and produce a very concise, highly accurate summary.
-
-Target Company: ${companyName}
-Website URL: ${rawWebsite || 'N/A'}
+  // Define strict anti-hallucination instructions per Outreach Email Guide
+  const prompt = `You are an elite business intelligence researcher for UK trades outreach. Analyze the scraped text for ${companyName} (${rawWebsite}).
 
 Scraped Data:
-${scrapedReport}
+${scrapedReport.substring(0, 3000)}
 
-CRITICAL ANTI-HALLUCINATION INSTRUCTIONS:
-1. You MUST check the website content (labeled [WEBSITE_HOME], [WEBSITE_ABOUT], [WEBSITE_TEAM]) to find a key fact about the business.
-2. The summary MUST be short (maximum 2-3 sentences), easy to refer to during a cold call.
-3. The summary MUST include a specific verified key fact about the business (e.g. their specific services, target audience, founding year, client names, or product offerings).
-4. If you cannot find verified information from the scraped website content or if the scraped content is empty/errors, do NOT make up any details or niches. Instead, write exactly: "N/A: Website content not available."
-5. Never hallucinate niches or details not present in the scraped text. If there is no specific data, write: "N/A: Specific details not available."
-6. Ensure you do not get confused between different businesses. Focus only on the target website domain or business name.
+RULES (STRICT COMPLIANCE REQUIRED):
+1. Look for ONE specific, real, completed project or clear specialism mentioned in the scraped text (e.g. "reclaimed two-storey extension with salvaged brickwork", "sandstone restoration across Falkirk", "heritage roofing & leadwork").
+2. Write a 5-12 word descriptive noun phrase for "[PERSONALISED DETAIL]" to drop into this sentence: "seen the great [PERSONALISED DETAIL] you put out there".
+3. NEVER invent or hallucinate. If no specific project/specialism is found, write EXACTLY: "work".
+4. Do NOT use generic praise like "great building services" or "quality work".
 
-Format your response EXACTLY as follows:
-## ⚡ Quick Summary
-[2-3 concise sentences containing a verified key fact about the business]`;
+Respond in EXACTLY this JSON format:
+{"detail": "5-12 word phrase or work", "fact": "1 short sentence verified fact or No specific details"}`;
 
   try {
-    log(`[Research Helper] Calling Groq API...`);
+    log(`[Research Helper] Calling DeepSeek/Groq AI...`);
     const aiRes = await fetchAIChatCompletion({
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3, // Low temperature to minimize creative hallucination
-      model: 'llama-3.3-70b-versatile'
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
+      max_tokens: 120
     }, log);
 
     if (aiRes && aiRes.choices && aiRes.choices[0]) {
-      const content = aiRes.choices[0].message.content;
-      log(`[Research Helper] AI summary generated successfully.`);
+      const contentText = aiRes.choices[0].message.content;
+      let detail = 'work';
+      let fact = 'No specific details found.';
+
+      try {
+        const parsed = JSON.parse(contentText);
+        if (parsed.detail && parsed.detail.toLowerCase() !== 'work' && parsed.detail.length <= 80) {
+          detail = parsed.detail.replace(/^the great\s+/i, '').trim();
+        }
+        if (parsed.fact) fact = parsed.fact;
+      } catch (e) {
+        log(`[Research Helper] JSON parse fallback: ${e.message}`);
+      }
+
+      const summaryFormatted = `## ⚡ Personalised Detail\n${detail}\n\n## 🔬 Quick Fact\n${fact}`;
+
+      log(`[Research Helper] AI research completed. Detail: "${detail}"`);
       return {
-        summary: content,
-        status: content.includes('N/A:') ? 'incomplete' : 'completed'
+        summary: summaryFormatted,
+        status: 'completed'
       };
     } else {
       throw new Error('AI response structure invalid or empty.');

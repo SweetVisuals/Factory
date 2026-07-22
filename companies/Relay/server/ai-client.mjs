@@ -47,29 +47,59 @@ async function fetchWithTimeout(url, options, timeoutMs = 15000) {
 export async function fetchAIChatCompletion(params, log = console.log) {
   const {
     messages,
-    temperature = 1.0,
+    temperature = 0.3,
     response_format,
-    model = 'llama-3.3-70b-versatile'
+    model = 'deepseek-chat',
+    max_tokens = 150
   } = params;
 
+  // 1. Try DeepSeek API first if key exists (most cost-efficient)
+  const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+  if (DEEPSEEK_API_KEY) {
+    log(`[AI-Client] Attempting DeepSeek API (deepseek-chat)...`);
+    try {
+      const dsResult = await fetchWithTimeout('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          temperature,
+          messages,
+          max_tokens,
+          ...(response_format ? { response_format } : {})
+        })
+      }, 15000);
+
+      if (dsResult.ok && dsResult.body && dsResult.body.choices && dsResult.body.choices[0]) {
+        log(`[AI-Client] ✅ DeepSeek success!`);
+        return dsResult.body;
+      } else {
+        log(`[AI-Client] DeepSeek failed (Status ${dsResult.status}): ${typeof dsResult.body === 'string' ? dsResult.body : JSON.stringify(dsResult.body)}`);
+      }
+    } catch (dsErr) {
+      log(`[AI-Client] DeepSeek exception: ${dsErr.message}`);
+    }
+  }
+
+  // 2. Fall back to Groq API
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
   if (!GROQ_API_KEY) {
-    throw new Error('[AI-Client] GROQ_API_KEY is not configured. Cannot proceed without Groq.');
+    throw new Error('[AI-Client] Neither DEEPSEEK_API_KEY nor GROQ_API_KEY are configured.');
   }
 
   const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
-  
-  // Groq-only model chain: Llama 3.3 70B (best) → Llama 3.1 8B (fast) → Llama 3 8B (fallback)
-  const GROQ_MODEL_CHAIN = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama3-8b-8192'];
+  const GROQ_MODEL_CHAIN = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'llama3-8b-8192'];
   
   for (const groqModel of GROQ_MODEL_CHAIN) {
     log(`[AI-Client] Attempting Groq model: ${groqModel}...`);
     
     let retries = 0;
-    const maxRetries = 3;
-    let success = false;
+    const maxRetries = 2;
     
-    while (retries <= maxRetries && !success) {
+    while (retries <= maxRetries) {
       try {
         const result = await fetchWithTimeout(GROQ_BASE, {
           method: 'POST',
@@ -81,43 +111,27 @@ export async function fetchAIChatCompletion(params, log = console.log) {
             model: groqModel,
             temperature,
             messages,
+            max_tokens,
             ...(response_format ? { response_format } : {})
           })
-        }, 30000);
+        }, 15000);
 
-        if (result.ok) {
-          const data = result.body;
-          if (data && !data.error) {
-            log(`[AI-Client] ✅ Groq success using ${groqModel}!`);
-            return data;
-          } else {
-            log(`[AI-Client] Groq API error on ${groqModel}: ${JSON.stringify(data?.error)}`);
-            break;
-          }
+        if (result.ok && result.body && !result.body.error) {
+          log(`[AI-Client] ✅ Groq success using ${groqModel}!`);
+          return result.body;
         } else {
-          log(`[AI-Client] Groq ${groqModel} failed (Status ${result.status}): ${typeof result.body === 'string' ? result.body : JSON.stringify(result.body)}`);
-          if (result.status === 429) {
-            retries++;
-            if (retries <= maxRetries) {
-              const backoffMs = 3000 * retries;
-              log(`[AI-Client] Groq rate limited. Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
-              await new Promise(r => setTimeout(r, backoffMs));
-              continue;
-            }
-          }
+          log(`[AI-Client] Groq ${groqModel} failed (Status ${result.status})`);
           break;
         }
       } catch (err) {
         log(`[AI-Client] Groq ${groqModel} exception: ${err.message}`);
         retries++;
         if (retries <= maxRetries) {
-          const backoffMs = 3000 * retries;
-          log(`[AI-Client] Retrying in ${backoffMs}ms... (Attempt ${retries}/${maxRetries})`);
-          await new Promise(r => setTimeout(r, backoffMs));
+          await new Promise(r => setTimeout(r, 2000 * retries));
         }
       }
     }
   }
 
-  throw new Error('[AI-Client] All Groq models exhausted after retries. Please try again later.');
+  throw new Error('[AI-Client] All AI providers (DeepSeek & Groq) exhausted after retries.');
 }

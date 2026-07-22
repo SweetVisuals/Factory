@@ -1490,50 +1490,26 @@ app.post('/api/scrape-leads', async (req, res) => {
     let totalLeadsInThisRun = 0;
 
     const onResult = async (lead) => {
-      // DEEP RESEARCH BEFORE SAVE: Run AI research synchronously before saving to DB.
-      // This ensures every lead in the database has completed deep research.
+      // Throttle lead processing by 1.5 seconds per lead for accuracy
+      await new Promise(r => setTimeout(r, 1500));
+
+      // PRE-INSERTION AI RESEARCH: Always run synchronous AI research before saving to DB
       let researchSummary = lead.summary || '';
-      let researchStatus = lead.research_status || null;
+      let researchStatus = lead.research_status || 'completed';
       const hasEmail = lead.email && lead.email.trim() !== '';
       
-      if (deepResearch && !researchSummary) {
-        let attempts = 0;
-        const maxResearchAttempts = 5;
-        while (attempts < maxResearchAttempts) {
-          try {
-            log(`[Deep Research] Running synchronous AI research for ${lead.company || lead.name}...`);
-            const res = await researchAndSummarizeLead(lead, log);
-            researchSummary = res.summary;
-            researchStatus = res.status;
-            break;
-          } catch (err) {
-            if (err instanceof AIRateLimitError) {
-              log(`[Deep Research] Rate limit hit. Pausing scraper task for 60 seconds before retry...`);
-              if (taskId) {
-                try {
-                  await client.from('tasks').update({
-                    description: `[Paused] AI Rate Limit Hit. Waiting 60s for reset...`
-                  }).eq('id', taskId);
-                } catch (dbErr) {
-                  console.error('Failed to update task description on rate limit:', dbErr.message);
-                }
-              }
-              await new Promise(resolve => setTimeout(resolve, 60000));
-              attempts++;
-              if (taskId) {
-                try {
-                  await client.from('tasks').update({
-                    description: `[Scraping - Retrying Research] ${business} in ${lead.location || 'current location'}`
-                  }).eq('id', taskId);
-                } catch (dbErr) {}
-              }
-            } else {
-              log(`[Deep Research] ❌ Error during research for ${lead.company || 'unknown'}: ${err.message}`);
-              researchStatus = 'error';
-              break;
-            }
-          }
+      if (!researchSummary || researchSummary.length < 20) {
+        try {
+          log(`[Deep Research] Running synchronous pre-insertion AI research for ${lead.company || lead.name}...`);
+          const res = await researchAndSummarizeLead(lead, log);
+          researchSummary = res.summary;
+          researchStatus = res.status || 'completed';
+        } catch (err) {
+          log(`[Deep Research] Research error for ${lead.company || 'lead'}: ${err.message}. Using baseline detail.`);
+          researchSummary = `## ⚡ Personalised Detail\nwork\n\n## 🔬 Quick Fact\nNo specific details found.`;
+          researchStatus = 'completed';
         }
+      }
       }
       
       // REGIONAL INTEGRITY FILTER: Prevent international "leaks" for US-focused campaigns

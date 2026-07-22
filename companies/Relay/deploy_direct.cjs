@@ -16,8 +16,28 @@ const PASS = 'mjaXRVMmbMwC7xCbcLCE123';
 
 const FILES_TO_UPLOAD = [
   {
+    local: path.resolve(__dirname, '.env'),
+    remote: '/root/Factory/companies/Relay/.env'
+  },
+  {
     local: path.resolve(__dirname, 'server/index.mjs'),
     remote: '/root/Factory/companies/Relay/server/index.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/ai-client.mjs'),
+    remote: '/root/Factory/companies/Relay/server/ai-client.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/research_helper.mjs'),
+    remote: '/root/Factory/companies/Relay/server/research_helper.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/email_engine.mjs'),
+    remote: '/root/Factory/companies/Relay/server/email_engine.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/research_cron.mjs'),
+    remote: '/root/Factory/companies/Relay/server/research_cron.mjs'
   },
   {
     local: path.resolve(__dirname, 'server/process_campaign_node.mjs'),

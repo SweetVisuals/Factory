@@ -178,41 +178,27 @@ function buildGreeting(lead) {
  * Extract a relevant snippet from lead research summary for personalisation.
  */
 function extractResearchSnippet(summary) {
-  if (!summary || summary.length < 30) return null;
-  // Skip broken/failed summaries
-  if (/failed to perform|could not complete|error|timeout/i.test(summary)) return null;
-  // Skip Companies House boilerplate — it's not useful context
-  if (/companies house|company number|registration/i.test(summary) && summary.length < 200) return null;
-
-  // Strip markdown formatting before splitting
-  const cleaned = summary
-    .replace(/#{1,6}\s*[^\n]+/g, '') // Strip markdown headings
-    .replace(/\*{1,3}[^*]+\*{1,3}/g, (m) => m.replace(/\*/g, '')) // Strip bold/italic markers
-    .replace(/[🎯⚡📊🏢💡🔍📈📋✅❌🌐]/g, '') // Strip emoji
-    .replace(/^[-*]\s+/gm, '') // Strip list markers
-    .replace(/\|[^|]+\|/g, '') // Strip table content
-    .replace(/```[\s\S]*?```/g, ''); // Strip code blocks
-
-  const lines = cleaned.split(/[.\n]/)
-    .map(l => l.trim())
-    .filter(l => l.length > 20 && l.length < 110);
+  if (!summary) return 'work';
   
-  // Skip lines that are boilerplate, addresses, or section headers
-  const filtered = lines.filter(l => 
-    !/companies house|company number|registration|quick summary|executive summary|deep research|website data|niche.*market.*analysis|registered address|status:|company:|number:|address:/i.test(l) &&
-    !/^\d+[\s.]/.test(l) && // Skip numbered list items like "1. The Business"
-    !/^[A-Z\s&]+$/.test(l) && // Skip ALL-CAPS section headers
-    l.split(' ').length >= 4 // Needs at least 4 words to be a sentence
-  );
-  
-  // Find a line that mentions something specific about the business
-  const specific = filtered.find(l =>
-    /speciali[sz]|focus|offer|provid|work with|help|serv|known for|established|leading|award|expert|deliver|build|design|creat/i.test(l) &&
-    !/appears to be|seems to|might be|could be/i.test(l) // Skip hedging language
-  );
-  if (specific) return specific.replace(/^\s*[-•*]\s*/, '').replace(/^\*+/, '').trim();
+  // 1. Check for structured "## ⚡ Personalised Detail" section
+  const detailMatch = summary.match(/##\s*⚡?\s*Personalised\s*Detail\s*\n+([^\n]+)/i);
+  if (detailMatch && detailMatch[1]) {
+    const detail = detailMatch[1].trim();
+    if (detail && detail.toLowerCase() !== 'work' && detail.length < 90) {
+      return detail.replace(/^the great\s+/i, '');
+    }
+  }
 
-  return null; // Better to return null than risk a bad snippet
+  // 2. Check for quick summary lines
+  const quickMatch = summary.match(/##\s*⚡?\s*Quick\s*Summary\s*\n+([^\n]+)/i);
+  if (quickMatch && quickMatch[1]) {
+    const line = quickMatch[1].trim();
+    if (line && !line.includes('N/A:') && line.length > 15) {
+      return 'work';
+    }
+  }
+
+  return 'work';
 }
 
 /**
@@ -273,46 +259,35 @@ function extractBusinessContext(overviewMd, niche) {
 // nl = niche label, pain = pain point, hook = hook, research = research snippet
 
 const TRADES_STEP0 = [
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: hn ? `quick one ${g.toLowerCase()}` : `quick one for ${sn.toLowerCase()}`,
-    body: `Hi ${g || 'there'},\n\nAre you still the one answering enquiry calls while you're on site? Most ${nl} in ${loc} tell me that's where the good leads slip through.`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: `${loc} ${nl} question`,
-    body: `Hi ${g || 'there'},\n\nCurious — how much of your evening goes into writing up quotes and chasing customers who went quiet? Keep hearing this from ${nl} around ${loc}.`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: hn ? `${g.toLowerCase()} — quick question` : `quick question for ${sn.toLowerCase()}`,
-    body: `Hi ${g || 'there'},\n\n${res ? `Saw ${cn} ${res.toLowerCase().startsWith('speciali') ? res.toLowerCase() : '— ' + res.toLowerCase().substring(0, 60)}. ` : ''}How are you handling new enquiries when your crew's on site and the phone rings?`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: `re: job admin`,
-    body: `Hi ${g || 'there'},\n\nMost ${nl} I speak to in ${loc} lose a few hours every evening on quotes and invoices. Is that the grind at ${sn} too, or have you found a way round it?`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: hn ? `${g.toLowerCase()}, honest question` : `honest question for ${sn.toLowerCase()}`,
-    body: `Hi ${g || 'there'},\n\nWhat happens at ${sn} when a customer emails in while your lads are all on a job? Genuinely asking — it's the biggest leak I see with ${nl} in ${loc}.`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: `missed calls`,
-    body: `Hi ${g || 'there'},\n\nEvery missed call during a busy day is probably a lost job. That's the feedback I get from ${nl} across ${loc}. Same story at ${sn}?`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: `about ${sn.toLowerCase()}`,
-    body: `Hi ${g || 'there'},\n\n${res ? res.substring(0, 70) + '. ' : ''}I work with ${nl} in ${loc} and the same problem keeps coming up — quoting takes ages and good leads go cold. Sound familiar?`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: `one thing I keep hearing`,
-    body: `Hi ${g || 'there'},\n\nThe ${nl} I talk to around ${loc} all say the same thing: they're great at the actual work, but the admin side is killing their margins. How's that at ${sn}?`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: hn ? `${g.toLowerCase()} — thought of you` : `thought of ${sn.toLowerCase()}`,
-    body: `Hi ${g || 'there'},\n\nBeen speaking with a lot of ${nl} lately. Most are spending their evenings doing paperwork instead of actual rest. Curious if that's the case at ${sn} too.`
-  }),
-  (g, cn, sn, loc, hn, nl, pain, hook, res) => ({
-    subject: `${loc} ${nl}`,
-    body: `Hi ${g || 'there'},\n\nQuick one — are you still doing estimates by hand at ${sn}? Most ${nl} in ${loc} I chat with are, and it seems like the bit that eats up the most time.`
-  }),
+  (g, cn, sn, loc, hn, nl, pain, hook, res) => {
+    const detail = (res && res.toLowerCase() !== 'work') ? res : 'work';
+    const greetingLine = g ? `Hi ${g} 👋,` : `Hi there 👋,`;
+    const subjectName = g ? g : sn;
+    const cleanDetail = detail.charAt(0).toUpperCase() + detail.slice(1);
+    
+    return {
+      subject: `${cleanDetail}, ${subjectName}`,
+      body: `${greetingLine}
+
+I hope business is booming! I've done some digging and seen the great ${detail} you put out there, you're clearly talented at what you do. But I bet you hate all the admin (like this) that goes with it!
+
+I'm Nicolas Theato, founder of Relay Solutions. We build automation that saves tradespeople time on admin — emails, booking and quoting jobs, invoices, even the Google searches to find new business — and gives that time back to you for the actual job.
+
+Our software runs in the background doing all of it automatically. Emails answered, quotes sent, invoices posted, leads gathered with AI and listed ready for you to act on. It's like a little genie handling it all while you get on with your business.
+
+We do a free audit to see where you're currently bogged down — costs you nothing. Think about how much business (and sanity) admin is costing you right now, versus just letting Relay handle it in the background without ever forgetting anything.
+
+Reply to this email or WhatsApp me and I'll get the ball rolling with a quick demo.
+
+Automation is the future — Relay is how I can get you there. Can't wait to chat.
+
+Best wishes,
+
+Nicolas Kai Theato
+Founder, Relay Solutions
++44 7864 851184`
+    };
+  }
 ];
 
 const TRADES_STEP1 = [

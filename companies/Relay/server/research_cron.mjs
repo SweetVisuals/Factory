@@ -76,8 +76,15 @@ async function runResearchCron() {
             const newAttempts = (lead.research_attempts || 0) + 1;
             
             if (newAttempts >= 3) {
-              console.log(`[Research Cron] 🗑️ Auto-deleting lead ${lead.company || lead.name} after error`);
-              await supabase.from('leads').delete().eq('id', lead.id);
+              console.log(`[Research Cron] ⚠️ Research failed after 3 attempts for ${lead.company || lead.name}. Marking as failed (lead preserved).`);
+              await supabase
+                .from('leads')
+                .update({
+                  research_status: 'failed',
+                  research_attempts: newAttempts,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', lead.id);
             } else {
               await supabase
                 .from('leads')
