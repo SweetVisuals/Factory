@@ -481,6 +481,18 @@ async function ensureCampaignSchedules(campaignId) {
       .eq('campaign_id', campaignId);
       
     if (!leadCount || leadCount <= 1) return;
+
+    // Check if campaign has a business assigned to it
+    const { data: campaign } = await client
+      .from('campaigns')
+      .select('business_id')
+      .eq('id', campaignId)
+      .single();
+      
+    if (!campaign || !campaign.business_id) {
+      console.log(`[Auto Schedule] Campaign ${campaignId} has no business profile assigned. Skipping sequence/schedule generation.`);
+      return;
+    }
     
     // 2. Check if schedules already exist
     const { count: scheduleCount } = await client
