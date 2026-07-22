@@ -42,12 +42,26 @@ const Discover: React.FC = () => {
   const [requireFullProfile, setRequireFullProfile] = useState(false);
   const [researchFilter, setResearchFilter] = useState('all'); // 'all', 'completed', 'pending', 'failed'
 
+  // Advanced Apollo / Instantly Filters
+  const [minRevenue, setMinRevenue] = useState(0); // 0 (Any) to 4 (Large)
+  const [companySizeFilter, setCompanySizeFilter] = useState('all');
+  const [yearFoundedMin, setYearFoundedMin] = useState(1950);
+  const [yearFoundedMax, setYearFoundedMax] = useState(2026);
+  const [hasFacebook, setHasFacebook] = useState(false);
+  const [hasInstagram, setHasInstagram] = useState(false);
+  const [hasTwitter, setHasTwitter] = useState(false);
+  const [hasLinkedin, setHasLinkedin] = useState(false);
+  const [locationRadius, setLocationRadius] = useState('25'); // Radius in miles
+  const [baseLocation, setBaseLocation] = useState('');
+  const [techStackSearch, setTechStackSearch] = useState('');
+
   // Debounced
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [debouncedIndustry, setDebouncedIndustry] = useState(industryFilter);
   const [debouncedLocation, setDebouncedLocation] = useState(locationFilter);
   const [debouncedTitle, setDebouncedTitle] = useState(titleFilter);
   const [debouncedCompany, setDebouncedCompany] = useState(companyFilter);
+  const [debouncedTechStack, setDebouncedTechStack] = useState(techStackSearch);
 
   // Sort
   const [sortField, setSortField] = useState<SortField>('created_at');
@@ -98,10 +112,11 @@ const Discover: React.FC = () => {
       setDebouncedLocation(locationFilter);
       setDebouncedTitle(titleFilter);
       setDebouncedCompany(companyFilter);
+      setDebouncedTechStack(techStackSearch);
       setPage(1);
     }, 350);
     return () => clearTimeout(t);
-  }, [search, industryFilter, locationFilter, titleFilter, companyFilter]);
+  }, [search, industryFilter, locationFilter, titleFilter, companyFilter, techStackSearch]);
 
   useEffect(() => {
     fetchCampaigns();
@@ -122,7 +137,12 @@ const Discover: React.FC = () => {
 
   useEffect(() => {
     fetchLeads();
-  }, [page, limit, debouncedSearch, debouncedIndustry, debouncedLocation, debouncedTitle, debouncedCompany, statusFilter, sortField, sortDir, requireFullProfile]);
+  }, [
+    page, limit, debouncedSearch, debouncedIndustry, debouncedLocation, debouncedTitle, 
+    debouncedCompany, statusFilter, sortField, sortDir, requireFullProfile, researchFilter,
+    minRevenue, companySizeFilter, yearFoundedMin, yearFoundedMax, hasFacebook, hasInstagram, 
+    hasTwitter, hasLinkedin, locationRadius, baseLocation, debouncedTechStack
+  ]);
 
   const fetchCampaigns = async () => {
     const { data } = await supabase.from('campaigns').select('id, name').order('name', { ascending: true });
@@ -156,13 +176,11 @@ const Discover: React.FC = () => {
       if (statusFilter !== 'all') {
         query = query.eq('validation_status', statusFilter);
       } else {
-        // Show all leads except invalid ones
-        // Use or() to include both valid and null (unverified) leads
         query = query.or('validation_status.is.null,validation_status.neq.invalid');
         query = query.neq('status', 'bounced');
       }
 
-      // Deep Research Filter - only show leads that have passed deep research
+      // Deep Research Filter
       if (researchFilter === 'completed') {
         query = query.eq('research_status', 'completed').not('summary', 'is', null).neq('summary', '');
       } else if (researchFilter === 'pending') {
@@ -176,6 +194,43 @@ const Discover: React.FC = () => {
                      .not('company', 'is', null).neq('company', '')
                      .not('email', 'is', null).neq('email', '')
                      .not('location', 'is', null).neq('location', '');
+      }
+
+      // Apply Advanced Apollo / Instantly Filters
+      if (companySizeFilter !== 'all') {
+        query = query.eq('company_size', companySizeFilter);
+      }
+
+      if (minRevenue > 0) {
+        const revBrackets = [
+          'Under £632,000',
+          '£632,000 - £10.2 Million',
+          '£10.2 Million - £36 Million',
+          'Over £36 Million'
+        ];
+        const allowedRevenues = revBrackets.slice(minRevenue - 1);
+        query = query.in('annual_revenue', allowedRevenues);
+      }
+
+      if (yearFoundedMin > 1950) {
+        query = query.gte('year_founded', yearFoundedMin.toString());
+      }
+      if (yearFoundedMax < 2026) {
+        query = query.lte('year_founded', yearFoundedMax.toString());
+      }
+
+      if (hasFacebook) {
+        query = query.not('facebook', 'eq', '').not('facebook', 'is', null);
+      }
+      if (hasInstagram) {
+        query = query.not('instagram', 'eq', '').not('instagram', 'is', null);
+      }
+      if (hasTwitter) {
+        query = query.not('twitter', 'eq', '').not('twitter', 'is', null);
+      }
+
+      if (debouncedTechStack.trim()) {
+        query = query.filter('tech_stack', 'cs', `{"${debouncedTechStack}"}`);
       }
 
       const from = (page - 1) * limit;
@@ -270,7 +325,23 @@ const Discover: React.FC = () => {
   };
 
   const clearAllFilters = () => {
-    setSearch(''); setIndustryFilter(''); setLocationFilter(''); setTitleFilter(''); setCompanyFilter(''); setStatusFilter('all');
+    setSearch('');
+    setIndustryFilter('');
+    setLocationFilter('');
+    setTitleFilter('');
+    setCompanyFilter('');
+    setStatusFilter('all');
+    setMinRevenue(0);
+    setCompanySizeFilter('all');
+    setYearFoundedMin(1950);
+    setYearFoundedMax(2026);
+    setHasFacebook(false);
+    setHasInstagram(false);
+    setHasTwitter(false);
+    setHasLinkedin(false);
+    setLocationRadius('25');
+    setBaseLocation('');
+    setTechStackSearch('');
   };
 
   // Bulk Actions
@@ -391,88 +462,268 @@ const Discover: React.FC = () => {
               <h2 className="text-sm font-bold text-white uppercase tracking-wider">Filters</h2>
               <button onClick={() => setShowMobileFilters(false)} className="p-2 text-white/50 hover:text-white"><X size={18} /></button>
             </div>
-
-            <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-5 custom-scrollbar">
               
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+              {/* Category: Search & Identity */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                  <Search className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">General Search</span>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Global Search</label>
                   <input
                     type="text"
                     placeholder="Name, email, company..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors"
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Role / Job Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CEO, Director"
+                    value={titleFilter}
+                    onChange={e => setTitleFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Role / Title</label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                  <input type="text" placeholder="e.g. CEO, Founder" value={titleFilter} onChange={e => setTitleFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+              {/* Category: Location & Proximity (Radius) */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Location & Proximity</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Target Area / Town</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. London, Manchester"
+                    value={locationFilter}
+                    onChange={e => setLocationFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Base Point</label>
+                    <input
+                      type="text"
+                      placeholder="My Location"
+                      value={baseLocation}
+                      onChange={e => setBaseLocation(e.target.value)}
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Radius (Miles)</label>
+                    <select
+                      value={locationRadius}
+                      onChange={e => setLocationRadius(e.target.value)}
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                    >
+                      <option value="5">5 Miles</option>
+                      <option value="10">10 Miles</option>
+                      <option value="25">25 Miles</option>
+                      <option value="50">50 Miles</option>
+                      <option value="100">100 Miles</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Company</label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                  <input type="text" placeholder="e.g. Apple" value={companyFilter} onChange={e => setCompanyFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+              {/* Category: Apollo Financials & Scope */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                  <Building2 className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Apollo Scope</span>
+                </div>
+
+                {/* Company Name */}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Specific Company</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Apple, Stripe"
+                    value={companyFilter}
+                    onChange={e => setCompanyFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                  />
+                </div>
+
+                {/* Company Size */}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Employee Count</label>
+                  <select
+                    value={companySizeFilter}
+                    onChange={e => setCompanySizeFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                  >
+                    <option value="all">Any Size</option>
+                    <option value="1-10 employees">Micro-Team (1-10)</option>
+                    <option value="11-50 employees">Small Office (11-50)</option>
+                    <option value="51-250 employees">Mid-Market (51-250)</option>
+                    <option value="Over 250 employees">Enterprise (250+)</option>
+                  </select>
+                </div>
+
+                {/* Revenue Range Slider */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[9px] font-black text-white/30 uppercase tracking-widest">
+                    <span>Min Revenue Bracket</span>
+                    <span className="text-primary font-mono lowercase">
+                      {(() => {
+                        if (minRevenue === 0) return 'any';
+                        if (minRevenue === 1) return '<£632k';
+                        if (minRevenue === 2) return '£632k-£10.2M';
+                        if (minRevenue === 3) return '£10.2M-£36M';
+                        return '>£36M';
+                      })()}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="4"
+                    value={minRevenue}
+                    onChange={e => setMinRevenue(parseInt(e.target.value))}
+                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                </div>
+
+                {/* Founding Year Limits */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[9px] font-black text-white/30 uppercase tracking-widest">
+                    <span>Year Founded</span>
+                    <span className="text-primary font-mono">{yearFoundedMin} - {yearFoundedMax}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1900"
+                      max="2026"
+                      value={yearFoundedMin}
+                      onChange={e => setYearFoundedMin(parseInt(e.target.value))}
+                      className="w-1/2 px-2.5 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-mono text-center text-white"
+                    />
+                    <input
+                      type="number"
+                      min="1900"
+                      max="2026"
+                      value={yearFoundedMax}
+                      onChange={e => setYearFoundedMax(parseInt(e.target.value))}
+                      className="w-1/2 px-2.5 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-mono text-center text-white"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Industry</label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                  <input type="text" placeholder="e.g. Software" value={industryFilter} onChange={e => setIndustryFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+              {/* Category: Tech Stack matchers */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                  <BrainCircuit className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Tech Stack</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Used Technologies</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. WordPress, Shopify"
+                    value={techStackSearch}
+                    onChange={e => setTechStackSearch(e.target.value)}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                  />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Location</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                  <input type="text" placeholder="e.g. London" value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white placeholder:text-white/25 focus:outline-none focus:border-primary/40 transition-colors" />
+              {/* Category: Verification & Social Channels */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                  <Users className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Contact Checks</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Verification Status</label>
+                  <select
+                    value={statusFilter}
+                    onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                  >
+                    <option value="all">Any Status</option>
+                    <option value="valid">Valid Emails</option>
+                    <option value="catch_all">Catch-all Domains</option>
+                    <option value="invalid">Invalid Emails</option>
+                    <option value="unverified">Unverified</option>
+                  </select>
+                </div>
+
+                {/* Social media presence switches */}
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-2">Required Social Presence</label>
+                  
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/70 flex items-center gap-1.5"><Facebook size={12} className="text-blue-500" /> Facebook</span>
+                      <button
+                        onClick={() => setHasFacebook(!hasFacebook)}
+                        className={cn("relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200", hasFacebook ? "bg-primary" : "bg-white/10")}
+                      >
+                        <span className={cn("pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white transition duration-200", hasFacebook ? "translate-x-3" : "translate-x-0")} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/70 flex items-center gap-1.5"><Instagram size={12} className="text-pink-500" /> Instagram</span>
+                      <button
+                        onClick={() => setHasInstagram(!hasInstagram)}
+                        className={cn("relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200", hasInstagram ? "bg-primary" : "bg-white/10")}
+                      >
+                        <span className={cn("pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white transition duration-200", hasInstagram ? "translate-x-3" : "translate-x-0")} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/70 flex items-center gap-1.5"><Twitter size={12} className="text-sky-500" /> Twitter</span>
+                      <button
+                        onClick={() => setHasTwitter(!hasTwitter)}
+                        className={cn("relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200", hasTwitter ? "bg-primary" : "bg-white/10")}
+                      >
+                        <span className={cn("pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white transition duration-200", hasTwitter ? "translate-x-3" : "translate-x-0")} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/70 flex items-center gap-1.5"><Linkedin size={12} className="text-blue-400" /> LinkedIn</span>
+                      <button
+                        onClick={() => setHasLinkedin(!hasLinkedin)}
+                        className={cn("relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200", hasLinkedin ? "bg-primary" : "bg-white/10")}
+                      >
+                        <span className={cn("pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white transition duration-200", hasLinkedin ? "translate-x-3" : "translate-x-0")} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Validation Status</label>
-                <select
-                  value={statusFilter}
-                  onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                  className="w-full pl-4 pr-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-sm font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer transition-colors appearance-none"
-                >
-                  <option value="all">Any Status</option>
-                  <option value="valid">Valid Emails</option>
-                  <option value="catch_all">Catch-all Domains</option>
-                  <option value="invalid">Invalid Emails</option>
-                  <option value="unverified">Unverified</option>
-                </select>
-              </div>
-
-              <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl mt-4">
+              {/* Requirement: Full profile block */}
+              <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Require Full Profile</span>
                   <button
                     onClick={() => setRequireFullProfile(!requireFullProfile)}
-                    className={cn(
-                      "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none",
-                      requireFullProfile ? "bg-primary" : "bg-white/10"
-                    )}
+                    className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 ease-in-out", requireFullProfile ? "bg-primary" : "bg-white/10")}
                   >
-                    <span className={cn(
-                      "pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                      requireFullProfile ? "translate-x-4" : "translate-x-0"
-                    )} />
+                    <span className={cn("pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition duration-200 ease-in-out", requireFullProfile ? "translate-x-4" : "translate-x-0")} />
                   </button>
                 </div>
                 <p className="text-[9px] text-white/30 mt-2 font-medium">Hides leads missing name, email, company, or location, and hides bounces by default.</p>
