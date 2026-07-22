@@ -47,7 +47,25 @@ async function runResearchCron() {
           const companyName = lead.company || lead.name || 'Unknown Company';
           console.log(`[Research Cron] Running deep research on: ${companyName} (${lead.email})`);
           
-          const res = await researchAndSummarizeLead(lead, console.log);
+          let campaignPitch = '';
+          const { data: clData } = await supabase
+            .from('campaign_leads')
+            .select('campaign_id')
+            .eq('lead_id', lead.id)
+            .limit(1);
+          
+          if (clData && clData.length > 0) {
+            const { data: cData } = await supabase
+              .from('campaigns')
+              .select('pitch, objective')
+              .eq('id', clData[0].campaign_id)
+              .single();
+            if (cData) {
+              campaignPitch = cData.pitch || cData.objective || '';
+            }
+          }
+
+          const res = await researchAndSummarizeLead(lead, console.log, campaignPitch);
           
           // Update lead with research and mark as completed/incomplete
           await supabase

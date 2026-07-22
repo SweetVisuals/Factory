@@ -30,7 +30,7 @@ function normalizeUrl(url) {
  * 2. Processes the data with Groq via fetchAIChatCompletion using a strict anti-hallucination prompt.
  * 3. Enforces that the summary is short, cold-call friendly, contains a key fact, and is 100% accurate.
  */
-export async function researchAndSummarizeLead(lead, log = console.log) {
+export async function researchAndSummarizeLead(lead, log = console.log, campaignPitch = '') {
   const companyName = lead.company || lead.name || 'Unknown Company';
   const rawWebsite = lead.website || '';
   const normalizedWebsite = normalizeUrl(rawWebsite);
@@ -51,16 +51,22 @@ export async function researchAndSummarizeLead(lead, log = console.log) {
     scrapedReport = `No website URL provided.`;
   }
 
-  // Define strict anti-hallucination instructions per Outreach Email Guide
-  const prompt = `You are an elite business intelligence researcher for UK trades outreach. Analyze the scraped text for ${companyName} (${rawWebsite}).
+  const pitchContext = campaignPitch ? `
+CAMPAIGN OBJECTIVE / PITCH:
+${campaignPitch}
 
-Scraped Data:
+` : '';
+
+  // Define strict anti-hallucination instructions per Outreach Email Guide
+  const prompt = `You are an elite business intelligence researcher. Analyze the scraped text for ${companyName} (${rawWebsite}).
+
+${pitchContext}Scraped Data:
 ${scrapedReport.substring(0, 3000)}
 
 RULES (STRICT COMPLIANCE REQUIRED):
-1. Look for ONE specific, real, completed project or clear specialism mentioned in the scraped text (e.g. "reclaimed two-storey extension with salvaged brickwork", "sandstone restoration across Falkirk", "heritage roofing & leadwork").
+1. Look for ONE specific, real, completed project, service, or clear specialism mentioned in the scraped text that makes them a perfect fit for our CAMPAIGN OBJECTIVE.
 2. Write a 5-12 word descriptive noun phrase for "[PERSONALISED DETAIL]" to drop into this sentence: "seen the great [PERSONALISED DETAIL] you put out there".
-3. NEVER invent or hallucinate. If no specific project/specialism is found, write EXACTLY: "work".
+3. NEVER invent or hallucinate. If no specific relevant project/specialism is found, write EXACTLY: "work".
 4. Do NOT use generic praise like "great building services" or "quality work".
 
 Respond in EXACTLY this JSON format:

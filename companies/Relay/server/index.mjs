@@ -340,7 +340,7 @@ ABSOLUTE RULES (violation = failure):
 5. DO NOT INCLUDE ANY SIGN-OFF, "Best,", "Regards,", or any closing in the body. The system auto-appends the signature.
 6. Plain text only. No HTML. Normal line breaks between paragraphs.
 7. Each step MUST cover a completely unique angle — no repeated topics, features, or ideas across steps.
-8. SPECIFIC USE CASES & SOLUTIONS: Instead of talking about generic benefits (like "streamlining operations" or "increasing efficiency"), describe a highly concrete, realistic custom automation or software solution tailored specifically to the targeted niche. Show them EXACTLY what we can build for them (e.g. for a restaurant: "we can build something that automatically reduces stock count when orders are placed and automatically reverts it if an order is cancelled"; for field contractors: "real-time dispatch-to-field sync that stops invoicing delays"). Let them see the exact mechanical workflow we would automate.
+8. SPECIFIC USE CASES & SOLUTIONS: Instead of talking about generic benefits (like "streamlining operations" or "increasing efficiency"), describe a highly concrete, realistic custom solution tailored specifically to the targeted niche. Show them EXACTLY what we can do for them, BUT this must be derived entirely from the provided Pitch / Service Offering. Do NOT invent random services or pain points that do not align with the pitch.
 9. NEVER SELL OR PITCH DIRECTLY. Your ONLY goal is to book a calendar slot or phone call by enquiring about their current struggles and hurdles. DO NOT offer a solution immediately. Be genuinely curious about their pain points.
 
 STEP ARCHETYPES — follow each one precisely:
@@ -1451,10 +1451,14 @@ app.post('/api/scrape-leads', async (req, res) => {
     // Ensure Folder and List exist for categorization
     let listId = null;
     let campaignName = 'Unknown Campaign';
+    let campaignPitch = '';
     try {
       if (campaignId) {
-        const { data: campaignData } = await client.from('campaigns').select('name').eq('id', campaignId).single();
-        if (campaignData) campaignName = campaignData.name;
+        const { data: campaignData } = await client.from('campaigns').select('name, pitch, objective').eq('id', campaignId).single();
+        if (campaignData) {
+          campaignName = campaignData.name;
+          campaignPitch = campaignData.pitch || campaignData.objective || '';
+        }
       }
 
       const folderName = business || 'General';
@@ -1564,7 +1568,7 @@ app.post('/api/scrape-leads', async (req, res) => {
       if (!researchSummary || researchSummary.length < 20) {
         try {
           log(`[Deep Research] Running synchronous pre-insertion AI research for ${lead.company || lead.name}...`);
-          const res = await researchAndSummarizeLead(lead, log);
+          const res = await researchAndSummarizeLead(lead, log, campaignPitch);
           researchSummary = res.summary;
           researchStatus = res.status || 'completed';
         } catch (err) {

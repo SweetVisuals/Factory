@@ -17,7 +17,7 @@ async function runAutoResearch() {
     // Find leads in active campaigns that have a website but no/weak summary
     const { data: rows, error } = await supabase
       .from('campaign_leads')
-      .select('lead_id, campaigns!inner(id, status), leads!inner(id, name, company, website, summary)')
+      .select('lead_id, campaigns!inner(id, status, pitch, objective), leads!inner(id, name, company, website, summary)')
       .in('campaigns.status', ['in_progress', 'email_only', 'active'])
       .limit(30);
 
@@ -42,8 +42,9 @@ async function runAutoResearch() {
       if (!lead?.website) continue;
       try {
         const company = lead.company || lead.name || 'Unknown';
+        const campaignPitch = row.campaigns?.pitch || row.campaigns?.objective || '';
         console.log(`[Auto-Research] Researching ${company} (${lead.website})...`);
-        const res = await researchAndSummarizeLead(lead, console.log);
+        const res = await researchAndSummarizeLead(lead, console.log, campaignPitch);
         if (res.summary) {
           await supabase
             .from('leads')
