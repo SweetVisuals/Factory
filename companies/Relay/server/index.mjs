@@ -322,21 +322,34 @@ const TEMPLATE_PLACEHOLDERS = [
 
 async function generateAndSaveSequencesForCampaign(campaignId, autoPause = true) {
   try {
-    const { data: campaign } = await client.from('campaigns').select('*').eq('id', campaignId).single();
+    const { data: campaign } = await client.from('campaigns').select('*, businesses(*)').eq('id', campaignId).single();
     if (!campaign) return false;
 
     const niche = campaign.niche || 'General Business';
     const company = campaign.company_name || 'Our Company';
     const pitch = campaign.pitch || campaign.objective || '';
 
+    let businessOverview = campaign.businesses?.overview_md || '';
+    let emailToneContent = '';
+    
+    if (campaign.email_tone_id) {
+      const { data: tone } = await client.from('email_tones').select('content_md').eq('id', campaign.email_tone_id).single();
+      if (tone) {
+        emailToneContent = tone.content_md || '';
+      }
+    }
+
     const pitchContext = pitch ? `
 Your Pitch / Service Offering: "${pitch}"
 This is the specific product or service being offered. Every email must feel like it was written specifically around this offering — the value, the angle, the curiosity — all tied to what you do. Do NOT be generic.` : '';
 
+    const businessPrompt = businessOverview ? `\n\nOUR BUSINESS OVERVIEW:\n${businessOverview}\n` : '';
+    const tonePrompt = emailToneContent ? `\n\nWRITING TONE AND STYLE RULES:\n${emailToneContent}\n` : '';
+
     const placeholderListStr = TEMPLATE_PLACEHOLDERS.map(p => `- ${p.placeholder}: ${p.description}`).join('\n');
 
     const systemPrompt = `You are an elite B2B cold email copywriter. You write like a real human, not a marketing department.
-Every email must feel like it came from someone who genuinely understands the recipient's industry — not someone blasting a mass list.${pitchContext}
+Every email must feel like it came from someone who genuinely understands the recipient's industry — not someone blasting a mass list.${pitchContext}${businessPrompt}${tonePrompt}
 
 STRICT PLACEHOLDER DICTIONARY:
 You MUST use these exact placeholders whenever referring to dynamic data. DO NOT invent your own placeholders (like {{industry}} or [Your Service]). ONLY use the ones from this list:
@@ -401,10 +414,11 @@ Each object MUST have EXACTLY these 3 keys:
 - "content": The full email body — greeting included, NO sign-off, NO signature
 `;
 
-    const userPrompt = `Generate a 5-step cold outreach sequence for the "${niche}" niche.`;
+    const userPrompt = `Generate a 5-step cold outreach sequence for the "${niche}" niche. The outreach must specifically address the business objectives and pain points relevant to ${niche} prospects, matching the specific service offerings and vertical targets described in the business overview.`;
     const contextPrompt = `
 Our company is "${company}". Use [MY COMPANY] to represent our company name in the templates.${pitch ? `
 We are specifically pitching: "${pitch}". Every email angle, hook, and value proposition must be grounded in THIS specific offering — not a generic version of it.` : ''}
+The campaign target niche is: "${niche}". Read the Business Overview to locate the specific vertical, target audience, and business objectives corresponding to this niche, and write emails tailored exactly to those target objectives.
 The tone should feel like a genuinely helpful person reaching out — curious, concise, and human.
 Use [PERSONALISED DETAIL] as the anchor for personalisation. Do NOT invent specific facts.
 Do NOT mention the lead's role or job title anywhere in the emails.
