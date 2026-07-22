@@ -16,8 +16,8 @@ const supabaseClient = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, 
 const keyCooldowns = new Map();
 const KEY_COOLDOWN_MS = 5 * 60 * 1000;
 
-// Track last DeepSeek API call timestamp
-let lastDeepSeekCallTime = 0;
+// Track DeepSeek API call timestamps for 3 calls per 2 minutes
+const deepSeekCallTimes = [];
 
 async function fetchWithTimeout(url, options, timeoutMs = 15000) {
   const controller = new AbortController();
@@ -58,47 +58,84 @@ export async function fetchAIChatCompletion(params, log = console.log) {
       max_tokens = 150
     } = params;
 
-    // 1. Try DeepSeek API first if key exists (most cost-efficient)
     const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+    
+    // 1. Try DeepSeek API first if key exists (strictly no fallback if this key exists)
     if (DEEPSEEK_API_KEY) {
-      const now = Date.now();
-      const elapsed = now - lastDeepSeekCallTime;
-      if (elapsed < 15000) {
-        const waitTime = 15000 - elapsed;
-        log(`[AI-Client] Global DeepSeek rate limit: waiting ${waitTime}ms...`);
-        await new Promise(r => setTimeout(r, waitTime));
-      }
-      lastDeepSeekCallTime = Date.now();
+      const COOLDOWN_MS = 120000; // 2 minutes
+      const MAX_CALLS = 3;
 
-      log(`[AI-Client] Attempting DeepSeek API (deepseek-chat)...`);
-      try {
-        const dsResult = await fetchWithTimeout('https://api.deepseek.com/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            temperature,
-            messages,
-            max_tokens,
-            ...(response_format ? { response_format } : {})
-          })
-        }, 15000);
+      let dsRetries = 0;
+      const maxDsRetries = 2;
 
-        if (dsResult.ok && dsResult.body && dsResult.body.choices && dsResult.body.choices[0]) {
-          log(`[AI-Client] ✅ DeepSeek success!`);
-          return dsResult.body;
-        } else {
-          log(`[AI-Client] DeepSeek failed (Status ${dsResult.status}): ${typeof dsResult.body === 'string' ? dsResult.body : JSON.stringify(dsResult.body)}`);
+      while (dsRetries <= maxDsRetries) {
+        // Enforce rate limits before making the call
+        const nowForCleanup = Date.now();
+        while (deepSeekCallTimes.length > 0 && nowForCleanup - deepSeekCallTimes[0] >= COOLDOWN_MS) {
+          deepSeekCallTimes.shift();
         }
-      } catch (dsErr) {
-        log(`[AI-Client] DeepSeek exception: ${dsErr.message}`);
+
+        if (deepSeekCallTimes.length >= MAX_CALLS) {
+          const oldestCall = deepSeekCallTimes[0];
+          const waitTime = COOLDOWN_MS - (Date.now() - oldestCall);
+          if (waitTime > 0) {
+            log(`[AI-Client] DeepSeek cooldown: waiting ${Math.ceil(waitTime / 1000)}s to respect ${MAX_CALLS} calls / 2 min limit...`);
+            await new Promise(r => setTimeout(r, waitTime));
+          }
+          // The wait might have exceeded the timeframe, so clean up again
+          const nowAfterWait = Date.now();
+          while (deepSeekCallTimes.length > 0 && nowAfterWait - deepSeekCallTimes[0] >= COOLDOWN_MS) {
+            deepSeekCallTimes.shift();
+          }
+        }
+
+        deepSeekCallTimes.push(Date.now());
+        log(`[AI-Client] Attempting DeepSeek API (deepseek-chat)... (Attempt ${dsRetries + 1})`);
+
+        try {
+          const dsResult = await fetchWithTimeout('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              temperature,
+              messages,
+              max_tokens,
+              ...(response_format ? { response_format } : {})
+            })
+          }, 30000); // 30s timeout
+
+          if (dsResult.ok && dsResult.body && dsResult.body.choices && dsResult.body.choices[0]) {
+            log(`[AI-Client] ✅ DeepSeek success!`);
+            return dsResult.body;
+          } else {
+            const errBody = typeof dsResult.body === 'string' ? dsResult.body : JSON.stringify(dsResult.body);
+            log(`[AI-Client] DeepSeek failed (Status ${dsResult.status}): ${errBody}`);
+            
+            if (dsResult.status === 429) {
+              log(`[AI-Client] DeepSeek 429 Rate Limit. Waiting 15 seconds before retry...`);
+              await new Promise(r => setTimeout(r, 15000));
+            } else if (dsResult.status >= 500) {
+              log(`[AI-Client] DeepSeek server error. Waiting 5 seconds before retry...`);
+              await new Promise(r => setTimeout(r, 5000));
+            }
+          }
+        } catch (dsErr) {
+          log(`[AI-Client] DeepSeek exception: ${dsErr.message}`);
+          await new Promise(r => setTimeout(r, 5000));
+        }
+        
+        dsRetries++;
       }
+
+      // If DeepSeek was available but failed after retries, fail completely instead of falling back to Groq.
+      throw new Error('[AI-Client] DeepSeek API failed after retries. Not falling back to Groq to save tokens and respect user preferences.');
     }
 
-    // 2. Fall back to Groq API
+    // 2. Fall back to Groq API only if DeepSeek API key is NOT provided
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     if (!GROQ_API_KEY) {
       throw new Error('[AI-Client] Neither DEEPSEEK_API_KEY nor GROQ_API_KEY are configured.');
@@ -147,6 +184,6 @@ export async function fetchAIChatCompletion(params, log = console.log) {
       }
     }
 
-    throw new Error('[AI-Client] All AI providers (DeepSeek & Groq) exhausted after retries.');
+    throw new Error('[AI-Client] All AI providers exhausted after retries.');
   }, 'ai-chat-completion');
 }

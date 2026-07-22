@@ -529,7 +529,7 @@ export async function runProcessCampaign() {
               .select("body_text, received_at")
               .eq("folder", "inbox")
               .gte("received_at", i.received_at)
-              .or(`from.ilike.%${t.email}%,subject.ilike.%${R}%`)
+              .ilike("from", `%${t.email}%`)
               .order("received_at", { ascending: !0 });
             r &&
               r.length > 0 &&
@@ -633,35 +633,37 @@ export async function runProcessCampaign() {
         }
         
         if (!aiAllowed) {
-          // ═══ RULE-BASED ENGINE (default — no AI) ═══
+          // ═══ RULE-BASED ENGINE (Strict String Replacement Fallback) ═══
           try {
-            const engineResult = engineGenerateEmail({
-              lead: t,
-              campaign: e.campaigns,
-              business: e.campaigns?.businesses,
-              emailTone: emailToneData,
-              stepIndex: v,
-              totalSteps: totalSequenceSteps,
-              senderAccount: a
-            });
-            S = engineResult.body;
-            E = engineResult.subject;
-            console.log(`[Email Engine] Generated step ${v + 1} for ${t.email} (rule-based)`);
+            let fallbackBody = e.templates.content || '';
+            let fallbackSubject = e.templates.subject || '';
+
+            const leadFirstName = t.name && t.name.trim() !== '' ? t.name.split(' ')[0] : 'there';
+            const leadCompany = t.company || 'your business';
+            const myCompany = a?.company || e.campaigns?.businesses?.name || 'our company';
+            const industry = e.campaigns?.niche || 'your industry';
+            const detail = t.summary ? t.summary.substring(0, 100) : 'your recent initiatives';
+
+            S = fallbackBody.replace(/\[LEAD FIRST NAME\]/gi, leadFirstName)
+                            .replace(/\[LEAD COMPANY\]/gi, leadCompany)
+                            .replace(/\[MY COMPANY\]/gi, myCompany)
+                            .replace(/\[INDUSTRY\]/gi, industry)
+                            .replace(/\[PERSONALISED DETAIL\]/gi, detail);
+
+            E = fallbackSubject.replace(/\[LEAD FIRST NAME\]/gi, leadFirstName)
+                               .replace(/\[LEAD COMPANY\]/gi, leadCompany)
+                               .replace(/\[MY COMPANY\]/gi, myCompany)
+                               .replace(/\[INDUSTRY\]/gi, industry)
+                               .replace(/\[PERSONALISED DETAIL\]/gi, detail);
+
+            console.log(`[Email Engine] Replaced templates for ${t.email} (rule-based strict replace)`);
             await n
               .from("leads")
               .update({ personalized_email: S, personalized_subject: E })
               .eq("id", t.id);
           } catch (engineErr) {
-            console.error("Email Engine failed, trying legacy fallback:", engineErr.message);
-            try {
-              const fallback = generateFallbackEmail(t, e.campaigns?.niche || "");
-              S = fallback.body;
-              E = fallback.subject;
-              await n.from("leads").update({ personalized_email: S, personalized_subject: E }).eq("id", t.id);
-            } catch (fallbackErr) {
-              console.error("All personalization failed:", fallbackErr);
-              continue;
-            }
+            console.error("Rule-based replacement failed:", engineErr.message);
+            continue;
           }
         } else {
           // ═══ AI PERSONALIZATION (opt-in via USE_AI_PERSONALIZATION=true) ═══
@@ -677,18 +679,22 @@ export async function runProcessCampaign() {
             const bizOverview = e.campaigns?.businesses?.overview_md || '';
             const toneGuide = emailToneData?.content_md || '';
             const k =
-                `You are a witty, world-class B2B cold outreach specialist. You write curiosity-based emails that make prospects think about their own pain points — NOT sales pitches.
+                `You are a strict data-replacement engine. Your ONLY job is to take the provided Email Template and replace its placeholders with the correct data from the Lead Data and Business Context.
+${bizOverview ? 'BUSINESS CONTEXT:\n' + bizOverview.substring(0, 2000) + '\n\n' : ''}
+STRICT PLACEHOLDER DICTIONARY:
+- [LEAD COMPANY]: The exact name of the prospect company
+- [LEAD FIRST NAME]: The first name of the prospect
+- [MY COMPANY]: The name of our sending company
+- [PERSONALISED DETAIL]: A short fact or detail about their specific business extracted from research
+- [INDUSTRY]: The specific niche or industry of the prospect
 
-${bizOverview ? 'BUSINESS CONTEXT:\n' + bizOverview.substring(0, 2000) + '\n\n' : ''}${toneGuide ? 'TONE GUIDE:\n' + toneGuide + '\n\n' : ''}CRITICAL RULES:
-1. Start with EXACTLY: "Hi " + lead's first name + ",". If no name, use "Hi there,". NEVER just "there,".
-2. DO NOT return placeholders. Return the FINISHED email.
-3. Write a SHORT curiosity-based message (max 60 words). Frame it as a QUESTION about their pain point, NOT a pitch. Be conversational, direct, and human. NO 2 EMAILS SHOULD BE THE SAME!
-4. DO NOT pitch our services directly. Instead, hint at a better way and ask if they'd be curious to see it.
-5. ABSOLUTELY DO NOT include any sign-off, closing, or signature. The system auto-appends the sender signature.
-6. Output ONLY valid JSON: { "subject": "Customized subject line", "body": "Finished email body without any sign-off" }
-7. The subject line MUST be hyper-personalized. Curiosity-driven and under 9 words. No salesy subjects.`;
+CRITICAL RULES:
+1. You MUST keep the exact wording and structure of the original template. DO NOT rewrite the email entirely.
+2. ONLY replace the exact placeholders listed above. Leave everything else exactly the same.
+3. For [PERSONALISED DETAIL], extract a highly relevant, single short sentence from the Lead Goals & Notes that flows naturally into the template sentence.
+4. Output ONLY valid JSON: { "subject": "Finished subject line", "body": "Finished email body" }`;
             const R =
-                'Original Template Subject: "' + e.templates.subject + '"\nOriginal Template Body: "' + i + '"\nLead Name: ' + s + '\nLead Company: ' + (t.company || "their business") + '\nLead Email: ' + (t.email || "Unknown") + '\nLead Website: ' + (t.website || "Unknown") + '\nLead Goals & Notes: "' + (t.summary || "") + '"\n\nInstructions: Deeply personalize BOTH the subject and body. No two emails should be the same.';
+                'Original Template Subject: "' + e.templates.subject + '"\nOriginal Template Body: "' + i + '"\nLead Name: ' + s + '\nLead Company: ' + (t.company || "their business") + '\nLead Goals & Notes: "' + (t.summary || "") + '"\nMy Company: "' + (a?.company || e.campaigns?.businesses?.name || "our company") + '"\nIndustry: "' + (e.campaigns?.niche || "your industry") + '"\n\nInstructions: Return the template with the placeholders dynamically replaced based on this exact lead data.';
             let r;
             if (ge) {
               console.log("DeepSeek is disabled. Trying OpenRouter key cycling...");

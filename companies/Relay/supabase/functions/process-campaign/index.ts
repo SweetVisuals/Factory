@@ -416,15 +416,12 @@ Deno.serve(async (req) => {
                     ourLastEmail = lastSent.body_text;
                     originalSubject = lastSent.subject;
 
-                    let cleanSubject = lastSent.subject.replace(/^(Re|Fwd|Fw|Aw|Reply):\s*/i, '').trim();
-                    let safeSubject = cleanSubject.replace(/[%_]/g, '\\$&'); 
-                    
                     const { data: possibleReplies } = await supabaseAdmin
                         .from('inbox_emails')
                         .select('body_text, received_at')
                         .eq('folder', 'inbox')
                         .gte('received_at', lastSent.received_at)
-                        .or(`from.ilike.%${lead.email}%,subject.ilike.%${safeSubject}%`)
+                        .ilike('from', `%${lead.email}%`)
                         .order('received_at', { ascending: true });
 
                     if (possibleReplies && possibleReplies.length > 0) {

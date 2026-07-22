@@ -12,7 +12,7 @@ const path = require('path');
 
 const HOST = '5.75.252.100';
 const USER = 'root';
-const PASS = 'mjaXRVMmbMwC7xCbcLCE123';
+const PASS = 'HjuxsmxFic3r';
 
 const FILES_TO_UPLOAD = [
   {
