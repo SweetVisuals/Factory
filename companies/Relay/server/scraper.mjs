@@ -1799,6 +1799,47 @@ export async function scrapeCompaniesHouse(query, limit = 20, onLog = null, onRe
 
             log(`Processing company: ${item.company} (No: ${item.companyNumber})`);
 
+            // Fetch extra filing details from Companies House API for revenue & year founded
+            let extraDetails = '';
+            const apiKey = process.env.COMPANIES_HOUSE_API_KEY;
+            if (apiKey && item.companyNumber) {
+                try {
+                    const authHeader = 'Basic ' + Buffer.from(apiKey + ':').toString('base64');
+                    const profileUrl = `https://api.company-information.service.gov.uk/company/${item.companyNumber}`;
+                    const profileRes = await fetch(profileUrl, {
+                        headers: { 'Authorization': authHeader }
+                    });
+                    if (profileRes.ok) {
+                        const profile = await profileRes.json();
+                        const founded = profile.date_of_creation ? profile.date_of_creation.split('-')[0] : '';
+                        const accountsType = profile.accounts?.last_accounts?.type || '';
+                        
+                        let revenueEst = null;
+                        let sizeEst = null;
+                        if (accountsType === 'micro-entity' || accountsType === 'dormant') {
+                            revenueEst = 'Under £632,000';
+                            sizeEst = '1-10 employees';
+                        } else if (accountsType === 'small' || accountsType === 'total-exemption-full') {
+                            revenueEst = '£632,000 - £10.2 Million';
+                            sizeEst = '11-50 employees';
+                        } else if (accountsType === 'medium' || accountsType === 'full' || accountsType === 'audited-full') {
+                            revenueEst = '£10.2 Million - £36 Million';
+                            sizeEst = '51-250 employees';
+                        } else if (accountsType === 'large') {
+                            revenueEst = 'Over £36 Million';
+                            sizeEst = 'Over 250 employees';
+                        }
+
+                        extraDetails = `\n- Year Founded: ${founded}\n- Accounts Filing Type: ${accountsType}\n- Estimated Revenue: ${revenueEst || 'Unknown'}\n- Estimated Company Size: ${sizeEst || 'Unknown'}`;
+                        item.year_founded = founded;
+                        item.annual_revenue = revenueEst;
+                        item.company_size = sizeEst;
+                    }
+                } catch (e) {
+                    log(`Error fetching profile from Companies House: ${e.message}`);
+                }
+            }
+
             // Step 1: Search website via DuckDuckGo
             try {
                 const searchQuery = `${item.company} ${item.address} official website`;
@@ -1817,7 +1858,10 @@ export async function scrapeCompaniesHouse(query, limit = 20, onLog = null, onRe
                         email: webData.email || '',
                         phone: webData.phone || item.phone || '',
                         location: item.address || '',
-                        summary: `## ⚡ Quick Summary\nOfficial UK registered company found on Companies House (Number: ${item.companyNumber || 'N/A'}). Status: Active.\n\n## 🔬 Deep Research\n- Registered Address: ${item.address}\n- Website: ${website}\n- Identified details: ${item.meta}`
+                        year_founded: item.year_founded || null,
+                        annual_revenue: item.annual_revenue || null,
+                        company_size: item.company_size || null,
+                        summary: `## ⚡ Quick Summary\nOfficial UK registered company found on Companies House (Number: ${item.companyNumber || 'N/A'}). Status: Active.\n\n## 🔬 Deep Research\n- Registered Address: ${item.address}\n- Website: ${website}\n- Identified details: ${item.meta}${extraDetails}`
                     };
 
                     leads.push(lead);

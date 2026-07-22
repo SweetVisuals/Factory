@@ -76,6 +76,9 @@ function buildResearchPrompt(companyName, rawWebsite, scrapedReport, campaignPit
     lead.industry ? `Ind: ${lead.industry}` : '',
     lead.location ? `Loc: ${lead.location}` : '',
     lead.title ? `Title: ${lead.title}` : '',
+    lead.year_founded ? `Year Founded: ${lead.year_founded}` : '',
+    lead.annual_revenue ? `Annual Revenue: ${lead.annual_revenue}` : '',
+    lead.company_size ? `Company Size: ${lead.company_size}` : '',
   ].filter(Boolean).join(', ');
 
   const optimizedScraped = cleanScrapedNoise(scrapedReport);
@@ -87,12 +90,12 @@ TEXT:
 ${optimizedScraped}
 
 CRITICAL RULES:
-1. ONLY report facts you can verify from the text. Do NOT invent, speculate, or generate suggestions.
+1. ONLY report facts you can verify from the text or the Known metadata line. Prioritize any Known values (like Year Founded, Annual Revenue, Company Size) directly for their respective JSON fields.
 2. Pain points must be REAL observable issues from their website/business (e.g., "Website has no SSL certificate", "No online booking system available", "No social media links found", "Outdated website design from early 2010s", "No blog or content marketing"). Do NOT generate product pitch ideas.
 3. Growth signals must be REAL evidence found in the text (e.g., "Hiring 3 new positions listed on site", "Opened second location in Manchester", "Won Best Agency Award 2024", "Recently rebranded"). Do NOT invent growth signals.
 4. personalised_detail must be a FACTUAL observation about their specific business found in the text (e.g., "specialises in commercial property in Edinburgh", "family-run since 1985", "recently launched a new lettings division"). It must describe THEM, not something we could sell them.
-5. If you genuinely cannot find data for a field from the text, use an empty array [] or null. Do NOT fabricate data. A maximum of 2 fields may be empty.
-6. For fields not in the text, make CONSERVATIVE logical deductions based on their business type (e.g., a local estate agent likely uses Rightmove/Zoopla, targets local property owners, has 1-20 employees).
+5. If you genuinely cannot find data for a field from the text or Known line, use an empty array [] or null. Do NOT fabricate data. A maximum of 2 fields may be empty.
+6. For fields not in the text or Known line, make CONSERVATIVE logical deductions based on their business type (e.g., a local estate agent likely uses Rightmove/Zoopla, targets local property owners, has 1-20 employees).
 
 Output JSON ONLY (no markdown blocks):
 {
