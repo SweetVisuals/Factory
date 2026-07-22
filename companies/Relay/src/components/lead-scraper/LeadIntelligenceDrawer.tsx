@@ -559,27 +559,31 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                     </div>
                   ) : null}
                   <div className="flex gap-2">
-                    {socialPresence.facebook_url && (
-                      <a href={socialPresence.facebook_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#1877F2] hover:bg-[#1877F2]/10 hover:border-[#1877F2]/20 transition-all">
+                    {(socialPresence.facebook_url || displayLead.facebook) && (
+                      <a href={socialPresence.facebook_url || displayLead.facebook} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#1877F2] hover:bg-[#1877F2]/10 hover:border-[#1877F2]/20 transition-all">
                         <Facebook size={16} />
                       </a>
                     )}
-                    {socialPresence.instagram_url && (
-                      <a href={socialPresence.instagram_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#E4405F] hover:bg-[#E4405F]/10 hover:border-[#E4405F]/20 transition-all">
+                    {(socialPresence.instagram_url || displayLead.instagram) && (
+                      <a href={socialPresence.instagram_url || displayLead.instagram} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#E4405F] hover:bg-[#E4405F]/10 hover:border-[#E4405F]/20 transition-all">
                         <Instagram size={16} />
                       </a>
                     )}
-                    {socialPresence.twitter_url && (
-                      <a href={socialPresence.twitter_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#1DA1F2] hover:bg-[#1DA1F2]/10 hover:border-[#1DA1F2]/20 transition-all">
+                    {(socialPresence.twitter_url || displayLead.twitter) && (
+                      <a href={socialPresence.twitter_url || displayLead.twitter} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#1DA1F2] hover:bg-[#1DA1F2]/10 hover:border-[#1DA1F2]/20 transition-all">
                         <Twitter size={16} />
                       </a>
                     )}
-                    {socialPresence.linkedin_url && (
-                      <a href={socialPresence.linkedin_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#0A66C2] hover:bg-[#0A66C2]/10 hover:border-[#0A66C2]/20 transition-all">
+                    {(socialPresence.linkedin_url || displayLead.linkedin) && (
+                      <a href={socialPresence.linkedin_url || displayLead.linkedin} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#0A66C2] hover:bg-[#0A66C2]/10 hover:border-[#0A66C2]/20 transition-all">
                         <Linkedin size={16} />
                       </a>
                     )}
-                    {!socialPresence.facebook_url && !socialPresence.instagram_url && !socialPresence.twitter_url && !socialPresence.linkedin_url && !socialPresence.google_rating && (
+                    {!(socialPresence.facebook_url || displayLead.facebook) && 
+                     !(socialPresence.instagram_url || displayLead.instagram) && 
+                     !(socialPresence.twitter_url || displayLead.twitter) && 
+                     !(socialPresence.linkedin_url || displayLead.linkedin) && 
+                     !socialPresence.google_rating && (
                       <EmptySection icon={<Star size={36} />} message="No social presence data" />
                     )}
                   </div>
