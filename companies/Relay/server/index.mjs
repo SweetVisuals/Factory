@@ -329,18 +329,18 @@ async function generateAndSaveSequencesForCampaign(campaignId, autoPause = true)
     const company = campaign.company_name || 'Our Company';
     const pitch = campaign.pitch || campaign.objective || '';
 
-    const pitchContext = pitch ? \`
-Your Pitch / Service Offering: "\${pitch}"
-This is the specific product or service being offered. Every email must feel like it was written specifically around this offering — the value, the angle, the curiosity — all tied to what you do. Do NOT be generic.\` : '';
+    const pitchContext = pitch ? `
+Your Pitch / Service Offering: "${pitch}"
+This is the specific product or service being offered. Every email must feel like it was written specifically around this offering — the value, the angle, the curiosity — all tied to what you do. Do NOT be generic.` : '';
 
-    const placeholderListStr = TEMPLATE_PLACEHOLDERS.map(p => \`- \${p.placeholder}: \${p.description}\`).join('\\n');
+    const placeholderListStr = TEMPLATE_PLACEHOLDERS.map(p => `- ${p.placeholder}: ${p.description}`).join('\n');
 
-    const systemPrompt = \`You are an elite B2B cold email copywriter. You write like a real human, not a marketing department.
-Every email must feel like it came from someone who genuinely understands the recipient's industry — not someone blasting a mass list.\${pitchContext}
+    const systemPrompt = `You are an elite B2B cold email copywriter. You write like a real human, not a marketing department.
+Every email must feel like it came from someone who genuinely understands the recipient's industry — not someone blasting a mass list.${pitchContext}
 
 STRICT PLACEHOLDER DICTIONARY:
 You MUST use these exact placeholders whenever referring to dynamic data. DO NOT invent your own placeholders (like {{industry}} or [Your Service]). ONLY use the ones from this list:
-\${placeholderListStr}
+${placeholderListStr}
 
 ABSOLUTE RULES (violation = failure):
 1. GREETING: Always "Hi [LEAD FIRST NAME]," — NEVER full name, NEVER last name.
@@ -1725,7 +1725,6 @@ app.post('/api/scrape-leads', async (req, res) => {
           researchStatus = 'completed';
         }
       }
-      }
       
       // REGIONAL INTEGRITY FILTER: Prevent international "leaks" for US-focused campaigns
       const isUsTarget = countryCode === 'US' || 
@@ -2507,9 +2506,9 @@ The Scraper failed to find any leads in "${location}".
         const state = activeScrapes.get(userId);
         if (state && state.runId === runId) {
           client.removeChannel(scrapeChannel);
-          activeScrapes.delete(userId);
         }
-      }, `scraper-run-${campaignId || 'manual'}`);
+      }
+    }, `scraper-run-${campaignId || 'manual'}`);
     })();
 
 

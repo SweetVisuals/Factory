@@ -264,8 +264,21 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
           }))
         );
       }
-      await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
-      toast({ title: "Launch Successful", description: "Campaign core activated." });
+      
+      const { count: leadCount } = await supabase
+        .from('campaign_leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId);
+        
+      const targetStatus = (leadCount && leadCount > 1000) ? 'review' : 'paused';
+      await supabase.from('campaigns').update({ status: targetStatus }).eq('id', campaignId);
+      
+      toast({ 
+        title: "Launch Successful", 
+        description: targetStatus === 'review' 
+          ? "Campaign needs review due to lead count > 1000." 
+          : "Campaign core activated." 
+      });
       await loadScheduledEmails();
     } catch (err: any) {
       toast({ title: "Launch Error", description: err.message });
@@ -372,8 +385,21 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
           }))
         );
       }
-      await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
-      toast({ title: "Launch Successful", description: "Temporal logic synced to campaign core." });
+      
+      const { count: leadCount } = await supabase
+        .from('campaign_leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId);
+        
+      const targetStatus = (leadCount && leadCount > 1000) ? 'review' : 'paused';
+      await supabase.from('campaigns').update({ status: targetStatus }).eq('id', campaignId);
+      
+      toast({ 
+        title: "Launch Successful", 
+        description: targetStatus === 'review'
+          ? "Campaign needs review due to lead count > 1000."
+          : "Temporal logic synced to campaign core." 
+      });
       setShowWizard(false);
       await loadScheduledEmails();
     } catch (error: any) {
