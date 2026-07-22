@@ -386,45 +386,32 @@ ABSOLUTE RULES (violation = failure):
 8. SPECIFIC USE CASES & SOLUTIONS: Describe a highly concrete, realistic custom solution tailored specifically to the targeted niche. Show them EXACTLY what we can do for them, derived entirely from the provided Pitch / Service Offering. Do NOT invent random services.
 9. NEVER SELL OR PITCH DIRECTLY. Your ONLY goal is to book a calendar slot or phone call by enquiring about their current struggles and hurdles. DO NOT offer a solution immediately. Be genuinely curious.
 
-STEP ARCHETYPES — follow each one precisely:
-
-Step 1 — "The Rapport Starter":
+Step 1 — "The Intro":
 This is the first touch. Focus entirely on building rapport and starting a conversation.
 - Sound like a real, helpful human. Start with a light, slightly playful or humorous connection point relevant to [INDUSTRY] or their world.
 - Do NOT pitch anything here. The ONLY goal is connection and starting a conversation.
 - Use [PERSONALISED DETAIL] naturally if it anchors the opener.
 - Keep it under 50 words total.
 
-Step 2 — "Picking Up the Pace":
+Step 2 — "The Follow Up":
 They've seen you once — now pick up the pace and follow up more directly.
 - Pivot to showing value and introducing your offering/solution in a playful, results-driven way.
 - Frame your custom solution to their industry pain points.
 - Keep it short, direct, and under 55 words.
 
-Step 3 — "The Social Proof Story":
-- Reference a concrete outcome, result, or scenario relevant to someone in the [INDUSTRY] space.
-- Tell a brief, results-oriented, playful story. No dry stats.
-- Low-friction CTA: "Worth a quick chat?" or similar.
-- Under 60 words.
-
-Step 4 — "The Short Check-in":
-Super short, direct, and human.
-- Acknowledge time has passed. One sentence. One question.
-- Under 35 words.
-
-Step 5 — "The Breakup / Closing":
+Step 3 — "The Close":
 Polite, direct exit. Leave the door open warmly.
 - Frame the exit with a closing phrase like: "no worries, or is it okay if we contact you again in a few months if anything changed?"
 - Keep it under 40 words.
 
-Output Format: JSON object with a "sequences" array of EXACTLY 5 objects.
+Output Format: JSON object with a "sequences" array of EXACTLY 3 objects.
 Each object MUST have EXACTLY these 3 keys:
-- "name": Step title (e.g. "Step 1: The Pattern Interrupt")
+- "name": Step title (e.g. "Step 1: The Intro")
 - "subject": The email subject line (no placeholders, under 9 words)
 - "content": The full email body — greeting included, NO sign-off, NO signature
 `;
 
-    const userPrompt = `Generate a 5-step cold outreach sequence for the "${niche}" niche. The outreach must specifically address the business objectives and pain points relevant to ${niche} prospects, matching the specific service offerings and vertical targets described in the business overview.`;
+    const userPrompt = `Generate a 3-step cold outreach sequence (Intro, Follow Up, and Close) for the "${niche}" niche. The outreach must specifically address the business objectives and pain points relevant to ${niche} prospects, matching the specific service offerings and vertical targets described in the business overview.`;
     const contextPrompt = `
 Our company is "${company}". Use [MY COMPANY] to represent our company name in the templates.${pitch ? `
 We are specifically pitching: "${pitch}". Every email angle, hook, and value proposition must be grounded in THIS specific offering — not a generic version of it.` : ''}
@@ -469,9 +456,9 @@ SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "$
     // Set campaign status to paused to trigger review workflow, if requested
     if (autoPause) {
       await client.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
-      console.log(`[Automated Sequences] Successfully generated 5 sequence templates for campaign ${campaignId} and set to paused.`);
+      console.log(`[Automated Sequences] Successfully generated 3 sequence templates for campaign ${campaignId} and set to paused.`);
     } else {
-      console.log(`[Automated Sequences] Successfully generated 5 sequence templates for campaign ${campaignId} (status unchanged).`);
+      console.log(`[Automated Sequences] Successfully generated 3 sequence templates for campaign ${campaignId} (status unchanged).`);
     }
     return true;
 
@@ -480,6 +467,23 @@ SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "$
     return false;
   }
 }
+
+// Endpoint to trigger instant sequence generation on campaign creation
+app.post('/api/campaigns/:id/generate-sequences', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`[Instant Sequences] Starting generation for campaign: ${id}`);
+    const success = await generateAndSaveSequencesForCampaign(id, false);
+    if (success) {
+      res.json({ success: true, message: 'Sequences generated successfully' });
+    } else {
+      res.status(500).json({ success: false, error: 'Sequence generation failed' });
+    }
+  } catch (err) {
+    console.error('[Instant Sequences] API Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 async function ensureCampaignSchedules(campaignId) {
   try {

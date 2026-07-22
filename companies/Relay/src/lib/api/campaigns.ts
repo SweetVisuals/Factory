@@ -4,6 +4,7 @@ import { transformDbCampaignToFrontend, transformFrontendCampaignToDb } from '..
 import { toast } from '../../components/ui/use-toast';
 import { getRandomSequence } from '../utils/emailSequences';
 import { createTemplate } from './templates';
+import { api } from './api';
 
 export async function createCampaign(campaign: Omit<Campaign, 'id'>) {
   try {
@@ -24,8 +25,10 @@ export async function createCampaign(campaign: Omit<Campaign, 'id'>) {
 
     const frontendCampaign = transformDbCampaignToFrontend(data);
 
-    // Initial templates are no longer generated immediately.
-    // They are generated automatically by the AI when the campaign reaches 1000 leads.
+    // Generate initial 3-step sequence templates instantly upon creation
+    api.post(`/campaigns/${data.id}/generate-sequences`).catch(err => {
+      console.error('Failed to trigger instant sequence generation:', err);
+    });
 
     return frontendCampaign;
   } catch (error) {
