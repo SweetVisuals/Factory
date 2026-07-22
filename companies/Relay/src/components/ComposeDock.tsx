@@ -105,7 +105,10 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
       if (defaultSig) {
         sigHtml = getSignatureHtml(defaultSig);
       } else {
-        const legacySig = acc.signature || `Best,<br/>${acc.name || acc.email.split('@')[0]}`;
+        const rawSig = acc.signature || `Best,<br/>${acc.name || acc.email.split('@')[0]}`;
+        const legacySig = rawSig
+          .replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px')
+          .replace(/height:\s*(?:50|30)px/gi, 'height: 200px');
         sigHtml = `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${legacySig}</div>`;
       }
 
@@ -165,7 +168,10 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
   const generateRandomBody = () => {
     const randomBody = emailBodies[Math.floor(Math.random() * emailBodies.length)];
     const acc = accounts.find(a => a.id === selectedAccountId);
-    const sig = acc?.signature || `<br/>Best,<br/>${acc?.name || acc?.email.split('@')[0]}`;
+    const rawSig = acc?.signature || `<br/>Best,<br/>${acc?.name || acc?.email.split('@')[0]}`;
+    const sig = rawSig
+      .replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px')
+      .replace(/height:\s*(?:50|30)px/gi, 'height: 200px');
     
     const formattedBody = randomBody.replace(/\n/g, '<br/>');
     const newHtml = `<div>${formattedBody}</div><div style="margin-top: 16px; color: #888;">--<br/>${sig}</div>`;

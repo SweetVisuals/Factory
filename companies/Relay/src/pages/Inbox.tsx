@@ -225,7 +225,13 @@ const Inbox = () => {
   }, [replyContent]);
 
   const getSignatureHtml = (sig: any) => {
-    if (!sig) return '';
+    if (!sig) {
+      const acc = accounts.find(a => a.id === replyFromAccountId);
+      if (acc?.signature) {
+        return `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${acc.signature.replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px').replace(/height:\s*(?:50|30)px/gi, 'height: 200px')}</div>`;
+      }
+      return '';
+    }
     const textHtml = sig.content.replace(/\n/g, '<br/>');
     const imgHtml = sig.imageUrl ? `<img src="${sig.imageUrl}" alt="Signature Logo" style="max-width: 100%; display: block; margin-top: 6px;" />` : '';
     return `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${textHtml}${imgHtml}</div>`;

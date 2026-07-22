@@ -15,6 +15,7 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [showResearchNotes, setShowResearchNotes] = useState(true);
 
   const campaign = campaigns.find(c => c.id === campaignId);
@@ -28,6 +29,7 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
 
   const fetchPreview = async () => {
     try {
+      setIsPreviewLoading(true);
       const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const baseUrl = isDev ? 'http://localhost:3001' : '';
       const res = await fetch(`${baseUrl}/api/campaigns/${campaignId}/preview-email`);
@@ -40,6 +42,8 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
       }
     } catch (err) {
       console.error('Failed to fetch preview', err);
+    } finally {
+      setIsPreviewLoading(false);
     }
   };
 
@@ -191,7 +195,12 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
             </div>
             
             <div className="p-5 flex-1 bg-black/10 flex flex-col gap-5">
-              {activeItem ? (
+              {isPreviewLoading ? (
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-3 py-24">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <p className="text-sm font-bold uppercase tracking-widest text-white/50 text-[10px]">Generating email previews using DeepSeek...</p>
+                </div>
+              ) : activeItem ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch flex-1">
                   
                   {/* Outbound Email View */}
