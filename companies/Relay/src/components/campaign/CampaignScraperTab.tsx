@@ -164,14 +164,16 @@ const CampaignScraperTab = ({ campaignId }: CampaignScraperTabProps) => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-4">
       {/* Compact Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Brain size={20} className="text-primary" />
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Brain size={20} className="text-primary" />
+          </div>
           <div>
-            <h2 className="text-lg font-black text-foreground uppercase tracking-tight leading-none">Lead Scraper</h2>
-            <p className="text-[9px] font-black text-foreground/20 uppercase tracking-[0.3em] mt-1">Find and scrape new leads</p>
+            <h2 className="text-xl font-black text-foreground tracking-tight leading-none">Lead Scraper</h2>
+            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] mt-1.5">Find and extract new leads</p>
           </div>
         </div>
         

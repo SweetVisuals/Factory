@@ -226,25 +226,28 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
       case 'leads':
         return (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Enhanced Pill Tab Navigation */}
-            <div className="relative flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-lg w-fit shadow-sm">
+            {/* Simplified Secondary Tab Navigation */}
+            <div className="flex gap-6 border-b border-white/5 pb-2">
               {[
-                              { id: 'table', label: 'Leads', icon: Database },
-                              { id: 'scraper', label: 'Scraper', icon: Activity },
+                              { id: 'table', label: 'Leads List', icon: Database },
+                              { id: 'scraper', label: 'Lead Scraper', icon: Activity },
                               { id: 'cold_calling', label: 'Cold Calling', icon: Phone }
                             ].map(sub => (
                 <button
                   key={sub.id}
                   onClick={() => setLeadsSubTab(sub.id as any)}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 z-10",
+                    "relative flex items-center gap-2 pb-2 text-xs font-bold transition-all duration-300",
                     leadsSubTab === sub.id 
-                      ? "text-primary bg-primary/10 shadow-sm" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+                      ? "text-primary" 
+                      : "text-muted-foreground hover:text-white"
                   )}
                 >
                   <sub.icon size={14} className={leadsSubTab === sub.id ? "text-primary" : "text-muted-foreground"} />
                   {sub.label}
+                  {leadsSubTab === sub.id && (
+                    <div className="absolute bottom-[-9px] left-0 right-0 h-[2px] bg-primary rounded-t-full shadow-[0_0_8px_rgba(var(--tw-colors-primary),0.8)]" />
+                  )}
                 </button>
               ))}
             </div>
@@ -320,13 +323,13 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
           <div className="flex flex-col gap-4 max-w-none w-full relative z-10">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
               
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-3">
                 <button 
                   onClick={() => navigate('/campaigns')}
-                  className="w-9 h-9 rounded-lg bg-muted/40 border border-border flex items-center justify-center hover:bg-muted hover:text-primary hover:border-primary/30 transition-all duration-300 shadow-sm shrink-0"
+                  className="w-fit flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-white transition-colors group"
                   title="Back to Campaigns"
                 >
-                  <ArrowLeft size={16} className="text-muted-foreground transition-colors" />
+                  <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Back to Campaigns
                 </button>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-3">
