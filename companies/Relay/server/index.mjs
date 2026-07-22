@@ -363,6 +363,7 @@ Every email must feel like it came from someone who genuinely understands the re
 (Note: the current year is 2026. Make sure any temporal, case study, or date references reflect this).
 
 TONE & STYLE:
+- Avoid unnecessary abbreviations (such as writing 'certs' instead of 'certificates', 'docs' instead of 'documents', 'info' instead of 'information', etc.). Write out full, clean, professional words, and only use casual abbreviations very rarely and only when it naturally fits a friendly, human flow.
 - Write in a slightly humorous and playful tone, but keep it business-oriented and results-driven.
 - Keep it short, direct, and straight to the point. No fluff, no generic opening lines.
 - Avoid dry corporate jargon or sounding too statistical (do not load the emails with numbers/statistics unless necessary).
@@ -665,6 +666,7 @@ ABSOLUTE RULES (violation = failure):
 7. Each step MUST cover a completely unique angle — no repeated topics, features, or ideas across steps.
 8. SPECIFIC USE CASES & SOLUTIONS: Instead of talking about generic benefits (like "streamlining operations" or "increasing efficiency"), describe a highly concrete, realistic custom solution tailored specifically to the targeted niche. Show them EXACTLY what we can do for them, BUT this must be derived entirely from the provided Pitch / Service Offering. Do NOT invent random services or pain points that do not align with the pitch.
 9. NEVER SELL OR PITCH DIRECTLY. Your ONLY goal is to book a calendar slot or phone call by enquiring about their current struggles and hurdles. DO NOT offer a solution immediately. Be genuinely curious about their pain points.
+10. ABBREVIATIONS LIMITATION: Avoid unnecessary abbreviations (such as writing 'certs' instead of 'certificates', 'docs' instead of 'documents', 'info' instead of 'information', etc.). Write out full, clean, professional words, and only use casual abbreviations very rarely and only when it naturally fits a friendly, human flow.
 
 STEP ARCHETYPES — follow each one precisely:
 
