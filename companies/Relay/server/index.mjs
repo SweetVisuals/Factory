@@ -325,6 +325,13 @@ const TEMPLATE_PLACEHOLDERS = [
 
 async function generateAndSaveSequencesForCampaign(campaignId, autoPause = true) {
   try {
+    // Prevent duplicate sequence generation
+    const { data: existingTemplates } = await client.from('templates').select('id').eq('campaign_id', campaignId);
+    if (existingTemplates && existingTemplates.length > 0) {
+      console.log(`[Automated Sequences] Campaign ${campaignId} already has ${existingTemplates.length} templates. Skipping to prevent duplicate templates.`);
+      return true;
+    }
+
     const { data: campaign } = await client.from('campaigns').select('*, businesses(*)').eq('id', campaignId).single();
     if (!campaign) return false;
 
@@ -423,16 +430,32 @@ Each email MUST be completely different in topic and approach — no repetition 
 
 SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "${niche}" and genuinely intriguing to a decision-maker in that space. Think carefully about the real daily challenges, ambitions, and pressures of someone running a business in the "${niche}" industry, and write subjects that speak directly to those. Be bold, be specific, be original. Do NOT use generic phrases.`;
 
-    const data = await fetchAIChatCompletion({
-      model: 'deepseek-chat',
-      temperature: 1.2,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt + contextPrompt }
-      ],
-      response_format: { type: 'json_object' }
-    }, console.log);
+    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-0a7858e4ab064eb18241a7005f04df41';
+    console.log(`[Automated Sequences] Making direct request to DeepSeek to bypass rate limit / queue for campaign ${campaignId}...`);
+    
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        temperature: 1.2,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt + contextPrompt }
+        ],
+        response_format: { type: 'json_object' }
+      })
+    });
 
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`DeepSeek API returned status ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
     const contentString = data.choices[0].message.content;
     const content = JSON.parse(contentString);
     let sequences = Array.isArray(content) ? content : (content.sequences || content.emails);
