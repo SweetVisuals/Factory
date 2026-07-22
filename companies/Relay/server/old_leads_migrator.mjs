@@ -22,14 +22,7 @@ async function runMigrationCycle() {
     return;
   }
 
-  // Check if scraper is active (busy)
-  const isBusy = activeScrapesMap && activeScrapesMap.size > 0;
-  if (isBusy) {
-    console.log(`[Old Leads Migrator] Scraper is busy (${activeScrapesMap.size} active runs). Skipping this migration batch to avoid rate limits.`);
-    return;
-  }
-
-  console.log('[Old Leads Migrator] Scraper is idle. Checking old_leads queue...');
+  console.log('[Old Leads Migrator] Checking old_leads queue...');
 
   try {
     // 1. Fetch 3 leads from old_leads
