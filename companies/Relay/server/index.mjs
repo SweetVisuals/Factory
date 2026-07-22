@@ -363,8 +363,12 @@ Every email must feel like it came from someone who genuinely understands the re
 (Note: the current year is 2026. Make sure any temporal, case study, or date references reflect this).
 
 TONE & STYLE:
+- AUDIENCE-SPECIFIC CALIBRATION (CRITICAL): Adapt the email tone, vocabulary, and subject lines dynamically to match the target niche:
+  * For TRADES / BLUE COLLAR (e.g. Contractors, Labourers, Builders, Roofers, Plumbers): Use an extremely casual, plain, direct, and "matey" tone. Write like a local subcontractor or supplier, not a software company. Keep it short, simple, a bit rougher, and direct.
+  * For PROPERTY MANAGEMENT / LETTING AGENTS / REAL ESTATE: Use a polite, professional, and compliant B2B tone. Speak directly to compliance, landlord pressures, tenant management, and saving time.
+  * For B2B / CORPORATE (e.g. SaaS, Agencies, Consultants): Use a clean, crisp, structured B2B tone focused on ROI, operations, and booking.
 - Avoid unnecessary abbreviations (such as writing 'certs' instead of 'certificates', 'docs' instead of 'documents', 'info' instead of 'information', etc.). Write out full, clean, professional words, and only use casual abbreviations very rarely and only when it naturally fits a friendly, human flow.
-- Write in a slightly humorous and playful tone, but keep it business-oriented and results-driven.
+- Write in a slightly humorous and playful tone when appropriate, but keep it business-oriented and results-driven.
 - Keep it short, direct, and straight to the point. No fluff, no generic opening lines.
 - Avoid dry corporate jargon or sounding too statistical (do not load the emails with numbers/statistics unless necessary).
 - The word "bid" is strictly banned. Do not use the word "bid" or variations (e.g., project bid, bidding) under any circumstances.
@@ -648,25 +652,29 @@ This is the specific product or service being offered. Every email must feel lik
 Every email must feel like it came from someone who genuinely understands the recipient's industry — not someone blasting a mass list.${pitchContext}
 
 ABSOLUTE RULES (violation = failure):
-1. GREETING: Always "Hi {{first_name}}," — NEVER full name, NEVER last name.
-2. NEVER mention the lead's job title, role, or position anywhere.
-3. BANNED PHRASES — never use any of these under any circumstances:
+1. AUDIENCE-SPECIFIC CALIBRATION (CRITICAL): Adapt the email tone, vocabulary, and subject lines dynamically to match the target niche ("${niche}"):
+   - For TRADES / BLUE COLLAR (e.g. Contractors, Labourers, Builders, Roofers, Plumbers): Use an extremely casual, plain, direct, and "matey" tone. Write like a local subcontractor or supplier, not a software company. Keep it short, simple, a bit rougher, and direct.
+   - For PROPERTY MANAGEMENT / LETTING AGENTS / REAL ESTATE: Use a polite, professional, and compliant B2B tone. Speak directly to compliance, landlord pressures, tenant management, and saving time.
+   - For B2B / CORPORATE (e.g. SaaS, Agencies, Consultants): Use a clean, crisp, structured B2B tone focused on ROI, operations, and booking.
+2. GREETING: Always "Hi {{first_name}}," — NEVER full name, NEVER last name.
+3. NEVER mention the lead's job title, role, or position anywhere.
+4. BANNED PHRASES — never use any of these under any circumstances:
    "sounds interesting", "I thought it was interesting", "I found it interesting",
    "I hope this finds you well", "I wanted to reach out", "touch base", "I came across your website",
    "I noticed you", "just checking in", "circling back", "synergy", "leverage", "unlock potential", "game-changer".
-4. SUBJECT LINES — critically important:
+5. SUBJECT LINES — critically important:
    a. NEVER use placeholders ({{first_name}}, {{company}}) in the subject.
    b. Each subject must feel completely different in format and approach.
    c. Niche-specific and intriguing — a busy decision-maker must WANT to open it.
    d. Under 9 words. Sentence-case only.
    e. BANNED subject styles: "Quick question", "Following up", "Checking in", "Touching base", "Partnership opportunity".
    f. Mix formats across the 5 steps: bold statement, provocative question, insight teaser, personal check-in, graceful exit.
-5. DO NOT INCLUDE ANY SIGN-OFF, "Best,", "Regards,", or any closing in the body. The system auto-appends the signature.
-6. Plain text only. No HTML. Normal line breaks between paragraphs.
-7. Each step MUST cover a completely unique angle — no repeated topics, features, or ideas across steps.
-8. SPECIFIC USE CASES & SOLUTIONS: Instead of talking about generic benefits (like "streamlining operations" or "increasing efficiency"), describe a highly concrete, realistic custom solution tailored specifically to the targeted niche. Show them EXACTLY what we can do for them, BUT this must be derived entirely from the provided Pitch / Service Offering. Do NOT invent random services or pain points that do not align with the pitch.
-9. NEVER SELL OR PITCH DIRECTLY. Your ONLY goal is to book a calendar slot or phone call by enquiring about their current struggles and hurdles. DO NOT offer a solution immediately. Be genuinely curious about their pain points.
-10. ABBREVIATIONS LIMITATION: Avoid unnecessary abbreviations (such as writing 'certs' instead of 'certificates', 'docs' instead of 'documents', 'info' instead of 'information', etc.). Write out full, clean, professional words, and only use casual abbreviations very rarely and only when it naturally fits a friendly, human flow.
+6. DO NOT INCLUDE ANY SIGN-OFF, "Best,", "Regards,", or any closing in the body. The system auto-appends the signature.
+7. Plain text only. No HTML. Normal line breaks between paragraphs.
+8. Each step MUST cover a completely unique angle — no repeated topics, features, or ideas across steps.
+9. SPECIFIC USE CASES & SOLUTIONS: Instead of talking about generic benefits (like "streamlining operations" or "increasing efficiency"), describe a highly concrete, realistic custom solution tailored specifically to the targeted niche. Show them EXACTLY what we can do for them, BUT this must be derived entirely from the provided Pitch / Service Offering. Do NOT invent random services or pain points that do not align with the pitch.
+10. NEVER SELL OR PITCH DIRECTLY. Your ONLY goal is to book a calendar slot or phone call by enquiring about their current struggles and hurdles. DO NOT offer a solution immediately. Be genuinely curious about their pain points.
+11. ABBREVIATIONS LIMITATION: Avoid unnecessary abbreviations (such as writing 'certs' instead of 'certificates', 'docs' instead of 'documents', 'info' instead of 'information', etc.). Write out full, clean, professional words, and only use casual abbreviations very rarely and only when it naturally fits a friendly, human flow.
 
 STEP ARCHETYPES — follow each one precisely:
 
