@@ -3959,6 +3959,55 @@ if (process.env.ENABLE_CRONS !== 'false') {
   
   // Start the background old leads migrator (migrates 3 leads every 2 minutes when scraper is idle)
   initOldLeadsMigrator(activeScrapes);
+
+  // Background routine to check for and automatically generate sequence templates for campaigns missing them
+  const autofillMissingCampaignSequences = async () => {
+    try {
+      const client = supabase;
+      if (!client) return;
+
+      console.log('[Sequence Autofill] Checking for campaigns missing sequence templates...');
+      
+      const { data: campaigns, error: fetchErr } = await client
+        .from('campaigns')
+        .select('id, name');
+
+      if (fetchErr) {
+        console.error('[Sequence Autofill] Error fetching campaigns:', fetchErr.message);
+        return;
+      }
+
+      if (!campaigns || campaigns.length === 0) return;
+
+      for (const campaign of campaigns) {
+        const { count, error: countErr } = await client
+          .from('templates')
+          .select('*', { count: 'exact', head: true })
+          .eq('campaign_id', campaign.id);
+
+        if (countErr) {
+          console.error(`[Sequence Autofill] Error checking templates for campaign ${campaign.name}:`, countErr.message);
+          continue;
+        }
+
+        if (count === 0) {
+          console.log(`[Sequence Autofill] Campaign "${campaign.name}" (${campaign.id}) has 0 sequences. Generating templates now...`);
+          const success = await generateAndSaveSequencesForCampaign(campaign.id, false);
+          if (success) {
+            console.log(`[Sequence Autofill] ✅ Generated sequence templates for campaign "${campaign.name}"`);
+          } else {
+            console.error(`[Sequence Autofill] ❌ Failed to generate sequence templates for campaign "${campaign.name}"`);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Sequence Autofill] Unexpected error in checker:', err.message);
+    }
+  };
+
+  // Run on startup after 5 seconds, and then every 2 minutes
+  setTimeout(autofillMissingCampaignSequences, 5000);
+  setInterval(autofillMissingCampaignSequences, 2 * 60 * 1000);
 } else {
   console.log('[SYSTEM] Background services (crons) are DISABLED via ENABLE_CRONS=false.');
 }
