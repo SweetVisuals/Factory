@@ -409,13 +409,10 @@ Super short, direct, and human.
 - Acknowledge time has passed. One sentence. One question.
 - Under 35 words.
 
-Step 5 — "The Breakup":
-Polite, direct exit. Leave the door open.
-- Under 40 words.
-Polite, confident closure — the "breakup" framework that often drives last-second replies.
-- Tell them this is your last email. No hard feelings at all.
-- Leave the door open warmly: "If timing changes, I'm easy to find."
-- Under 45 words (excluding greeting).
+Step 5 — "The Breakup / Closing":
+Polite, direct exit. Leave the door open warmly.
+- Frame the exit with a closing phrase like: "no worries, or is it okay if we contact you again in a few months if anything changed?"
+- Keep it under 40 words.
 
 Output Format: JSON object with a "sequences" array of EXACTLY 5 objects.
 Each object MUST have EXACTLY these 3 keys:
