@@ -42,6 +42,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           const isReview = c.status === 'review';
           return {
             id: c.id,
+            campaignId: c.id,
             title: (isPaused || isReview) ? 'Action Required' : 'Campaign Alert',
             message: isReview
               ? `Campaign "${c.name}" has over 1000 leads and is ready for review.`
@@ -72,6 +73,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
 
         setNotifications(prev => [{
           id: Date.now(),
+          campaignId: payload.new.campaign_id,
           title: 'Lead Added to Campaign',
           message: `${leadName} was added to ${campaignName}.`,
           time: new Date().toLocaleTimeString(),
@@ -94,6 +96,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           const isReview = payload.new.status === 'review';
           setNotifications(prev => [{
             id: Date.now(),
+            campaignId: payload.new.id,
             title: (isPaused || isReview) ? 'Action Required' : 'Campaign Alert',
             message: isReview
               ? `Campaign "${payload.new.name}" has over 1000 leads and is ready for review.`
@@ -111,6 +114,19 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const handleNotificationClick = (n: any) => {
+    setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
+    if (n.campaignId) {
+      navigate(`/campaign/${n.campaignId}?tab=review`);
+      setShowNotifications(false);
+    }
+  };
+
+  const clearNotification = (e: React.MouseEvent, id: any) => {
+    e.stopPropagation();
+    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -226,12 +242,27 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
                   ) : (
                     <div className="flex flex-col">
                       {notifications.map(n => (
-                        <div key={n.id} className={cn("p-4 border-b border-white/5 hover:bg-white/5 transition-colors", !n.read ? "bg-white/[0.02]" : "opacity-70")}>
-                          <div className="flex justify-between items-start gap-4 mb-1">
-                            <span className="text-xs font-bold text-white">{n.title}</span>
+                        <div 
+                          key={n.id} 
+                          onClick={() => handleNotificationClick(n)}
+                          className={cn(
+                            "p-4 border-b border-white/5 hover:bg-white/5 transition-colors relative group", 
+                            n.campaignId && "cursor-pointer",
+                            !n.read ? "bg-white/[0.02]" : "opacity-60"
+                          )}
+                        >
+                          <div className="flex justify-between items-start gap-4 mb-1 pr-6">
+                            <span className={cn("text-xs text-white", !n.read ? "font-bold" : "font-normal")}>{n.title}</span>
                             <span className="text-[10px] text-foreground/40 shrink-0">{n.time}</span>
                           </div>
-                          <p className="text-[11px] text-foreground/60 leading-relaxed">{n.message}</p>
+                          <p className="text-[11px] text-foreground/60 leading-relaxed pr-6">{n.message}</p>
+                          <button
+                            onClick={(e) => clearNotification(e, n.id)}
+                            className="absolute right-3 top-4 text-foreground/30 hover:text-white transition-colors opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/10"
+                            title="Clear notification"
+                          >
+                            <X size={10} />
+                          </button>
                         </div>
                       ))}
                     </div>

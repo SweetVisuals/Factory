@@ -35,7 +35,9 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { campaigns, updateCampaign, deleteCampaign } = useApp();
-  const [activeTab, setActiveTab] = useState('analytics');
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const [activeTab, setActiveTab] = useState(queryParams.get('tab') || 'analytics');
   const [leadsSubTab, setLeadsSubTab] = useState<'table' | 'scraper' | 'lists'>('table');
   const [refreshLeads, setRefreshLeads] = useState(false);
   const [isScheduled, setIsScheduled] = useState(false);
@@ -44,9 +46,16 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
   const [showOptions, setShowOptions] = useState(false);
   const [senderCountdown, setSenderCountdown] = useState(5);
   const campaign = campaigns.find(c => c.id === id);
-  const location = useLocation();
   const [focusLeadId, setFocusLeadId] = useState<string | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+
+  useEffect(() => {
+    const qParams = new URLSearchParams(location.search);
+    const tabParam = qParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const state = location.state as any;
