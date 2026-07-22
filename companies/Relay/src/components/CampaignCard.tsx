@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
-import { CheckCircle2, FileEdit, Activity, Users, Mail, MessageSquare, ArrowUpRight, PauseCircle } from 'lucide-react';
+import { CheckCircle2, FileEdit, Activity, Users, Mail, MessageSquare, ArrowUpRight, PauseCircle, AlertCircle } from 'lucide-react';
 import { AnimatedNumber } from './AnimatedNumber';
 
 interface CampaignCardProps {
@@ -79,6 +79,7 @@ const CampaignCard = ({
   const isCompleted = status?.toLowerCase() === 'completed' || (progressPct >= 100 && prospectsVal > 0);
   const isDraft = (status?.toLowerCase() === 'draft' || status?.toLowerCase() === 'pending') && !isCompleted;
   const isPaused = status?.toLowerCase() === 'paused';
+  const isReview = status?.toLowerCase() === 'review';
   const { loc, cleanName } = parseLocationFromName(name);
 
   let badgeColor = activeColor;
@@ -89,26 +90,54 @@ const CampaignCard = ({
   } else if (isDraft) {
     badgeColor = '#a3a3a3';
     badgeRgb = '163, 163, 163';
+  } else if (isReview) {
+    badgeColor = '#a78bfa';
+    badgeRgb = '167, 139, 250';
   }
 
   return (
     <div 
       onClick={onClick} 
-      className="relative flex flex-col cursor-pointer transition-all duration-500 hover:-translate-y-1 bg-card border border-border shadow-sm hover:shadow-xl group"
+      className={`relative flex flex-col cursor-pointer transition-all duration-500 hover:-translate-y-1 bg-card border border-border shadow-sm hover:shadow-xl group ${isReview ? 'campaign-card-review-pulse' : ''}`}
       style={{ 
         borderRadius: '24px',
         minHeight: '360px',
         overflow: 'hidden'
       }}
     >
+      {isReview && (
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes purple-pulse-shadow {
+            0% {
+              box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 2px rgba(139, 92, 246, 0.2);
+              border-color: rgba(167, 139, 250, 0.4);
+            }
+            50% {
+              box-shadow: 0 0 20px rgba(139, 92, 246, 0.85), 0 0 8px rgba(139, 92, 246, 0.5);
+              border-color: rgba(167, 139, 250, 0.95);
+            }
+            100% {
+              box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 2px rgba(139, 92, 246, 0.2);
+              border-color: rgba(167, 139, 250, 0.4);
+            }
+          }
+          .campaign-card-review-pulse {
+            animation: purple-pulse-shadow 2s infinite ease-in-out;
+          }
+        `}} />
+      )}
       {/* Dynamic Top Glow */}
       <div 
         className="absolute top-0 left-0 right-0 h-1 transition-all duration-500 group-hover:h-1.5"
         style={{ 
-          background: isPaused 
+          background: isReview
+            ? 'linear-gradient(90deg, rgba(139,92,246,0.9) 0%, rgba(139,92,246,0.3) 100%)'
+            : isPaused 
             ? 'linear-gradient(90deg, rgba(245,158,11,0.8) 0%, rgba(245,158,11,0.2) 100%)' 
             : `linear-gradient(90deg, rgba(${rgbColor},0.8) 0%, rgba(${rgbColor},0.2) 100%)`,
-          boxShadow: isPaused 
+          boxShadow: isReview
+            ? '0 2px 20px rgba(139, 92, 246, 0.6)'
+            : isPaused 
             ? '0 2px 15px rgba(245, 158, 11, 0.4)' 
             : `0 2px 15px rgba(${rgbColor}, 0.4)`
         }}
@@ -135,6 +164,8 @@ const CampaignCard = ({
         >
           {isCompleted ? (
             <CheckCircle2 size={12} />
+          ) : isReview ? (
+            <AlertCircle size={12} className="animate-pulse" />
           ) : isPaused ? (
             <PauseCircle size={12} />
           ) : isDraft ? (
@@ -142,7 +173,7 @@ const CampaignCard = ({
           ) : (
             <Activity size={12} className="animate-pulse" />
           )}
-          {isCompleted ? 'Agent Completed' : isPaused ? 'Agent Paused' : isDraft ? 'Agent Idle' : 'Agent Active'}
+          {isCompleted ? 'Agent Completed' : isReview ? 'Needs Review' : isPaused ? 'Agent Paused' : isDraft ? 'Agent Idle' : 'Agent Active'}
         </span>
       </div>
 
