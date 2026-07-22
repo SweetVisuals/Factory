@@ -87,7 +87,7 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
     let legacySigHtml = '';
     if (defaultSig) {
       const textHtml = defaultSig.content.replace(/\n/g, '<br/>');
-      const imgHtml = defaultSig.imageUrl ? `<br/><img src="${defaultSig.imageUrl}" alt="Signature Logo" style="max-height: 50px; object-fit: contain; display: block; margin-top: 6px;" />` : '';
+      const imgHtml = defaultSig.imageUrl ? `<br/><img src="${defaultSig.imageUrl}" alt="Signature Logo" style="max-width: 100%; display: block; margin-top: 6px;" />` : '';
       legacySigHtml = `${textHtml}${imgHtml}`;
     }
 
