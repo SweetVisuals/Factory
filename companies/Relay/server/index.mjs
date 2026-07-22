@@ -2107,12 +2107,13 @@ app.post('/api/scrape-leads', async (req, res) => {
             review_count: null
           },
           ...structuredData,
+          research_score: res?.research_score || 0,
           validation_status: validationStatus,
           validation_details: validationDetails,
           updated_at: new Date().toISOString()
         };
 
-        // Validate lead data completeness (must not lack more than 3 core fields)
+        // Validate lead data completeness (must not lack more than 2 core fields)
         const missingFields = [];
         if (!leadData.email) missingFields.push('email');
         if (!leadData.phone) missingFields.push('phone');
@@ -2132,8 +2133,8 @@ app.post('/api/scrape-leads', async (req, res) => {
         );
         if (!hasSocial) missingFields.push('social_presence');
 
-        if (missingFields.length > 3) {
-          log(`[Filter] Dropped ${lead.company || 'lead'}: Lacked too many fields (${missingFields.length} missing: ${missingFields.join(', ')}).`);
+        if (missingFields.length > 2) {
+          log(`[Filter] Dropped ${lead.company || 'lead'}: Lacked too many fields (${missingFields.length} missing: ${missingFields.join(', ')}). Only a maximum of 2 empty fields are allowed.`);
           return;
         }
 
