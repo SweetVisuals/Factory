@@ -153,11 +153,9 @@ async function fetchPendingBatch(campaignId) {
     const l = cl.leads;
     if (!l?.email?.trim()) return false;
     
-    // Apply template if missing personalized content
+    // If missing personalized content, wait for the AI campaign processor to generate it
     if (!l.personalized_email?.trim() || !l.personalized_subject?.trim()) {
-      if (!templateObj) return false; // Cannot fallback if no template
-      l.personalized_email = applyTemplate(templateObj.content, l, false);
-      l.personalized_subject = applyTemplate(templateObj.subject, l, true);
+      return false;
     }
     
     const domain = l.email.split('@')[1]?.toLowerCase();
@@ -183,10 +181,7 @@ async function skipInvalidLeads(campaignId) {
   let skipped = 0;
   for (const cl of data) {
     const l = cl.leads;
-    const hasPersonalized = l.personalized_email?.trim();
-    const hasTemplate = templateObj && templateObj.content;
-    
-    const bad = !l?.email?.trim() || (!hasPersonalized && !hasTemplate) ||
+    const bad = !l?.email?.trim() ||
                 !l.email.includes('@') || !l.email.split('@')[1]?.includes('.') ||
                 PERSONAL_DOMAINS.includes(l.email.split('@')[1]?.toLowerCase());
     if (bad) {

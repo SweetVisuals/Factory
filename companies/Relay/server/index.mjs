@@ -1461,7 +1461,7 @@ app.post('/api/email-accounts/:id/test-design', async (req, res) => {
       to: toEmail,
       subject: subject,
       html: finalHtml,
-      text: finalHtml.replace(/<[^>]*>?/gm, '')
+      text: finalHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '')
     });
 
     res.json({ success: true });

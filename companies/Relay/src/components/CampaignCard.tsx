@@ -54,6 +54,7 @@ const CampaignCard = ({
   else if (bizLabel !== 'Other') { activeColor = '#8b5cf6'; } // Default purple for other businesses
 
   const [recentSent, setRecentSent] = useState<any[]>([]);
+  const [realSentCount, setRealSentCount] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -61,16 +62,24 @@ const CampaignCard = ({
       const { data } = await supabase.from('campaign_progress').select('id, sent_at, lead:leads(name, email)').eq('campaign_id', id).eq('status', 'sent').order('sent_at', { ascending: false }).limit(2);
       if (data) setRecentSent(data);
     };
+    const fetchRealSentCount = async () => {
+      const { count } = await supabase.from('campaign_progress').select('*', { count: 'exact', head: true }).eq('campaign_id', id).eq('status', 'sent');
+      setRealSentCount(count || 0);
+    };
     fetchRecentSent();
+    fetchRealSentCount();
     const channel = supabase.channel(`campaign-card-${id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_progress', filter: `campaign_id=eq.${id}` }, () => fetchRecentSent())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_progress', filter: `campaign_id=eq.${id}` }, () => {
+        fetchRecentSent();
+        fetchRealSentCount();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [id]);
 
   const rgbColor = hexToRgb(activeColor);
   const prospectsVal = parseInt(String(prospects)) || 0;
-  const sentVal = parseInt(String(sent)) || 0;
+  const sentVal = realSentCount;
   const repliesVal = parseInt(String(replies)) || 0;
   
   const totalExpectedEmails = prospectsVal * 4; 

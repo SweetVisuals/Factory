@@ -928,7 +928,8 @@ CRITICAL RULES:
         g = g.replace(/^\s*(hi\s+)?(there|friend),/i, "Hi there,");
         g = g.replace(/^\s*([A-Z][a-z]+),/i, "Hi $1,");
         
-        // Strip any remaining HTML just in case
+        // Convert br tags to newlines, then strip any remaining HTML just in case
+        g = g.replace(/<br\s*\/?>/gi, '\n');
         g = g.replace(/<[^>]+>/g, '');
         // Fix any weird Subject capitalization if we put "Your Business" at the start
         T = T.charAt(0).toUpperCase() + T.slice(1);
