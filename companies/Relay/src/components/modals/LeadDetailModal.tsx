@@ -109,12 +109,13 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, open, 
       const res = await axios.post('/api/deep-research', {
         company: lead.company,
         website: lead.website,
-        notesContext: ''
+        notesContext: '',
+        leadId: lead.id
       });
       if (res.data.success) {
         setDeepResearch(res.data.data);
         // Also update local lead state summary
-        setLead(prev => prev ? { ...prev, summary: res.data.data } : null);
+        setLead(prev => prev ? { ...prev, summary: res.data.data, research_status: res.data.status || 'completed', research_score: res.data.research_score || 0 } : null);
       }
     } catch (e) {
       console.error('Deep scan failed:', e);

@@ -1366,36 +1366,100 @@ export async function performDeepResearch(company, website, notesContext = '') {
                 const homeText = await page.evaluate(() => {
                     const clone = document.body.cloneNode(true);
                     clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
-                    return clone.innerText.substring(0, 5000);
+                    return clone.innerText.substring(0, 6000);
                 });
                 aggregatedData += `[WEBSITE_HOME]:\n${homeText}\n\n`;
 
-                // Find About/Team pages
-                const links = await page.$$eval('a', as => as.map(a => a.href));
-                const aboutLink = links.find(l => l.toLowerCase().includes('about') || l.toLowerCase().includes('story'));
-                const teamLink = links.find(l => l.toLowerCase().includes('team') || l.toLowerCase().includes('people'));
+                // Extract JSON-LD structured data (schema.org)
+                try {
+                    const jsonLd = await page.evaluate(() => {
+                        const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+                        return Array.from(scripts).map(s => s.textContent).join('\n');
+                    });
+                    if (jsonLd && jsonLd.trim()) {
+                        aggregatedData += `[STRUCTURED_DATA_JSON_LD]:\n${jsonLd.substring(0, 3000)}\n\n`;
+                    }
+                } catch (e) { /* structured data not critical */ }
 
+                // Find internal links for deeper scraping
+                const links = await page.$$eval('a', as => as.map(a => ({ href: a.href, text: (a.textContent || '').trim().toLowerCase() })));
+                
+                const findLink = (keywords) => {
+                    return links.find(l => {
+                        if (!l.href || !l.href.startsWith('http')) return false;
+                        const href = l.href.toLowerCase();
+                        const text = l.text;
+                        return keywords.some(k => href.includes(k) || text.includes(k));
+                    });
+                };
+
+                // About page
+                const aboutLink = findLink(['about', 'story', 'who-we-are', 'our-story']);
                 if (aboutLink) {
                     try {
-                        await page.goto(aboutLink, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                        await page.goto(aboutLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
                         const aboutText = await page.evaluate(() => {
                             const clone = document.body.cloneNode(true);
                             clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
-                            return clone.innerText.substring(0, 3000);
+                            return clone.innerText.substring(0, 4000);
                         });
                         aggregatedData += `[WEBSITE_ABOUT]:\n${aboutText}\n\n`;
                     } catch (e) { }
                 }
 
+                // Team page
+                const teamLink = findLink(['team', 'people', 'staff', 'our-team', 'meet-the-team', 'leadership']);
                 if (teamLink) {
                     try {
-                        await page.goto(teamLink, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                        await page.goto(teamLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
                         const teamText = await page.evaluate(() => {
+                            const clone = document.body.cloneNode(true);
+                            clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
+                            return clone.innerText.substring(0, 4000);
+                        });
+                        aggregatedData += `[WEBSITE_TEAM]:\n${teamText}\n\n`;
+                    } catch (e) { }
+                }
+
+                // Services / Products page
+                const servicesLink = findLink(['services', 'products', 'what-we-do', 'solutions', 'offerings', 'our-services']);
+                if (servicesLink) {
+                    try {
+                        await page.goto(servicesLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                        const servicesText = await page.evaluate(() => {
+                            const clone = document.body.cloneNode(true);
+                            clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
+                            return clone.innerText.substring(0, 4000);
+                        });
+                        aggregatedData += `[WEBSITE_SERVICES]:\n${servicesText}\n\n`;
+                    } catch (e) { }
+                }
+
+                // Portfolio / Case Studies / Projects page
+                const portfolioLink = findLink(['portfolio', 'case-stud', 'projects', 'work', 'testimonials', 'reviews', 'our-work']);
+                if (portfolioLink) {
+                    try {
+                        await page.goto(portfolioLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                        const portfolioText = await page.evaluate(() => {
                             const clone = document.body.cloneNode(true);
                             clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
                             return clone.innerText.substring(0, 3000);
                         });
-                        aggregatedData += `[WEBSITE_TEAM]:\n${teamText}\n\n`;
+                        aggregatedData += `[WEBSITE_PORTFOLIO]:\n${portfolioText}\n\n`;
+                    } catch (e) { }
+                }
+
+                // Blog / News page (first page only)
+                const blogLink = findLink(['blog', 'news', 'insights', 'articles', 'updates']);
+                if (blogLink) {
+                    try {
+                        await page.goto(blogLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                        const blogText = await page.evaluate(() => {
+                            const clone = document.body.cloneNode(true);
+                            clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
+                            return clone.innerText.substring(0, 2000);
+                        });
+                        aggregatedData += `[WEBSITE_BLOG_NEWS]:\n${blogText}\n\n`;
                     } catch (e) { }
                 }
 
@@ -1411,23 +1475,66 @@ export async function performDeepResearch(company, website, notesContext = '') {
             const page = await browser.newPage();
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-            // Search Query: "Company Name CEO founder team linkedin"
-            const query = `${company} CEO founder owner team linkedin`;
+            // Search: People + LinkedIn
+            const query = `${company} CEO founder owner director team linkedin`;
             await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
 
             const searchResults = await page.evaluate(() => {
                 return Array.from(document.querySelectorAll('div.g')).map(el => el.innerText).slice(0, 6).join('\n---\n');
             });
-
             aggregatedData += `[GOOGLE_SEARCH_PEOPLE]:\n${searchResults}\n\n`;
 
-            // Search Query: "Company Name reviews social media"
+            // Search: Reviews + Social presence
             const querySocial = `${company} reviews social media facebook instagram twitter`;
             await page.goto(`https://www.google.com/search?q=${encodeURIComponent(querySocial)}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
             const socialResults = await page.evaluate(() => {
                 return Array.from(document.querySelectorAll('div.g')).map(el => el.innerText).slice(0, 6).join('\n---\n');
             });
             aggregatedData += `[GOOGLE_SEARCH_SOCIAL]:\n${socialResults}\n\n`;
+
+            // Search: Google Maps for rating + reviews count
+            try {
+                const mapsQuery = `${company} google reviews rating`;
+                await page.goto(`https://www.google.com/search?q=${encodeURIComponent(mapsQuery)}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                const ratingsData = await page.evaluate(() => {
+                    // Look for the star rating and review count in Google's knowledge panel
+                    const ratingEl = document.querySelector('[data-attrid="kc:/collection/knowledge_panels/has_star_rating:star_rating"]') ||
+                                     document.querySelector('.Aq14fc') ||
+                                     document.querySelector('[aria-label*="stars"]') ||
+                                     document.querySelector('[aria-label*="rating"]');
+                    const reviewEl = document.querySelector('[data-attrid="kc:/collection/knowledge_panels/has_star_rating:star_rating"] + span') ||
+                                     document.querySelector('.hqzQac');
+                    
+                    const bodyText = document.body.innerText.substring(0, 2000);
+                    const ratingMatch = bodyText.match(/(\d+\.?\d*)\s*(?:out of 5|stars?|★)/i);
+                    const reviewMatch = bodyText.match(/(\d[\d,]*)\s*(?:reviews?|Google reviews?)/i);
+                    
+                    return {
+                        rating: ratingEl?.textContent || (ratingMatch ? ratingMatch[1] : null),
+                        reviews: reviewEl?.textContent || (reviewMatch ? reviewMatch[1] : null),
+                        snippet: bodyText.substring(0, 500)
+                    };
+                });
+                if (ratingsData.rating || ratingsData.reviews) {
+                    aggregatedData += `[GOOGLE_REVIEWS]:\nRating: ${ratingsData.rating || 'N/A'}\nReviews: ${ratingsData.reviews || 'N/A'}\n${ratingsData.snippet}\n\n`;
+                }
+            } catch (e) {
+                log(`Google reviews search error: ${e.message}`);
+            }
+
+            // Search: Recent news
+            try {
+                const newsQuery = `"${company}" news recent`;
+                await page.goto(`https://www.google.com/search?q=${encodeURIComponent(newsQuery)}&tbm=nws`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                const newsResults = await page.evaluate(() => {
+                    return Array.from(document.querySelectorAll('div.SoaBEf, div.WlydOe, article')).map(el => el.innerText).slice(0, 5).join('\n---\n');
+                });
+                if (newsResults && newsResults.trim()) {
+                    aggregatedData += `[GOOGLE_NEWS]:\n${newsResults}\n\n`;
+                }
+            } catch (e) {
+                log(`Google News search error: ${e.message}`);
+            }
 
             await page.close();
         } catch (e) {

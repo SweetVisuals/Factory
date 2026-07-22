@@ -84,6 +84,39 @@ export interface CampaignStat {
   money?: string;
 }
 
+export interface KeyPerson {
+  name: string;
+  title: string;
+  linkedin?: string;
+}
+
+export interface PainPoint {
+  area: string;
+  description: string;
+  severity?: 'high' | 'medium' | 'low';
+}
+
+export interface NewsItem {
+  headline: string;
+  date?: string;
+  source?: string;
+}
+
+export interface GrowthSignal {
+  type: string;
+  detail: string;
+  date?: string;
+}
+
+export interface SocialPresence {
+  google_rating?: number;
+  review_count?: number;
+  facebook_url?: string;
+  instagram_url?: string;
+  twitter_url?: string;
+  linkedin_url?: string;
+}
+
 export interface Lead {
   id: string;
   email: string;
@@ -108,6 +141,23 @@ export interface Lead {
   validation_status?: 'valid' | 'invalid' | 'catch_all' | 'unverified' | undefined;
   validation_details?: string;
   research_status?: 'completed' | 'pending' | 'failed' | 'incomplete' | 'error' | null;
+  // Deep research structured fields
+  company_description?: string;
+  company_size?: string;
+  annual_revenue?: string;
+  year_founded?: string;
+  key_people?: KeyPerson[];
+  tech_stack?: string[];
+  pain_points?: PainPoint[];
+  recent_news?: NewsItem[];
+  social_presence?: SocialPresence;
+  services_offered?: string[];
+  target_market?: string;
+  competitive_advantage?: string;
+  growth_signals?: GrowthSignal[];
+  research_data_raw?: string;
+  research_score?: number;
+  researched_at?: string;
 }
 
 export interface EmailMessage {

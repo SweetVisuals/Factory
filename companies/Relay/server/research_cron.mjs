@@ -8,9 +8,10 @@ let supabase = null;
  * Research Cron - Processes leads through deep research queue:
  * 1. Fetches leads needing research (no summary or empty summary)
  * 2. Runs AI deep research on each lead
- * 3. Validates research meets quality threshold (Niche & Market, Growth, ROI)
- * 4. Auto-deletes leads that fail after 3 attempts
- * 5. Links researched leads to their campaigns
+ * 3. Saves structured research data to all new fields
+ * 4. Validates research meets quality threshold via research_score
+ * 5. Auto-marks leads as failed after 3 attempts
+ * 6. Links researched leads to their campaigns
  */
 async function runResearchCron() {
   console.log('[Research Cron] Checking for leads needing deep research...');
@@ -67,20 +68,63 @@ async function runResearchCron() {
 
           const res = await researchAndSummarizeLead(lead, console.log, campaignPitch);
           
-          // Update lead with research and mark as completed/incomplete
+          // Build the update payload with all structured fields
+          const updatePayload = {
+            summary: res.summary,
+            research_status: res.status,
+            research_attempts: 0,
+            research_score: res.research_score || 0,
+            research_data_raw: res.research_data_raw || null,
+            researched_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          // Map structured data to database columns if available
+          if (res.structured) {
+            const s = res.structured;
+            updatePayload.company_description = s.company_description || null;
+            updatePayload.company_size = s.company_size || null;
+            updatePayload.annual_revenue = s.annual_revenue || null;
+            updatePayload.year_founded = s.year_founded || null;
+            updatePayload.key_people = s.key_people && s.key_people.length > 0 ? s.key_people : [];
+            updatePayload.tech_stack = s.tech_stack && s.tech_stack.length > 0 ? s.tech_stack : [];
+            updatePayload.pain_points = s.pain_points && s.pain_points.length > 0 ? s.pain_points : [];
+            updatePayload.recent_news = s.recent_news && s.recent_news.length > 0 ? s.recent_news : [];
+            updatePayload.social_presence = s.social_presence || {};
+            updatePayload.services_offered = s.services_offered && s.services_offered.length > 0 ? s.services_offered : [];
+            updatePayload.target_market = s.target_market || null;
+            updatePayload.competitive_advantage = s.competitive_advantage || null;
+            updatePayload.growth_signals = s.growth_signals && s.growth_signals.length > 0 ? s.growth_signals : [];
+
+            // Update social media links if found in research but missing from lead
+            if (s.social_presence) {
+              if (s.social_presence.facebook_url && !lead.facebook) {
+                updatePayload.facebook = s.social_presence.facebook_url;
+              }
+              if (s.social_presence.instagram_url && !lead.instagram) {
+                updatePayload.instagram = s.social_presence.instagram_url;
+              }
+              if (s.social_presence.twitter_url && !lead.twitter) {
+                updatePayload.twitter = s.social_presence.twitter_url;
+              }
+              if (s.social_presence.linkedin_url && !lead.linkedin) {
+                updatePayload.linkedin = s.social_presence.linkedin_url;
+              }
+            }
+          }
+
+          // Update lead with all research data
           await supabase
             .from('leads')
-            .update({
-              summary: res.summary,
-              research_status: res.status,
-              research_attempts: 0,
-              updated_at: new Date().toISOString()
-            })
+            .update(updatePayload)
             .eq('id', lead.id);
             
           if (res.status === 'completed') {
             // Find and link to campaigns (conditional campaign linking)
-            await linkLeadToCampaigns(lead.id, companyName, lead.location);
+            await linkLeadToCampaigns(lead.id, lead.company || lead.name, lead.location);
+            console.log(`[Research Cron] ✅ Deep research completed for ${companyName}. Score: ${res.research_score}/100`);
+          } else {
+            console.log(`[Research Cron] ⚠️ Research incomplete for ${companyName}. Score: ${res.research_score}/100`);
           }
           
           success = true;

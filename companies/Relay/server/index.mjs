@@ -1548,18 +1548,129 @@ app.get('/api/scraper-results', async (req, res) => {
 
 app.post('/api/deep-research', async (req, res) => {
   try {
-    const { company, website, notesContext } = req.body;
+    const { company, website, notesContext, leadId } = req.body;
     if (!company) {
       return res.status(400).json({ success: false, error: 'Company name is required' });
     }
 
-    const report = await performDeepResearch(company, website, notesContext);
-    res.json({ success: true, data: report });
+    // Use the new comprehensive research pipeline
+    const { researchAndSummarizeLead } = await import('./research_helper.mjs');
+    
+    const mockLead = {
+      id: leadId || 'manual-research',
+      company,
+      website: website || '',
+      name: company,
+      email: '',
+    };
+
+    const result = await researchAndSummarizeLead(mockLead, console.log, notesContext || '');
+
+    // If a leadId was provided, save the results to the database
+    if (leadId && supabase) {
+      const updatePayload = {
+        summary: result.summary,
+        research_status: result.status,
+        research_score: result.research_score || 0,
+        research_data_raw: result.research_data_raw || null,
+        researched_at: new Date().toISOString(),
+        research_attempts: 0,
+        updated_at: new Date().toISOString()
+      };
+
+      if (result.structured) {
+        const s = result.structured;
+        updatePayload.company_description = s.company_description || null;
+        updatePayload.company_size = s.company_size || null;
+        updatePayload.annual_revenue = s.annual_revenue || null;
+        updatePayload.year_founded = s.year_founded || null;
+        updatePayload.key_people = s.key_people && s.key_people.length > 0 ? s.key_people : [];
+        updatePayload.tech_stack = s.tech_stack && s.tech_stack.length > 0 ? s.tech_stack : [];
+        updatePayload.pain_points = s.pain_points && s.pain_points.length > 0 ? s.pain_points : [];
+        updatePayload.recent_news = s.recent_news && s.recent_news.length > 0 ? s.recent_news : [];
+        updatePayload.social_presence = s.social_presence || {};
+        updatePayload.services_offered = s.services_offered && s.services_offered.length > 0 ? s.services_offered : [];
+        updatePayload.target_market = s.target_market || null;
+        updatePayload.competitive_advantage = s.competitive_advantage || null;
+        updatePayload.growth_signals = s.growth_signals && s.growth_signals.length > 0 ? s.growth_signals : [];
+      }
+
+      await supabase.from('leads').update(updatePayload).eq('id', leadId);
+    }
+
+    res.json({ 
+      success: true, 
+      data: result.summary,
+      structured: result.structured || null,
+      research_score: result.research_score || 0,
+      status: result.status
+    });
   } catch (error) {
     console.error('Deep Research API Error:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Deep Research failed'
+    });
+  }
+});
+
+// Get full enriched lead intelligence data
+app.get('/api/lead-intelligence/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Lead ID is required' });
+    }
+
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !lead) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+
+    res.json({ success: true, data: lead });
+  } catch (error) {
+    console.error('Lead Intelligence API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch lead intelligence'
+    });
+  }
+});
+
+// Trigger re-research for a specific lead
+app.post('/api/re-research/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Lead ID is required' });
+    }
+
+    // Reset research status so the cron picks it up
+    const { error } = await supabase
+      .from('leads')
+      .update({
+        research_status: null,
+        research_attempts: 0,
+        research_score: 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+
+    res.json({ success: true, message: 'Lead queued for re-research' });
+  } catch (error) {
+    console.error('Re-Research API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to queue re-research'
     });
   }
 });
