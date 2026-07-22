@@ -63,7 +63,7 @@ export async function fetchAIChatCompletion(params, log = console.log) {
     
     // 1. Try DeepSeek API first if key exists (strictly no fallback if this key exists)
     if (DEEPSEEK_API_KEY) {
-      const COOLDOWN_MS = 120000; // 2 minutes
+      const COOLDOWN_MS = 140000; // 2 minutes and 20 seconds buffer
       const MAX_CALLS = 3;
 
       let dsRetries = 0;
