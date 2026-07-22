@@ -352,6 +352,13 @@ This is the specific product or service being offered. Every email must feel lik
 Every email must feel like it came from someone who genuinely understands the recipient's industry — not someone blasting a mass list.${pitchContext}${businessPrompt}${tonePrompt}
 (Note: the current year is 2026. Make sure any temporal, case study, or date references reflect this).
 
+TONE & STYLE:
+- Write in a slightly humorous and playful tone, but keep it business-oriented and results-driven.
+- Keep it short, direct, and straight to the point. No fluff, no generic opening lines.
+- Avoid dry corporate jargon or sounding too statistical (do not load the emails with numbers/statistics unless necessary).
+- The word "bid" is strictly banned. Do not use the word "bid" or variations (e.g., project bid, bidding) under any circumstances.
+- SEQUENCE EVOLUTION: The sequence must evolve. Step 1 must always focus on building rapport and starting a conversation (establishing connection). Subsequent steps pick up the pace and follow up more directly.
+
 STRICT PLACEHOLDER DICTIONARY:
 You MUST use these exact placeholders whenever referring to dynamic data. DO NOT invent your own placeholders (like {{industry}} or [Your Service]). ONLY use the ones from this list:
 ${placeholderListStr}
@@ -359,8 +366,8 @@ ${placeholderListStr}
 ABSOLUTE RULES (violation = failure):
 1. GREETING: Always "Hi [LEAD FIRST NAME]," — NEVER full name, NEVER last name.
 2. NEVER mention the lead's job title, role, or position anywhere.
-3. BANNED PHRASES — never use any of these under any circumstances:
-   "sounds interesting", "I thought it was interesting", "I found it interesting",
+3. BANNED PHRASES & WORDS — never use any of these under any circumstances:
+   "bid", "sounds interesting", "I thought it was interesting", "I found it interesting",
    "I hope this finds you well", "I wanted to reach out", "touch base", "I came across your website",
    "I noticed you", "just checking in", "circling back", "synergy", "leverage", "unlock potential", "game-changer".
 4. SUBJECT LINES — critically important:
@@ -378,31 +385,33 @@ ABSOLUTE RULES (violation = failure):
 
 STEP ARCHETYPES — follow each one precisely:
 
-Step 1 — "The Pattern Interrupt":
-This is the very first cold email. Its ONLY job is to NOT sound like every other cold email they receive.
-- The opening sentence must immediately signal that you understand their world — use [PERSONALISED DETAIL] naturally if it helps anchor the opener.
-- Ask ONE sharp, unexpected question OR make ONE bold statement that makes them genuinely curious about what you do.
-- Keep it under 60 words total.
+Step 1 — "The Rapport Starter":
+This is the first touch. Focus entirely on building rapport and starting a conversation.
+- Sound like a real, helpful human. Start with a light, slightly playful or humorous connection point relevant to [INDUSTRY] or their world.
+- Do NOT pitch anything here. The ONLY goal is connection and starting a conversation.
+- Use [PERSONALISED DETAIL] naturally if it anchors the opener.
+- Keep it under 50 words total.
 
-Step 2 — "The Value Add":
-They've seen you once — now prove you're worth their time.
-- Lead with a useful industry insight, stat, or observation relevant to the [INDUSTRY] niche that they might not know.
-- Frame your offer as a natural extension of that insight — never a pitch.
-- ONE clear CTA: a direct question or "worth a quick 10 minutes?"
+Step 2 — "Picking Up the Pace":
+They've seen you once — now pick up the pace and follow up more directly.
+- Pivot to showing value and introducing your offering/solution in a playful, results-driven way.
+- Frame your custom solution to their industry pain points.
+- Keep it short, direct, and under 55 words.
 
-Step 3 — "The Social Proof Nudge":
-They've seen you twice — now build quiet credibility without bragging.
-- Reference a concrete result, outcome, or scenario relevant to someone in the [INDUSTRY] space.
-- Tell it like a quick story, not a case study.
-- End with a low-friction CTA: "Curious if this rings a bell for you?" or similar.
+Step 3 — "The Social Proof Story":
+- Reference a concrete outcome, result, or scenario relevant to someone in the [INDUSTRY] space.
+- Tell a brief, results-oriented, playful story. No dry stats.
+- Low-friction CTA: "Worth a quick chat?" or similar.
+- Under 60 words.
 
-Step 4 — "The Soft Touch":
-Super short and human. Like bumping into someone in a hallway.
-- Acknowledge time has passed without being needy or apologetic.
-- One sentence framing. One question. That's it.
-- Under 40 words (excluding greeting).
+Step 4 — "The Short Check-in":
+Super short, direct, and human.
+- Acknowledge time has passed. One sentence. One question.
+- Under 35 words.
 
 Step 5 — "The Breakup":
+Polite, direct exit. Leave the door open.
+- Under 40 words.
 Polite, confident closure — the "breakup" framework that often drives last-second replies.
 - Tell them this is your last email. No hard feelings at all.
 - Leave the door open warmly: "If timing changes, I'm easy to find."
