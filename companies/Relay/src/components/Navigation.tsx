@@ -15,6 +15,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [dbSpace, setDbSpace] = useState<number>(0);
+  const [leadsCount, setLeadsCount] = useState<number>(0);
 
   const isAdmin = user?.email === 'ptnmgmt@gmail.com';
   const MAX_DB_SPACE_MB = isAdmin ? 5120 : 250; // 5GB or 250MB
@@ -24,9 +25,10 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   useEffect(() => {
     const fetchStatus = async () => {
       // Fetch DB space & usage estimation (leads count proxy)
-      const { count: leadsCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
-      if (leadsCount !== null) {
-        setDbSpace(leadsCount / 1024); // Convert KB to MB
+      const { count: currentLeadsCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+      if (currentLeadsCount !== null) {
+        setDbSpace(currentLeadsCount / 1024); // Convert KB to MB
+        setLeadsCount(currentLeadsCount);
       }
 
       // Fetch campaigns needing review or paused
@@ -181,13 +183,29 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
             <div className="flex flex-col gap-1 min-w-[120px]">
               <div className="flex justify-between items-center text-[10px] font-bold text-foreground/60 gap-3">
                 <span>Usage & Quota</span>
-                <span className="text-white font-mono">{dbSpace < 1024 ? `${Math.round(dbSpace)} MB` : `${(dbSpace/1024).toFixed(1)} GB`} / {MAX_DB_SPACE_MB >= 1024 ? `${(MAX_DB_SPACE_MB/1024).toFixed(0)} GB` : `${MAX_DB_SPACE_MB} MB`} ({Math.min(100, Math.round((dbSpace / MAX_DB_SPACE_MB) * 100))}%)</span>
+                {(() => {
+                  const quotaLimit = isAdmin ? 10000 : 100;
+                  const usagePct = Math.min(100, Math.round((leadsCount / quotaLimit) * 100));
+                  return (
+                    <>
+                      <span className="text-white font-mono">
+                        {leadsCount.toLocaleString()} / {quotaLimit.toLocaleString()} Leads ({usagePct}%)
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
               <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.5)] transition-all duration-500" 
-                  style={{ width: `${Math.min(100, Math.max(1, Math.round((dbSpace / MAX_DB_SPACE_MB) * 100)))}%` }} 
-                />
+                {(() => {
+                  const quotaLimit = isAdmin ? 10000 : 100;
+                  const usagePct = Math.min(100, Math.max(1, Math.round((leadsCount / quotaLimit) * 100)));
+                  return (
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.5)] transition-all duration-500" 
+                      style={{ width: `${usagePct}%` }} 
+                    />
+                  );
+                })()}
               </div>
             </div>
           </div>
