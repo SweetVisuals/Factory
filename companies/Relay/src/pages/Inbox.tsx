@@ -438,7 +438,7 @@ const Inbox = () => {
             <div className="p-4 border-b border-white/5">
               <button 
                 onClick={() => setIsComposeOpen(true)}
-                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                className="w-full py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
               >
                 Compose <Send size={14} />
               </button>
