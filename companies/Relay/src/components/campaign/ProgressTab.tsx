@@ -269,7 +269,7 @@ const ProgressTab = ({ campaignId }: ProgressTabProps) => {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
-        <p className="text-[10px] font-bold text-foreground/20 uppercase tracking-[0.4em]">Acquiring Telemetry...</p>
+        <p className="text-[10px] font-bold text-foreground/20 uppercase tracking-[0.4em]">Loading status...</p>
       </div>
     );
   }
@@ -324,16 +324,16 @@ const ProgressTab = ({ campaignId }: ProgressTabProps) => {
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</span>
           <div className="flex items-center gap-3 mt-4">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-            <span className="text-sm font-bold text-foreground uppercase tracking-widest">Nominal</span>
+            <span className="text-sm font-bold text-foreground uppercase tracking-widest">Active</span>
           </div>
         </div>
       </div>
 
-      {/* Propagation Sequences — Expandable */}
+      {/* Email Sequences — Expandable */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-2">
           <Layers size={18} className="text-primary" />
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Propagation Sequences</h3>
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Email Sequences</h3>
         </div>
 
         <div className="space-y-3">
@@ -386,7 +386,7 @@ const ProgressTab = ({ campaignId }: ProgressTabProps) => {
                   <div className="px-6 pb-6 pt-2 border-t border-white/5 animate-in fade-in duration-300 bg-background/20">
                     <div className="grid grid-cols-2 gap-8 mt-4">
                       <div className="space-y-4">
-                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Node Distribution</span>
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sent counts per email account</span>
                         <div className="space-y-2">
                           {entry.emailAccounts.map(acc => (
                             <div key={acc.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.02]">
@@ -476,7 +476,7 @@ const ProgressTab = ({ campaignId }: ProgressTabProps) => {
         )}
       </div>
 
-      {/* Lead Registry — Collapsible */}
+      {/* Leads List — Collapsible */}
       <div className="bg-card/40 border border-white/5 rounded-2xl overflow-hidden shadow-sm backdrop-blur-md">
         <button
           onClick={() => setShowLeadRegistry(!showLeadRegistry)}
@@ -486,7 +486,7 @@ const ProgressTab = ({ campaignId }: ProgressTabProps) => {
             <div className="p-2 bg-primary/10 rounded-lg">
               <Users size={16} className="text-primary" />
             </div>
-            <span className="text-sm font-bold text-foreground tracking-wide">Lead Registry</span>
+            <span className="text-sm font-bold text-foreground tracking-wide">Leads List</span>
             <span className="text-xs font-bold text-muted-foreground bg-muted/50 px-2.5 py-0.5 rounded-full">{leads.length}</span>
           </div>
           <div className="p-1 rounded-full bg-muted/30">

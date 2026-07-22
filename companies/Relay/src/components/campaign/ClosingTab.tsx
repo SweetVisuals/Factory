@@ -68,7 +68,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
             }
         } catch (err: any) {
             console.error('Error fetching leads:', err);
-            toast({ title: 'Query Failed', description: 'Failed to access conversion registry.', variant: 'destructive' });
+            toast({ title: 'Query Failed', description: 'Failed to access inbox.', variant: 'destructive' });
         } finally {
             setLoading(false);
         }
@@ -109,7 +109,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
             setThread(unique);
         } catch (err: any) {
             console.error('Error fetching thread:', err);
-            toast({ title: 'Stream Interrupted', description: 'Failed to synchronize communication packet.', variant: 'destructive' });
+            toast({ title: 'Sync Failed', description: 'Failed to sync messages.', variant: 'destructive' });
         } finally {
             setThreadLoading(false);
         }
@@ -162,13 +162,13 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
 
             if (response.data.success) {
                 setDraft(response.data.draft);
-                toast({ title: 'Inference Complete', description: 'AI has synthesized a contextual response.' });
+                toast({ title: 'Draft Generated', description: 'AI has generated a response.' });
             } else {
                 throw new Error(response.data.error || 'Failed to draft reply');
             }
         } catch (err: any) {
             console.error('Error drafting reply:', err);
-            toast({ title: 'Synthesis Failed', description: err.message || 'AI failed to contextualize the thread.', variant: 'destructive' });
+            toast({ title: 'Failed to Generate Draft', description: err.message || 'AI failed to generate a reply.', variant: 'destructive' });
         } finally {
             setDrafting(false);
         }
@@ -197,7 +197,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
                 accountId = campaignAccounts?.[0]?.email_account_id;
             }
 
-            if (!accountId) throw new Error('No active cluster nodes available for this propagation.');
+            if (!accountId) throw new Error('No active email accounts available.');
 
             let subject = `Re: ${thread.length > 0 ? thread[thread.length - 1].subject.replace(/^(Re|Fwd|Fw|Aw|Reply):\s*/i, '').trim() : 'Follow up'}`;
             if (!subject.startsWith('Re:')) subject = `Re: ${subject}`;
@@ -214,7 +214,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
             });
 
             if (response.data.success) {
-                toast({ title: 'Signal Dispatched', description: 'Communication packet successfully transmitted.' });
+                toast({ title: 'Email Sent', description: 'Message sent successfully.' });
                 setDraft('');
                 fetchThread(selectedLead);
             } else {
@@ -222,7 +222,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
             }
         } catch (err: any) {
             console.error('Error sending reply:', err);
-            toast({ title: 'Dispatch Error', description: err.message || 'Signal transmission failed.', variant: 'destructive' });
+            toast({ title: 'Send Error', description: err.message || 'Failed to send email.', variant: 'destructive' });
         } finally {
             setSending(false);
         }
@@ -238,13 +238,13 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
                 .eq('id', selectedLead.id);
 
             if (error) throw error;
-            toast({ title: 'Registry Updated', description: newStatus === 'ignored' ? 'Entity moved to cold storage.' : 'Entity restored to active registry.' });
+            toast({ title: 'Inbox Updated', description: newStatus === 'ignored' ? 'Lead archived.' : 'Lead restored.' });
             setSelectedLead(null);
             setShowThreadDialog(false);
             fetchInterestedLeads();
         } catch (err: any) {
             console.error('Error updating lead status:', err);
-            toast({ title: 'Update Failed', description: 'Failed to modify registry state.', variant: 'destructive' });
+            toast({ title: 'Update Failed', description: 'Failed to update lead status.', variant: 'destructive' });
         }
     };
 
@@ -262,7 +262,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-14rem)] min-h-[600px] animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Left Panel: Conversion Registry List */}
+            {/* Left Panel: Inbox List */}
             <div className={cn(
                 "lg:col-span-4 flex flex-col h-full bg-card rounded-3xl border border-border overflow-hidden min-w-0 shadow-sm transition-all",
                 selectedLead && "hidden lg:flex"
@@ -274,8 +274,8 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
                             <Target size={16} />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-foreground">Conversion Registry</h3>
-                            <p className="text-xs font-medium text-muted-foreground mt-0.5">Interested B2B leads</p>
+                            <h3 className="text-sm font-bold text-foreground">Inbox</h3>
+                            <p className="text-xs font-medium text-muted-foreground mt-0.5">Interested leads</p>
                         </div>
                     </div>
                     <span className="px-3 py-1 bg-muted text-xs font-bold text-muted-foreground rounded-full">
@@ -326,7 +326,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20 space-y-4 text-muted-foreground">
                             <Loader2 className="animate-spin text-primary" size={28} />
-                            <p className="text-sm font-semibold">Syncing Registry...</p>
+                            <p className="text-sm font-semibold">Syncing Inbox...</p>
                         </div>
                     ) : filteredLeads.length === 0 ? (
                         <div className="py-20 text-center space-y-4 border border-dashed border-border rounded-2xl mx-3">
@@ -516,7 +516,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
                                                     value={draft}
                                                     onChange={(e) => setDraft(e.target.value)}
                                                     className="w-full min-h-[200px] p-6 text-sm leading-relaxed bg-transparent text-foreground outline-none resize-none placeholder:text-muted-foreground custom-scrollbar"
-                                                    placeholder="Synthesizing response..."
+                                                    placeholder="Drafting response..."
                                                 />
                                                 <div className="p-4 bg-muted/30 border-t border-border flex justify-end gap-3">
                                                     <Button
@@ -580,7 +580,7 @@ export default function ClosingTab({ campaignId }: ClosingTabProps) {
                         </div>
                         <h3 className="text-xl font-bold text-foreground">Select a Conversation</h3>
                         <p className="text-base font-medium text-muted-foreground mt-3 max-w-sm leading-relaxed">
-                            Choose a lead from the registry to view the communication thread and use AI to draft personalized responses.
+                            Choose a lead from the list to view the communication thread and use AI to draft personalized responses.
                         </p>
                     </div>
                 )}

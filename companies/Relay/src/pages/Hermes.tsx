@@ -13,7 +13,7 @@ const Hermes = () => {
   useEffect(() => {
     fetchStatus();
     fetchSkills();
-    setMessages([{ role: 'hermes', content: 'INITIALIZING HERMES OS v1.0.4...\nCONNECTING TO DEEPSEEK NEURAL LINK...\nSYSTEM ONLINE. READY FOR INSTRUCTIONS.' }]);
+    setMessages([{ role: 'hermes', content: 'Initializing Hermes Assistant...\nConnecting to DeepSeek AI...\nSystem ready. How can I help you today?' }]);
   }, []);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ const Hermes = () => {
               ● {status.status}
             </div>
             <div className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.3em]">
-              DeepSeek Neural Integration Active
+              DeepSeek AI Active
             </div>
           </div>
         </div>
@@ -186,7 +186,7 @@ const Hermes = () => {
           <div className="bg-foreground/[0.02] rounded-none p-10 space-y-8 border-none">
             <div className="flex items-center gap-3">
               <Cpu size={14} className="text-primary" />
-              <span className="text-[10px] font-black text-foreground uppercase tracking-[0.4em]">Neural Metrics</span>
+              <span className="text-[10px] font-black text-foreground uppercase tracking-[0.4em]">AI Metrics</span>
             </div>
 
             <div className="space-y-6">

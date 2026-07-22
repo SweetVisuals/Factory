@@ -31,9 +31,9 @@ const NeuralFeed = ({ logs }: { logs: { timestamp: string, message: string }[] }
       <div className="flex items-center justify-between mb-2 pb-2">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-primary animate-pulse" />
-          <span className="text-white font-black uppercase tracking-widest">Neural Link Feed</span>
+          <span className="text-white font-black uppercase tracking-widest">Scraper Log</span>
         </div>
-        <span className="text-muted-foreground/40 uppercase tracking-tighter">Live Telemetry</span>
+        <span className="text-muted-foreground/40 uppercase tracking-tighter">Live Logs</span>
       </div>
       
       <div 
@@ -42,7 +42,7 @@ const NeuralFeed = ({ logs }: { logs: { timestamp: string, message: string }[] }
       >
         {logs.length === 0 ? (
           <div className="h-full flex items-center justify-center text-muted-foreground/20 italic">
-            Awaiting neural broadcast...
+            Awaiting logs...
           </div>
         ) : (
           logs.map((log, i) => (

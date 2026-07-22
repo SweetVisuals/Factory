@@ -171,7 +171,7 @@ const CampaignScraperTab = ({ campaignId }: CampaignScraperTabProps) => {
           <Brain size={20} className="text-primary" />
           <div>
             <h2 className="text-lg font-black text-foreground uppercase tracking-tight leading-none">Lead Scraper</h2>
-            <p className="text-[9px] font-black text-foreground/20 uppercase tracking-[0.3em] mt-1">Targeted intelligence acquisition</p>
+            <p className="text-[9px] font-black text-foreground/20 uppercase tracking-[0.3em] mt-1">Find and scrape new leads</p>
           </div>
         </div>
         
@@ -194,7 +194,7 @@ const CampaignScraperTab = ({ campaignId }: CampaignScraperTabProps) => {
         >
           <div className="flex items-center gap-3">
             <Terminal size={12} className="text-primary" />
-            <span className="text-[10px] font-black text-foreground/60 uppercase tracking-[0.2em]">Telemetry Log</span>
+            <span className="text-[10px] font-black text-foreground/60 uppercase tracking-[0.2em]">Scraper Log</span>
             {logs.length > 0 && (
               <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5">{logs.length}</span>
             )}

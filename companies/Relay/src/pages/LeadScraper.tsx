@@ -215,8 +215,8 @@ const LeadScraper = () => {
                 <Brain size={28} className="lg:w-9 lg:h-9" />
               </div>
               <div>
-                <h1 className="text-foreground text-2xl lg:text-4xl font-black uppercase tracking-tighter">Neural Scraper</h1>
-                <p className="text-muted-foreground/30 text-[9px] lg:text-[11px] font-black uppercase tracking-[0.5em] mt-1">Autonomous Lead Extraction Engine</p>
+                <h1 className="text-foreground text-2xl lg:text-4xl font-black uppercase tracking-tighter">Lead Scraper</h1>
+                <p className="text-muted-foreground/30 text-[9px] lg:text-[11px] font-black uppercase tracking-[0.5em] mt-1">Extract Leads and Contact Details</p>
               </div>
             </div>
             {/* Mobile Filter Toggle */}

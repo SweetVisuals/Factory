@@ -42,9 +42,9 @@ export const CampaignHub = () => {
           <div className="bg-red-500/10 p-6 mb-6 rounded-full shadow-[0_0_30px_rgba(239,68,68,0.2)]">
             <AlertCircle className="w-12 h-12 text-red-500" />
           </div>
-          <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Connection Disrupted</h3>
+          <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Connection Error</h3>
           <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] text-center mb-8 max-w-[250px]">
-            The connection to the campaign database was lost.
+            Could not connect to the database.
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -97,7 +97,7 @@ export const CampaignHub = () => {
                 <h1 className="text-4xl font-black text-white tracking-tighter">Campaigns</h1>
               </div>
               <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
-                Overview of all outbound sequences
+                Overview of all email campaigns
               </p>
             </div>
             

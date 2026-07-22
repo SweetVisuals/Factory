@@ -50,7 +50,7 @@ const TelemetryLogsContainer = () => {
   return (
     <div ref={scrollRef} className="max-h-[180px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
       {telemetryLogs.length === 0 ? (
-        <div className="text-muted-foreground/30 italic text-center py-4">Awaiting neural broadcast...</div>
+        <div className="text-muted-foreground/30 italic text-center py-4">Awaiting log updates...</div>
       ) : (
         telemetryLogs.map((log, i) => (
           <div key={i} className="flex gap-2 text-foreground/70">
@@ -221,9 +221,9 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
           <div className="flex items-center justify-between mb-1 pb-1 border-b border-border/30">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-primary animate-pulse" />
-              <span className="text-foreground font-black uppercase tracking-widest text-[9px]">Neural Link Feed</span>
+              <span className="text-foreground font-black uppercase tracking-widest text-[9px]">Scraper Log</span>
             </div>
-            <span className="text-muted-foreground/40 uppercase tracking-tighter text-[8px]">Live Telemetry</span>
+            <span className="text-muted-foreground/40 uppercase tracking-tighter text-[8px]">Live Logs</span>
           </div>
           <TelemetryLogsContainer />
         </div>

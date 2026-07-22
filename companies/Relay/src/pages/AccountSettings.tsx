@@ -148,7 +148,7 @@ export default function AccountSettings() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label htmlFor="industry" className="text-xs uppercase tracking-widest text-white/30 font-bold ml-1">Neural Niche (Department)</Label>
+                    <Label htmlFor="industry" className="text-xs uppercase tracking-widest text-white/30 font-bold ml-1">Department / Industry</Label>
                     <div className="relative group">
                       <Cpu className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-primary transition-colors" />
                       <Input
