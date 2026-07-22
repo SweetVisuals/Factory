@@ -32,7 +32,7 @@ const SequenceEditor = () => {
     company_name: 'Relay Solutions',
     pitch: 'Automation & Systems',
     contact_number: '+44 7864851184',
-    primary_email: 'ethan@relaysolutions.net'
+    primary_email: 'nicolas@relaysolutions.net'
   });
 
   // Track if initial load has happened to avoid overwriting database on first render
@@ -54,7 +54,7 @@ const SequenceEditor = () => {
         company_name: campaign.company_name || 'Relay Solutions',
         pitch: campaign.pitch || 'Automation & Systems',
         contact_number: campaign.contact_number || '+44 7864851184',
-        primary_email: campaign.primary_email || 'ethan@relaysolutions.net'
+        primary_email: campaign.primary_email || 'nicolas@relaysolutions.net'
       });
       // After first load, we allow debounced updates to sync back
       setTimeout(() => { isInitialLoad.current = false; }, 100);

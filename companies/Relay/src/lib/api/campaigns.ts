@@ -24,20 +24,8 @@ export async function createCampaign(campaign: Omit<Campaign, 'id'>) {
 
     const frontendCampaign = transformDbCampaignToFrontend(data);
 
-    // Load initial random templates
-    try {
-      const randomSequence = getRandomSequence();
-      for (let i = 0; i < randomSequence.length; i++) {
-        const step = randomSequence[i];
-        await createTemplate(frontendCampaign.id, {
-          name: `Step ${i + 1}`,
-          subject: step.subject,
-          content: step.body
-        });
-      }
-    } catch (templateError) {
-      console.error('Failed to create initial templates:', templateError);
-    }
+    // Initial templates are no longer generated immediately.
+    // They are generated automatically by the AI when the campaign reaches 1000 leads.
 
     return frontendCampaign;
   } catch (error) {

@@ -312,6 +312,138 @@ CRITICAL RULES:
     res.status(500).json({ error: err.message });
   }
 });
+async function generateAndSaveSequencesForCampaign(campaignId) {
+  try {
+    const { data: campaign } = await client.from('campaigns').select('*').eq('id', campaignId).single();
+    if (!campaign) return false;
+
+    const niche = campaign.niche || 'General Business';
+    const company = campaign.company_name || 'Our Company';
+    const pitch = campaign.pitch || campaign.objective || '';
+
+    const pitchContext = pitch ? \`
+Your Pitch / Service Offering: "\${pitch}"
+This is the specific product or service being offered. Every email must feel like it was written specifically around this offering — the value, the angle, the curiosity — all tied to what you do. Do NOT be generic.\` : '';
+
+    const systemPrompt = \`You are an elite B2B cold email copywriter. You write like a real human, not a marketing department.
+Every email must feel like it came from someone who genuinely understands the recipient's industry — not someone blasting a mass list.\${pitchContext}
+
+ABSOLUTE RULES (violation = failure):
+1. GREETING: Always "Hi {{first_name}}," — NEVER full name, NEVER last name.
+2. NEVER mention the lead's job title, role, or position anywhere.
+3. BANNED PHRASES — never use any of these under any circumstances:
+   "sounds interesting", "I thought it was interesting", "I found it interesting",
+   "I hope this finds you well", "I wanted to reach out", "touch base", "I came across your website",
+   "I noticed you", "just checking in", "circling back", "synergy", "leverage", "unlock potential", "game-changer".
+4. SUBJECT LINES — critically important:
+   a. NEVER use placeholders ({{first_name}}, {{company}}) in the subject.
+   b. Each subject must feel completely different in format and approach.
+   c. Niche-specific and intriguing — a busy decision-maker must WANT to open it.
+   d. Under 9 words. Sentence-case only.
+   e. BANNED subject styles: "Quick question", "Following up", "Checking in", "Touching base", "Partnership opportunity".
+   f. Mix formats across the 5 steps: bold statement, provocative question, insight teaser, personal check-in, graceful exit.
+5. DO NOT INCLUDE ANY SIGN-OFF, "Best,", "Regards,", or any closing in the body. The system auto-appends the signature.
+6. Plain text only. No HTML. Normal line breaks between paragraphs.
+7. Each step MUST cover a completely unique angle — no repeated topics, features, or ideas across steps.
+8. SPECIFIC USE CASES & SOLUTIONS: Instead of talking about generic benefits (like "streamlining operations" or "increasing efficiency"), describe a highly concrete, realistic custom solution tailored specifically to the targeted niche. Show them EXACTLY what we can do for them, BUT this must be derived entirely from the provided Pitch / Service Offering. Do NOT invent random services or pain points that do not align with the pitch.
+9. NEVER SELL OR PITCH DIRECTLY. Your ONLY goal is to book a calendar slot or phone call by enquiring about their current struggles and hurdles. DO NOT offer a solution immediately. Be genuinely curious about their pain points.
+
+STEP ARCHETYPES — follow each one precisely:
+
+Step 1 — "The Pattern Interrupt":
+This is the very first cold email. Its ONLY job is to NOT sound like every other cold email they receive.
+- The opening sentence must immediately signal that you understand their world — reference something specific to the {{industry}} space or {{company}}.
+- Do NOT open with a generic observation or compliment. Go straight to something that makes them think "how did they know that?"
+- Ask ONE sharp, unexpected question OR make ONE bold statement that makes them genuinely curious about what you do.
+- The email should feel like a quick DM from someone in their network — not a pitch.
+- Keep it under 60 words total.
+- Use [[notes]] naturally if it helps anchor the opener to their specific business.
+
+Step 2 — "The Value Add":
+They've seen you once — now prove you're worth their time.
+- Lead with a useful industry insight, stat, or observation relevant to the \${niche} niche that they might not know.
+- Frame your offer as a natural extension of that insight — never a pitch.
+- ONE clear CTA: a direct question or "worth a quick 10 minutes?"
+- Tone: confident but not pushy. Like sharing something useful with a peer.
+
+Step 3 — "The Social Proof Nudge":
+They've seen you twice — now build quiet credibility without bragging.
+- Reference a concrete result, outcome, or scenario relevant to someone in the \${niche} space.
+- Tell it like a quick story, not a case study.
+- End with a low-friction CTA: "Curious if this rings a bell for you?" or similar.
+
+Step 4 — "The Soft Touch":
+Super short and human. Like bumping into someone in a hallway.
+- Acknowledge time has passed without being needy or apologetic.
+- One sentence framing. One question. That's it.
+- Under 40 words (excluding greeting and the signature placeholder block).
+
+Step 5 — "The Breakup":
+Polite, confident closure — the "breakup" framework that often drives last-second replies.
+- Tell them this is your last email. No hard feelings at all.
+- Leave the door open warmly: "If timing changes, I'm easy to find."
+- Do NOT sound desperate, passive-aggressive, or guilt-trippy.
+- Project abundance: you don't need them. You're just genuinely offering.
+- Under 45 words (excluding greeting and signature placeholder block).
+
+Output Format: JSON object with a "sequences" array of EXACTLY 5 objects.
+Each object MUST have EXACTLY these 3 keys:
+- "name": Step title (e.g. "Step 1: The Pattern Interrupt")
+- "subject": The email subject line (no placeholders, under 9 words)
+- "content": The full email body — greeting included, NO sign-off, NO signature
+\`;
+
+    const userPrompt = \`Generate a 5-step cold outreach sequence for the "\${niche}" niche.\`;
+    const contextPrompt = \`
+Our company is "\${company}". Use <company> to represent our company name in the templates.\${pitch ? \`
+We are specifically pitching: "\${pitch}". Every email angle, hook, and value proposition must be grounded in THIS specific offering — not a generic version of it.\` : ''}
+The tone should feel like a genuinely helpful person reaching out — curious, concise, and human.
+Use [[notes]] as the anchor for personalisation. Do NOT invent specific facts.
+Do NOT mention the lead's role or job title anywhere in the emails.
+Each email MUST be completely different in topic and approach — no repetition across steps.
+
+SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "\${niche}" and genuinely intriguing to a decision-maker in that space. Think carefully about the real daily challenges, ambitions, and pressures of someone running a business in the "\${niche}" industry, and write subjects that speak directly to those. Be bold, be specific, be original. Do NOT use generic phrases.\`;
+
+    const data = await fetchAIChatCompletion({
+      model: 'deepseek-chat',
+      temperature: 1.2,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt + contextPrompt }
+      ],
+      response_format: { type: 'json_object' }
+    }, console.log);
+
+    const contentString = data.choices[0].message.content;
+    const content = JSON.parse(contentString);
+    let sequences = Array.isArray(content) ? content : (content.sequences || content.emails);
+    if (!sequences && typeof content === 'object') {
+      const firstArrayKey = Object.keys(content).find(key => Array.isArray(content[key]));
+      if (firstArrayKey) sequences = content[firstArrayKey];
+    }
+    sequences = sequences || [];
+
+    // Save sequences to templates
+    for (let i = 0; i < sequences.length; i++) {
+      const step = sequences[i];
+      await client.from('templates').insert({
+        campaign_id: campaignId,
+        name: step.name || \`Step \${i + 1}\`,
+        subject: step.subject || '',
+        content: step.content || ''
+      });
+    }
+
+    // Set campaign status to paused to trigger review workflow
+    await client.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
+    console.log(\`[Automated Sequences] Successfully generated 5 sequence templates for campaign \${campaignId} and set to paused.\`);
+    return true;
+
+  } catch (error) {
+    console.error('[Automated Sequences] Generation Error:', error);
+    return false;
+  }
+}
 
 app.post('/api/generate-sequences', async (req, res) => {
   try {
@@ -1453,6 +1585,7 @@ app.post('/api/scrape-leads', async (req, res) => {
     let listId = null;
     let campaignName = 'Unknown Campaign';
     let campaignPitch = '';
+    let campaignLeadCount = 0;
     try {
       if (campaignId) {
         const { data: campaignData } = await client.from('campaigns').select('name, pitch, objective').eq('id', campaignId).single();
@@ -1460,6 +1593,8 @@ app.post('/api/scrape-leads', async (req, res) => {
           campaignName = campaignData.name;
           campaignPitch = campaignData.pitch || campaignData.objective || '';
         }
+        const { count } = await client.from('campaign_leads').select('*', { count: 'exact', head: true }).eq('campaign_id', campaignId);
+        campaignLeadCount = count || 0;
       }
 
       const folderName = business || 'General';
@@ -1623,6 +1758,12 @@ app.post('/api/scrape-leads', async (req, res) => {
                   campaign_id: campaignId,
                   lead_id: existingLead.id
                 }, { onConflict: 'campaign_id,lead_id' });
+                
+                campaignLeadCount++;
+                if (campaignLeadCount === 1000) {
+                  log(`[Scraper] Campaign ${campaignName} reached 1000 leads. Triggering automated sequence generation...`);
+                  generateAndSaveSequencesForCampaign(campaignId);
+                }
               }
               
               if (scrapeChannel) scrapeChannel.send({ type: 'broadcast', event: 'leads_updated', payload: {} });
@@ -1751,6 +1892,12 @@ app.post('/api/scrape-leads', async (req, res) => {
                   lead_id: upsertedData.id
                 }, { onConflict: 'campaign_id,lead_id' });
               log(`Linked lead ${upsertedData.company} to campaign: ${campaignName}`);
+
+              campaignLeadCount++;
+              if (campaignLeadCount === 1000) {
+                log(`[Scraper] Campaign ${campaignName} reached 1000 leads. Triggering automated sequence generation...`);
+                generateAndSaveSequencesForCampaign(campaignId);
+              }
               
               // Update Campaign Stats every 10 leads to avoid overloading DB
               if (totalLeadsInThisRun % 10 === 0) {

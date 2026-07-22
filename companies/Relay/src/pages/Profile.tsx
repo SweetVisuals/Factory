@@ -25,7 +25,7 @@ export default function ProfilePage() {
   const [identityLoading, setIdentityLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: user?.user_metadata?.full_name || 'Ethan',
-    email: user?.email || 'ethan@relaysolutions.net',
+    email: user?.email === 'ptnmgmt@gmail.com' ? 'nicolas@relaysolutions.net' : (user?.email || 'nicolas@relaysolutions.net'),
     phone: user?.user_metadata?.phone || '+44 7864851184',
     industry: user?.user_metadata?.industry || 'Automation & Systems',
   });
