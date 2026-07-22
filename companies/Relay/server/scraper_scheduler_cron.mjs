@@ -103,7 +103,8 @@ async function runScraperScheduler() {
                 location = isUS ? 'United States' : 'United Kingdom';
             }
 
-            console.log(`[Scraper Scheduler] Feeding campaign "${c.name}" — current leads: ${count}, requesting 20 more (controlled pace)`);
+            const scrapeLimit = Math.floor(Math.random() * 5) + 1; // Random 1 - 5 leads
+            console.log(`[Scraper Scheduler] Feeding campaign "${c.name}" — current leads: ${count}, requesting ${scrapeLimit} more (controlled pace)`);
 
             try {
                 // Trigger Node.js scraper endpoint using the local loopback
@@ -116,7 +117,7 @@ async function runScraperScheduler() {
                     body: JSON.stringify({
                         business: niche,
                         location: location,
-                        limit: 20, // Heavily throttled - batch limit of 20 for controlled pacing
+                        limit: scrapeLimit, // Limit of 1-5 leads per run
                         campaignId: c.id,
                         keywords: niche,
                         deepResearch: true // Force all new leads into deep research queue
@@ -228,12 +229,12 @@ export function startScraperSchedulerCron() {
   
   supabase = createClient(supabaseUrl, supabaseKey);
 
-  console.log('[Scraper Scheduler] Initialized. Running every 60 seconds.');
+  console.log('[Scraper Scheduler] Initialized. Running every 5 minutes.');
   
   // Wait a few seconds on startup before running so server has time to boot fully
   setTimeout(() => {
     runScraperScheduler();
-    // Run every 3 minutes for max throughput
-    setInterval(runScraperScheduler, 3 * 60 * 1000);
+    // Run every 5 minutes
+    setInterval(runScraperScheduler, 5 * 60 * 1000);
   }, 5 * 1000);
 }

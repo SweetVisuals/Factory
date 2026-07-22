@@ -14,6 +14,7 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { validateEmail } from './email-validation.mjs';
 import { fetchAIChatCompletion } from './ai-client.mjs';
+import { executionQueue } from './execution_queue.mjs';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
@@ -1797,6 +1798,7 @@ app.post('/api/scrape-leads', async (req, res) => {
 
     // Run scraping in background
     (async () => {
+      await executionQueue.enqueue(async () => {
       const MAX_RETRIES = 3;
       let currentRetry = 0;
       let currentTaskId = taskId;
@@ -2340,7 +2342,7 @@ The Scraper failed to find any leads in "${location}".
           client.removeChannel(scrapeChannel);
           activeScrapes.delete(userId);
         }
-      }
+      }, `scraper-run-${campaignId || 'manual'}`);
     })();
 
 
