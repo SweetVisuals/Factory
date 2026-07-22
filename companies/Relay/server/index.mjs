@@ -2097,7 +2097,7 @@ app.post('/api/scrape-leads', async (req, res) => {
           research_status: researchStatus,
           tech_stack: lead.tech_stack || [],
           services_offered: lead.services_offered || [],
-          industry: lead.industry || null,
+          industry: lead.industry || business || keywords || null,
           social_presence: {
             facebook_url: lead.facebook || '',
             instagram_url: lead.instagram || '',
@@ -2111,6 +2111,31 @@ app.post('/api/scrape-leads', async (req, res) => {
           validation_details: validationDetails,
           updated_at: new Date().toISOString()
         };
+
+        // Validate lead data completeness (must not lack more than 3 core fields)
+        const missingFields = [];
+        if (!leadData.email) missingFields.push('email');
+        if (!leadData.phone) missingFields.push('phone');
+        if (!leadData.website) missingFields.push('website');
+        if (!leadData.industry) missingFields.push('industry');
+        if (!leadData.company_size) missingFields.push('company_size');
+        if (!leadData.year_founded) missingFields.push('year_founded');
+        if (!leadData.annual_revenue) missingFields.push('annual_revenue');
+        if (!leadData.tech_stack || leadData.tech_stack.length === 0) missingFields.push('tech_stack');
+        if (!leadData.services_offered || leadData.services_offered.length === 0) missingFields.push('services_offered');
+        
+        const hasSocial = leadData.social_presence && (
+          leadData.social_presence.facebook_url || 
+          leadData.social_presence.instagram_url || 
+          leadData.social_presence.twitter_url || 
+          leadData.social_presence.linkedin_url
+        );
+        if (!hasSocial) missingFields.push('social_presence');
+
+        if (missingFields.length > 3) {
+          log(`[Filter] Dropped ${lead.company || 'lead'}: Lacked too many fields (${missingFields.length} missing: ${missingFields.join(', ')}).`);
+          return;
+        }
 
         // Use a retry mechanism for DB saves
         let error, upsertedData;
