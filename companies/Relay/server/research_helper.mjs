@@ -80,34 +80,37 @@ function buildResearchPrompt(companyName, rawWebsite, scrapedReport, campaignPit
 
   const optimizedScraped = cleanScrapedNoise(scrapedReport);
 
-  return `Extract business intelligence for "${companyName}" (${rawWebsite}) from the scraped text below.
+  return `You are a business intelligence analyst. Extract FACTUAL data about "${companyName}" (${rawWebsite}) from the scraped text below. 
 ${pitchContext}Known: ${leadContext}
 
 TEXT:
 ${optimizedScraped}
 
-CRITICAL INSTRUCTIONS:
-1. You MUST populate ALL fields in the JSON. Do not leave them null or empty unless absolutely impossible.
-2. If direct data is missing from the text, make highly educated logical deductions based on the company's niche/type (e.g., local estate agents usually have WordPress, Google Analytics; target market is local property owners/buyers; company size is typically 1-10; services offered are residential sales/lettings).
-3. A maximum of 2 fields in total may be left empty/null/empty arrays. All other fields must be filled with factual data or logical deductions.
+CRITICAL RULES:
+1. ONLY report facts you can verify from the text. Do NOT invent, speculate, or generate suggestions.
+2. Pain points must be REAL observable issues from their website/business (e.g., "Website has no SSL certificate", "No online booking system available", "No social media links found", "Outdated website design from early 2010s", "No blog or content marketing"). Do NOT generate product pitch ideas.
+3. Growth signals must be REAL evidence found in the text (e.g., "Hiring 3 new positions listed on site", "Opened second location in Manchester", "Won Best Agency Award 2024", "Recently rebranded"). Do NOT invent growth signals.
+4. personalised_detail must be a FACTUAL observation about their specific business found in the text (e.g., "specialises in commercial property in Edinburgh", "family-run since 1985", "recently launched a new lettings division"). It must describe THEM, not something we could sell them.
+5. If you genuinely cannot find data for a field from the text, use an empty array [] or null. Do NOT fabricate data. A maximum of 2 fields may be empty.
+6. For fields not in the text, make CONSERVATIVE logical deductions based on their business type (e.g., a local estate agent likely uses Rightmove/Zoopla, targets local property owners, has 1-20 employees).
 
 Output JSON ONLY (no markdown blocks):
 {
-  "company_description": "2-3 short sentences summarizing their business & focus.",
+  "company_description": "2-3 factual sentences about what they do based on the text.",
   "services_offered": ["service1", "service2"],
   "key_people": [{"name": "Name", "title": "Title", "linkedin": "URL or null"}],
-  "pain_points": [{"area": "Area", "description": "Challenge details", "severity": "high|medium|low"}],
-  "growth_signals": [{"type": "hiring|expansion|award", "detail": "Details"}],
-  "target_market": "Target audience",
-  "competitive_advantage": "Main differentiator",
+  "pain_points": [{"area": "Observable Issue Area", "description": "Specific factual problem you can see from their site/data", "severity": "high|medium|low"}],
+  "growth_signals": [{"type": "hiring|expansion|award|funding|new_product|partnership", "detail": "Specific evidence from the text"}],
+  "target_market": "Their target audience based on their services",
+  "competitive_advantage": "What differentiates them based on what the text shows",
   "company_size": "Employee count range or null",
   "year_founded": "Year or null",
-  "annual_revenue": "Revenue or null",
+  "annual_revenue": "Revenue estimate or null",
   "tech_stack": ["tech1", "tech2"],
   "social_presence": {"google_rating": 4.5, "review_count": 100, "facebook_url": "url", "instagram_url": "url", "twitter_url": "url", "linkedin_url": "url"},
-  "recent_news": [{"headline": "Title", "date": "date"}],
-  "personalised_detail": "5-12 words referencing a specific project/service seen in text. Default: 'work'.",
-  "quick_fact": "1 verified sentence from text."
+  "recent_news": [{"headline": "Actual news headline from text", "date": "date if found"}],
+  "personalised_detail": "A specific factual observation about THIS company from the text. Must describe them, not a pitch idea.",
+  "quick_fact": "1 verified sentence from the text about this company."
 }`;
 }
 

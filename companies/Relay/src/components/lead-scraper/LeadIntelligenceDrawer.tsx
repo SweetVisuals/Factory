@@ -232,11 +232,19 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <ScoreBadge score={score} />
-              <button onClick={onClose} className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all">
-                <X size={20} />
-              </button>
+            <button onClick={onClose} className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Research Quality Score */}
+          <div className="flex items-center gap-4 mb-4 p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+            <ScoreBadge score={score} />
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Research Quality</span>
+              <p className="text-[11px] font-bold text-white/60 mt-0.5">
+                {score >= 70 ? 'Comprehensive data collected' : score >= 40 ? 'Partial data — consider re-scanning' : 'Minimal data — deep scan recommended'}
+              </p>
             </div>
           </div>
 
@@ -245,24 +253,24 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
             <button
               onClick={handleReResearch}
               disabled={isResearching}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-black uppercase tracking-widest text-[9px] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_0_15px_-5px_rgba(139,92,246,0.6)]"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-black uppercase tracking-widest text-[9px] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_0_15px_-5px_rgba(139,92,246,0.6)]"
             >
               {isResearching ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               {isResearching ? 'Researching...' : 'Deep Scan'}
             </button>
 
             {displayLead.website && (
-              <a href={displayLead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/5 text-white hover:bg-white/[0.06] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
+              <a href={displayLead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] border border-white/10 text-white/80 hover:text-white hover:bg-white/[0.1] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
                 <Globe size={12} /> Website
               </a>
             )}
             {displayLead.email && (
-              <a href={`mailto:${displayLead.email}`} className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/5 text-white hover:bg-white/[0.06] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
+              <a href={`mailto:${displayLead.email}`} className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] border border-white/10 text-white/80 hover:text-white hover:bg-white/[0.1] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
                 <Mail size={12} /> Email
               </a>
             )}
             {displayLead.linkedin && (
-              <a href={displayLead.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/5 text-white hover:bg-white/[0.06] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
+              <a href={displayLead.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] border border-white/10 text-white/80 hover:text-white hover:bg-white/[0.1] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
                 <Linkedin size={12} /> LinkedIn
               </a>
             )}
