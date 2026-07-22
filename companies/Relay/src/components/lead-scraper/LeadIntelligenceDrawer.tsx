@@ -57,7 +57,7 @@ const StatusPill: React.FC<{ status: string | null | undefined }> = ({ status })
   const c = config[status || ''] || { bg: 'bg-foreground/[0.05]', text: 'text-muted-foreground', label: 'Unknown' };
 
   return (
-    <span className={`px-3 py-1 ${c.bg} ${c.text} font-black uppercase tracking-widest text-[9px] rounded-none`}>
+    <span className={`px-3 py-1 ${c.bg} ${c.text} font-black uppercase tracking-widest text-[9px] rounded-full`}>
       {c.label}
     </span>
   );
@@ -73,23 +73,23 @@ const EmptySection: React.FC<{ icon: React.ReactNode; message: string }> = ({ ic
 
 // Fact card
 const FactCard: React.FC<{ icon: React.ReactNode; label: string; value: string | null | undefined }> = ({ icon, label, value }) => (
-  <div className="p-4 bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors group">
+  <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors group">
     <div className="flex items-center gap-2 mb-2">
-      <div className="w-7 h-7 rounded-none bg-foreground/[0.04] flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
+      <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center text-white/40 group-hover:text-primary transition-colors">
         {icon}
       </div>
-      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">{label}</span>
     </div>
-    <p className="text-[13px] font-bold text-foreground/80 pl-9">{value || '—'}</p>
+    <p className="text-[13px] font-bold text-white/90 pl-9">{value || '—'}</p>
   </div>
 );
 
 // Tag chip
 const TagChip: React.FC<{ label: string; variant?: 'primary' | 'secondary' }> = ({ label, variant = 'primary' }) => (
-  <span className={`inline-block px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors ${
+  <span className={`inline-block px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors rounded-lg border ${
     variant === 'primary' 
-      ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-      : 'bg-foreground/[0.04] text-foreground/60 hover:bg-foreground/[0.08]'
+      ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' 
+      : 'bg-white/[0.04] text-white/60 border-white/5 hover:bg-white/[0.08]'
   }`}>
     {label}
   </span>
@@ -103,7 +103,7 @@ const SeverityBadge: React.FC<{ severity: string }> = ({ severity }) => {
     low: 'bg-emerald-500/10 text-emerald-400',
   };
   return (
-    <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${colors[severity] || colors.medium}`}>
+    <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full ${colors[severity] || colors.medium}`}>
       {severity}
     </span>
   );
@@ -204,15 +204,15 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
       />
 
       {/* Drawer */}
-      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-[780px] bg-card border-l border-foreground/[0.05] shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-[780px] bg-[#0a0a0a] border-l border-white/10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         
         {/* HEADER */}
-        <div className="shrink-0 p-6 pb-4 border-b border-foreground/[0.03] bg-foreground/[0.01]">
+        <div className="shrink-0 p-6 pb-4 border-b border-white/10 bg-[#111]">
           {/* Top row */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
               {/* Company avatar / favicon */}
-              <div className="w-14 h-14 rounded-none bg-foreground/[0.04] flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-14 h-14 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
                 {faviconUrl ? (
                   <img src={faviconUrl} alt="" className="w-8 h-8" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 ) : (
@@ -220,13 +220,13 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                 )}
               </div>
               <div>
-                <h2 className="text-xl font-black text-foreground uppercase tracking-tight leading-tight">
+                <h2 className="text-xl font-black text-white uppercase tracking-tight leading-tight">
                   {displayLead.company || displayLead.name}
                 </h2>
                 <div className="flex items-center gap-3 mt-1.5">
                   <StatusPill status={displayLead.research_status} />
                   {displayLead.industry && (
-                    <span className="text-[10px] font-bold text-muted-foreground/60">{displayLead.industry}</span>
+                    <span className="text-[10px] font-bold text-white/50">{displayLead.industry}</span>
                   )}
                 </div>
               </div>
@@ -234,7 +234,7 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
             <div className="flex items-center gap-3">
               <ScoreBadge score={score} />
-              <button onClick={onClose} className="p-2 text-muted-foreground/40 hover:text-foreground hover:bg-foreground/[0.05] transition-all">
+              <button onClick={onClose} className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all">
                 <X size={20} />
               </button>
             </div>
@@ -245,39 +245,39 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
             <button
               onClick={handleReResearch}
               disabled={isResearching}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-none font-black uppercase tracking-widest text-[9px] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_0_15px_-5px_hsl(var(--primary))]"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-black uppercase tracking-widest text-[9px] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_0_15px_-5px_rgba(139,92,246,0.6)]"
             >
               {isResearching ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               {isResearching ? 'Researching...' : 'Deep Scan'}
             </button>
 
             {displayLead.website && (
-              <a href={displayLead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-foreground/[0.03] text-foreground hover:bg-foreground/[0.06] rounded-none font-black uppercase tracking-widest text-[9px] transition-all">
+              <a href={displayLead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/5 text-white hover:bg-white/[0.06] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
                 <Globe size={12} /> Website
               </a>
             )}
             {displayLead.email && (
-              <a href={`mailto:${displayLead.email}`} className="flex items-center gap-2 px-4 py-2 bg-foreground/[0.03] text-foreground hover:bg-foreground/[0.06] rounded-none font-black uppercase tracking-widest text-[9px] transition-all">
+              <a href={`mailto:${displayLead.email}`} className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/5 text-white hover:bg-white/[0.06] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
                 <Mail size={12} /> Email
               </a>
             )}
             {displayLead.linkedin && (
-              <a href={displayLead.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-foreground/[0.03] text-foreground hover:bg-foreground/[0.06] rounded-none font-black uppercase tracking-widest text-[9px] transition-all">
+              <a href={displayLead.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/5 text-white hover:bg-white/[0.06] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
                 <Linkedin size={12} /> LinkedIn
               </a>
             )}
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-0 mt-5 border-b border-foreground/[0.03] -mb-4 -mx-6 px-6">
+          <div className="flex gap-0 mt-5 border-b border-white/10 -mb-4 -mx-6 px-6">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 font-black uppercase tracking-widest text-[9px] border-b-2 transition-all ${
+                className={`flex items-center gap-2 px-4 py-3 font-bold uppercase tracking-widest text-[9px] border-b-2 transition-all ${
                   activeTab === tab.id
                     ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground/50 hover:text-muted-foreground hover:border-foreground/10'
+                    : 'border-transparent text-white/40 hover:text-white/70 hover:border-white/20'
                 }`}
               >
                 {tab.icon} {tab.label}
@@ -291,8 +291,8 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
           {isResearching && (
             <div className="flex flex-col items-center justify-center py-20 space-y-4 animate-pulse">
               <Loader2 size={40} className="text-primary animate-spin" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AI is analyzing this company...</p>
-              <p className="text-[9px] font-bold text-muted-foreground/40">Scraping website, searching Google, extracting intelligence</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/50">AI is analyzing this company...</p>
+              <p className="text-[9px] font-bold text-white/30">Scraping website, searching Google, extracting intelligence</p>
             </div>
           )}
 
@@ -301,17 +301,17 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
               {/* Company Description */}
               {displayLead.company_description && (
                 <div className="space-y-2">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                     <Building2 size={12} /> Company Overview
                   </h3>
-                  <p className="text-sm font-medium text-foreground/70 leading-relaxed pl-1">
+                  <p className="text-sm font-medium text-white/80 leading-relaxed pl-1">
                     {displayLead.company_description}
                   </p>
                 </div>
               )}
 
               {/* Key Facts Grid */}
-              <div className="grid grid-cols-2 gap-[1px] bg-foreground/[0.03]">
+              <div className="grid grid-cols-2 gap-3">
                 <FactCard icon={<Briefcase size={13} />} label="Industry" value={displayLead.industry} />
                 <FactCard icon={<MapPin size={13} />} label="Location" value={displayLead.location} />
                 <FactCard icon={<Users size={13} />} label="Company Size" value={displayLead.company_size || displayLead.employees} />
@@ -322,18 +322,18 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
               {/* Competitive Advantage */}
               {displayLead.competitive_advantage && (
-                <div className="p-5 bg-primary/[0.03] border-l-2 border-primary/30">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/80 flex items-center gap-2 mb-2">
+                <div className="p-5 bg-primary/[0.05] border border-primary/20 rounded-xl">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-2 mb-2">
                     <Shield size={12} /> Competitive Advantage
                   </h3>
-                  <p className="text-sm font-medium text-foreground/70 leading-relaxed">{displayLead.competitive_advantage}</p>
+                  <p className="text-sm font-medium text-white/80 leading-relaxed">{displayLead.competitive_advantage}</p>
                 </div>
               )}
 
               {/* Legacy summary fallback */}
               {!displayLead.company_description && displayLead.summary && (
                 <div className="space-y-2">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                     <BrainCircuit size={12} /> Research Summary
                   </h3>
                   <div className="prose prose-invert prose-sm max-w-none">
@@ -342,7 +342,7 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                       const isHeader = line.startsWith('##');
                       const isBold = line.startsWith('**');
                       return (
-                        <p key={i} className={`${isHeader ? 'text-base font-black text-foreground uppercase tracking-tight mt-6 mb-2' : ''} ${isBold ? 'font-black text-foreground' : 'font-medium text-foreground/60 leading-relaxed'}`}>
+                        <p key={i} className={`${isHeader ? 'text-base font-black text-white uppercase tracking-tight mt-6 mb-2' : ''} ${isBold ? 'font-bold text-white' : 'font-medium text-white/60 leading-relaxed'}`}>
                           {line.replace(/##/g, '').replace(/\*\*/g, '')}
                         </p>
                       );
@@ -361,32 +361,32 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
             <>
               {/* Lead Contact Info */}
               <div className="space-y-2">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                   <Mail size={12} /> Lead Contact
                 </h3>
-                <div className="p-4 bg-foreground/[0.02] space-y-3">
+                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl space-y-3">
                   {displayLead.name && (
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-none bg-primary/10 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
                         <span className="text-primary font-black text-sm">{displayLead.name.charAt(0).toUpperCase()}</span>
                       </div>
                       <div>
-                        <p className="text-sm font-black text-foreground">{displayLead.name}</p>
+                        <p className="text-sm font-black text-white">{displayLead.name}</p>
                         {(displayLead.title || displayLead.role) && (
-                          <p className="text-[10px] font-bold text-muted-foreground">{displayLead.title || displayLead.role}</p>
+                          <p className="text-[10px] font-bold text-white/50">{displayLead.title || displayLead.role}</p>
                         )}
                       </div>
                     </div>
                   )}
                   <div className="flex flex-wrap gap-3 pl-[52px]">
                     {displayLead.email && (
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/60">
-                        <Mail size={12} className="text-muted-foreground/40" /> {displayLead.email}
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-white/60">
+                        <Mail size={12} className="text-white/40" /> {displayLead.email}
                       </div>
                     )}
                     {displayLead.phone && (
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/60">
-                        <Phone size={12} className="text-muted-foreground/40" /> {displayLead.phone}
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-white/60">
+                        <Phone size={12} className="text-white/40" /> {displayLead.phone}
                       </div>
                     )}
                   </div>
@@ -395,24 +395,24 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
               {/* Key People */}
               <div className="space-y-2">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                   <Users size={12} /> Key People ({keyPeople.length})
                 </h3>
                 {keyPeople.length > 0 ? (
-                  <div className="space-y-[1px]">
+                  <div className="space-y-2">
                     {keyPeople.map((person, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors group">
+                      <div key={i} className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors group">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-none bg-foreground/[0.05] flex items-center justify-center">
-                            <span className="text-[11px] font-black text-muted-foreground">{person.name.charAt(0).toUpperCase()}</span>
+                          <div className="w-9 h-9 rounded-full bg-white/[0.05] flex items-center justify-center">
+                            <span className="text-[11px] font-black text-white/50">{person.name.charAt(0).toUpperCase()}</span>
                           </div>
                           <div>
-                            <p className="text-[13px] font-bold text-foreground">{person.name}</p>
-                            <p className="text-[10px] font-bold text-muted-foreground/60">{person.title}</p>
+                            <p className="text-[13px] font-bold text-white">{person.name}</p>
+                            <p className="text-[10px] font-bold text-white/50">{person.title}</p>
                           </div>
                         </div>
                         {person.linkedin && (
-                          <a href={person.linkedin} target="_blank" rel="noopener noreferrer" className="p-2 text-muted-foreground/30 hover:text-primary transition-colors">
+                          <a href={person.linkedin} target="_blank" rel="noopener noreferrer" className="p-2 text-white/30 hover:text-primary transition-colors">
                             <Linkedin size={16} />
                           </a>
                         )}
@@ -430,7 +430,7 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
             <>
               {/* Services */}
               <div className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                   <Briefcase size={12} /> Services Offered ({servicesOffered.length})
                 </h3>
                 {servicesOffered.length > 0 ? (
@@ -446,7 +446,7 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
               {/* Tech Stack */}
               <div className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                   <Cpu size={12} /> Tech Stack ({techStack.length})
                 </h3>
                 {techStack.length > 0 ? (
@@ -466,18 +466,18 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
             <>
               {/* Pain Points */}
               <div className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                   <AlertTriangle size={12} /> Pain Points ({painPoints.length})
                 </h3>
                 {painPoints.length > 0 ? (
-                  <div className="space-y-[1px]">
+                  <div className="space-y-2">
                     {painPoints.map((point, i) => (
-                      <div key={i} className="p-4 bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors">
+                      <div key={i} className="p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[12px] font-black text-foreground">{point.area}</span>
+                          <span className="text-[12px] font-black text-white">{point.area}</span>
                           <SeverityBadge severity={point.severity || 'medium'} />
                         </div>
-                        <p className="text-[11px] font-medium text-foreground/50 leading-relaxed">{point.description}</p>
+                        <p className="text-[11px] font-medium text-white/50 leading-relaxed">{point.description}</p>
                       </div>
                     ))}
                   </div>
@@ -488,22 +488,22 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
               {/* Growth Signals */}
               <div className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                   <TrendingUp size={12} /> Growth Signals ({growthSignals.length})
                 </h3>
                 {growthSignals.length > 0 ? (
-                  <div className="space-y-0 border-l-2 border-foreground/[0.05] ml-2">
+                  <div className="space-y-0 border-l-2 border-white/10 ml-2">
                     {growthSignals.map((signal, i) => (
-                      <div key={i} className="flex items-start gap-3 pl-4 py-3 hover:bg-foreground/[0.02] transition-colors relative">
-                        <div className="absolute -left-[9px] top-4 w-4 h-4 rounded-none bg-foreground/[0.06] flex items-center justify-center">
+                      <div key={i} className="flex items-start gap-3 pl-4 py-3 hover:bg-white/[0.02] rounded-r-xl transition-colors relative">
+                        <div className="absolute -left-[9px] top-4 w-4 h-4 rounded-full bg-white/10 border-2 border-[#0a0a0a] flex items-center justify-center text-white/70">
                           <GrowthIcon type={signal.type} />
                         </div>
                         <div className="ml-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">{signal.type.replace('_', ' ')}</span>
-                            {signal.date && <span className="text-[9px] font-bold text-muted-foreground/40">{signal.date}</span>}
+                            <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">{signal.type.replace('_', ' ')}</span>
+                            {signal.date && <span className="text-[9px] font-bold text-white/40">{signal.date}</span>}
                           </div>
-                          <p className="text-[12px] font-medium text-foreground/70 mt-0.5">{signal.detail}</p>
+                          <p className="text-[12px] font-medium text-white/70 mt-0.5">{signal.detail}</p>
                         </div>
                       </div>
                     ))}
@@ -515,17 +515,17 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
               {/* Recent News */}
               <div className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                   <Newspaper size={12} /> Recent News ({recentNews.length})
                 </h3>
                 {recentNews.length > 0 ? (
-                  <div className="space-y-[1px]">
+                  <div className="space-y-2">
                     {recentNews.map((news, i) => (
-                      <div key={i} className="p-4 bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors">
-                        <p className="text-[12px] font-bold text-foreground/80">{news.headline}</p>
+                      <div key={i} className="p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors">
+                        <p className="text-[12px] font-bold text-white/90">{news.headline}</p>
                         <div className="flex items-center gap-3 mt-1.5">
-                          {news.date && <span className="text-[9px] font-bold text-muted-foreground/40">{news.date}</span>}
-                          {news.source && <span className="text-[9px] font-bold text-primary/50">{news.source}</span>}
+                          {news.date && <span className="text-[9px] font-bold text-white/40">{news.date}</span>}
+                          {news.source && <span className="text-[9px] font-bold text-primary/60">{news.source}</span>}
                         </div>
                       </div>
                     ))}
@@ -537,10 +537,10 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
               {/* Social Presence */}
               <div className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                   <Star size={12} /> Social Presence
                 </h3>
-                <div className="p-5 bg-foreground/[0.02]">
+                <div className="p-5 bg-white/[0.02] border border-white/5 rounded-xl">
                   {(socialPresence.google_rating || socialPresence.review_count) ? (
                     <div className="flex items-center gap-4 mb-4">
                       <div className="flex items-center gap-1">
@@ -548,34 +548,34 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                           <Star
                             key={i}
                             size={16}
-                            className={i < Math.round(socialPresence.google_rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-foreground/10'}
+                            className={i < Math.round(socialPresence.google_rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-white/10'}
                           />
                         ))}
                       </div>
-                      <span className="text-sm font-black text-foreground">{socialPresence.google_rating || '—'}</span>
+                      <span className="text-sm font-black text-white">{socialPresence.google_rating || '—'}</span>
                       {socialPresence.review_count && (
-                        <span className="text-[10px] font-bold text-muted-foreground/50">({socialPresence.review_count} reviews)</span>
+                        <span className="text-[10px] font-bold text-white/50">({socialPresence.review_count} reviews)</span>
                       )}
                     </div>
                   ) : null}
                   <div className="flex gap-2">
                     {socialPresence.facebook_url && (
-                      <a href={socialPresence.facebook_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-none bg-foreground/[0.04] flex items-center justify-center text-muted-foreground hover:text-[#1877F2] hover:bg-[#1877F2]/10 transition-all">
+                      <a href={socialPresence.facebook_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#1877F2] hover:bg-[#1877F2]/10 hover:border-[#1877F2]/20 transition-all">
                         <Facebook size={16} />
                       </a>
                     )}
                     {socialPresence.instagram_url && (
-                      <a href={socialPresence.instagram_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-none bg-foreground/[0.04] flex items-center justify-center text-muted-foreground hover:text-[#E4405F] hover:bg-[#E4405F]/10 transition-all">
+                      <a href={socialPresence.instagram_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#E4405F] hover:bg-[#E4405F]/10 hover:border-[#E4405F]/20 transition-all">
                         <Instagram size={16} />
                       </a>
                     )}
                     {socialPresence.twitter_url && (
-                      <a href={socialPresence.twitter_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-none bg-foreground/[0.04] flex items-center justify-center text-muted-foreground hover:text-[#1DA1F2] hover:bg-[#1DA1F2]/10 transition-all">
+                      <a href={socialPresence.twitter_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#1DA1F2] hover:bg-[#1DA1F2]/10 hover:border-[#1DA1F2]/20 transition-all">
                         <Twitter size={16} />
                       </a>
                     )}
                     {socialPresence.linkedin_url && (
-                      <a href={socialPresence.linkedin_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-none bg-foreground/[0.04] flex items-center justify-center text-muted-foreground hover:text-[#0A66C2] hover:bg-[#0A66C2]/10 transition-all">
+                      <a href={socialPresence.linkedin_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-white/50 hover:text-[#0A66C2] hover:bg-[#0A66C2]/10 hover:border-[#0A66C2]/20 transition-all">
                         <Linkedin size={16} />
                       </a>
                     )}
@@ -593,16 +593,16 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
               {displayLead.personalized_email ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                       <MessageSquare size={12} /> Personalised Email Draft
                     </h3>
-                    <button onClick={handleCopyEmail} className="flex items-center gap-2 px-3 py-1.5 bg-foreground/[0.03] text-muted-foreground hover:text-foreground rounded-none font-black uppercase tracking-widest text-[9px] transition-all">
+                    <button onClick={handleCopyEmail} className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/5 text-white/50 hover:text-white rounded-lg font-bold uppercase tracking-widest text-[9px] transition-all">
                       {copiedEmail ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
                       {copiedEmail ? 'Copied' : 'Copy'}
                     </button>
                   </div>
-                  <div className="p-6 bg-foreground/[0.02] border border-foreground/[0.03]">
-                    <pre className="text-sm font-medium text-foreground/70 leading-relaxed whitespace-pre-wrap font-sans">
+                  <div className="p-6 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <pre className="text-sm font-medium text-white/70 leading-relaxed whitespace-pre-wrap font-sans">
                       {displayLead.personalized_email}
                     </pre>
                   </div>
@@ -614,12 +614,12 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
               {/* Personalised Detail from summary */}
               {displayLead.summary && displayLead.summary.includes('Personalised Detail') && (
                 <div className="space-y-2">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
                     <Sparkles size={12} /> Personalisation Hook
                   </h3>
-                  <div className="p-5 bg-primary/[0.03] border-l-2 border-primary/30">
+                  <div className="p-5 bg-primary/[0.05] border border-primary/20 rounded-xl">
                     {displayLead.summary.split('\n').filter(l => l.trim() && !l.startsWith('##')).map((line, i) => (
-                      <p key={i} className="text-sm font-medium text-foreground/70 leading-relaxed">{line}</p>
+                      <p key={i} className="text-sm font-medium text-white/80 leading-relaxed">{line}</p>
                     ))}
                   </div>
                 </div>
