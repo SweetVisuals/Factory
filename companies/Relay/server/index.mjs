@@ -29,6 +29,7 @@ import { startCompaniesHouseCron } from './companies_house_cron.mjs';
 import { startAutoAssignCron } from './auto_assign_cron.mjs';
 import { startScraperSchedulerCron } from './scraper_scheduler_cron.mjs';
 import { startResearchCron } from './research_cron.mjs';
+import { initOldLeadsMigrator } from './old_leads_migrator.mjs';
 import { generateEmail } from './email_engine.mjs';
 import { researchAndSummarizeLead, AIRateLimitError } from './research_helper.mjs';
 import { startEmailerCron } from './emailer_cron.mjs';
@@ -60,7 +61,7 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 // Create client only if vars exist to prevent crash, otherwise null
-const supabase = (supabaseUrl && supabaseServiceKey)
+export const supabase = (supabaseUrl && supabaseServiceKey)
   ? createClient(supabaseUrl, supabaseServiceKey)
   : (supabaseUrl && supabaseKey)
     ? createClient(supabaseUrl, supabaseKey)
@@ -3944,6 +3945,9 @@ if (process.env.ENABLE_CRONS !== 'false') {
   startSyncEmailsCron();
   startResearchCron(); // Research cron always runs - processes deep research queue
   console.log('[SYSTEM] Research cron started - processing deep research queue...');
+  
+  // Start the background old leads migrator (migrates 3 leads every 2 minutes when scraper is idle)
+  initOldLeadsMigrator(activeScrapes);
 } else {
   console.log('[SYSTEM] Background services (crons) are DISABLED via ENABLE_CRONS=false.');
 }
