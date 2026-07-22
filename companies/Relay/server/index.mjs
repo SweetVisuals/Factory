@@ -66,6 +66,8 @@ const supabase = (supabaseUrl && supabaseServiceKey)
     ? createClient(supabaseUrl, supabaseKey)
     : null;
 
+const client = supabase;
+
 const originalLog = console.log;
 const originalError = console.error;
 
