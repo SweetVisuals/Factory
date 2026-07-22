@@ -7,7 +7,7 @@ import {
   Briefcase, AlertTriangle, Award, ChevronRight, Cpu, MessageSquare,
   ArrowUpRight, CircleDot, Sparkles, Copy, Check
 } from 'lucide-react';
-import axios from 'axios';
+import { api } from '@/lib/api/api';
 
 interface LeadIntelligenceDrawerProps {
   lead: Lead | null;
@@ -138,7 +138,7 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
   const fetchLeadIntelligence = async (id: string) => {
     try {
-      const res = await axios.get(`/api/lead-intelligence/${id}`);
+      const res = await api.get(`/lead-intelligence/${id}`);
       if (res.data.success) {
         setEnrichedLead(res.data.data);
       }
@@ -152,7 +152,7 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
     if (!lead?.id || isResearching) return;
     setIsResearching(true);
     try {
-      const res = await axios.post('/api/deep-research', {
+      const res = await api.post('/deep-research', {
         company: lead.company,
         website: lead.website,
         notesContext: '',

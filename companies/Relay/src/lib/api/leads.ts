@@ -167,25 +167,7 @@ export async function fetchLeads(campaignId: string) {
       .from('campaign_leads')
       .select(`
         leads (
-          id,
-          user_id,
-          email,
-          name,
-          company,
-          title,
-          phone,
-          linkedin,
-          industry,
-          location,
-          employees,
-          company_news,
-          personalized_email,
-          summary,
-          website,
-          facebook,
-          twitter,
-          instagram,
-          created_at
+          *
         )
       `)
       .eq('campaign_id', campaignId)
