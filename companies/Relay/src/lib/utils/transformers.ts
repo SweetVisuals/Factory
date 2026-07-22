@@ -52,6 +52,18 @@ export function transformFrontendCampaignToDb(campaign: Partial<Campaign>): Part
   if (campaign.replies !== undefined) {
     dbCampaign.replies = parseInt(campaign.replies, 10);
   }
+  if (campaign.business_id !== undefined) {
+    dbCampaign.business_id = campaign.business_id;
+  }
+  if (campaign.company_name !== undefined) {
+    dbCampaign.company_name = campaign.company_name;
+  }
+  if (campaign.contact_number !== undefined) {
+    dbCampaign.contact_number = campaign.contact_number;
+  }
+  if (campaign.primary_email !== undefined) {
+    dbCampaign.primary_email = campaign.primary_email;
+  }
 
   return dbCampaign;
 }

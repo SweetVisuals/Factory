@@ -1,3 +1,5 @@
+export interface Business { id: string; name: string; slug: string; overview_md: string | null; status: string; signature_template?: string; }
+
 export interface Campaign {
   id: string;
   name: string;

@@ -10,7 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 import UsageDashboard from '../components/UsageDashboard';
 
-interface Business { id: string; name: string; slug: string; overview_md: string | null; status: string; }
+import { Business } from '../types';
 interface EmailTone { id: string; name: string; slug: string; content_md: string | null; created_at: string; }
 
 export default function ProfilePage() {
@@ -274,11 +274,11 @@ export default function ProfilePage() {
             {/* Elegant Tabs */}
             <div className="flex gap-2 p-1.5 bg-black/20 border border-white/5 rounded-2xl w-full md:w-fit overflow-x-auto custom-scrollbar">
               {[
-                { id: 'profile', label: 'My Profile' },
-                { id: 'usage', label: 'System Usage' },
-                { id: 'subscription', label: 'Subscription & Billing' },
-                { id: 'business', label: 'Business AI Profiles' },
-                { id: 'tone', label: 'Email Tone Guides' }
+                { id: 'profile', label: 'Profile' },
+                { id: 'usage', label: 'Usage' },
+                { id: 'subscription', label: 'Billing' },
+                { id: 'business', label: 'Business' },
+                { id: 'tone', label: 'Tones' }
               ].map(tab => (
                 <button
                   key={tab.id}

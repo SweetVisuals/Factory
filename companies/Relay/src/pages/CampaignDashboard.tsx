@@ -166,7 +166,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                     leadsSubTab === 'table' ? "border-primary text-primary bg-primary/5" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
-                  Conversation Registry
+                  Inbox
                 </button>
                 <button
                   onClick={() => setLeadsSubTab('scraper')}
@@ -175,7 +175,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                     leadsSubTab === 'scraper' ? "border-primary text-primary bg-primary/5" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
-                  Operations Monitor
+                  Progress
                 </button>
                 <button
                   onClick={() => setLeadsSubTab('lists')}
@@ -196,7 +196,9 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                     campaignId={campaign.id}
                     campaignName={campaign.name}
                     campaignStatus={campaign.status}
+                    campaignBusinessId={campaign.business_id}
                     onNameChange={(newName) => updateCampaign(campaign.id, { name: newName })}
+                    onBusinessChange={(bizId) => updateCampaign(campaign.id, { business_id: bizId })}
                     onDelete={() => deleteCampaign(campaign.id)}
                     onResume={async () => {
                       updateCampaign(campaign.id, { status: 'in_progress' });
@@ -218,8 +220,8 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
             {/* Enhanced Pill Tab Navigation */}
             <div className="relative flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-lg w-fit shadow-sm">
               {[
-                              { id: 'table', label: 'Prospect Database', icon: Database },
-                              { id: 'scraper', label: 'Neural Link Feed', icon: Activity },
+                              { id: 'table', label: 'Leads', icon: Database },
+                              { id: 'scraper', label: 'Scraper', icon: Activity },
                               { id: 'cold_calling', label: 'Cold Calling', icon: Phone }
                             ].map(sub => (
                 <button
@@ -255,16 +257,16 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
         return (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 animate-in fade-in duration-200">
             <div className="xl:col-span-7 bg-card rounded-2xl p-5 shadow-sm">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Sequence Orchestrator</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Sequence Editor</h3>
               <SequenceEditor />
             </div>
             <div className="xl:col-span-5 space-y-4 min-w-0">
               <div className="bg-card rounded-2xl p-5 shadow-sm">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Sender Channels</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Email Accounts</h3>
                 <CampaignEmails campaignId={campaign.id} />
               </div>
               <div className="bg-card rounded-2xl p-5 shadow-sm">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Execution Calendar</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Schedule</h3>
                 <ScheduleEditor
                   campaignId={campaign.id}
                   onScheduleChange={() => checkScheduledEntries()}
@@ -369,11 +371,11 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
             {/* Elegant Main Tabs */}
             <div className="relative flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-xl w-fit shadow-sm backdrop-blur-sm mt-1">
               {[
-                { id: 'analytics', label: 'Analytics & Deal Flow', icon: BarChart3 },
-                { id: 'leads', label: 'Prospect Database', icon: Users },
-                { id: 'sequences', label: 'Sequences & Triggers', icon: GitMerge },
-                { id: 'review', label: 'Review & Approve', icon: CheckCircle },
-                { id: 'inbox', label: 'Unified Inbox', icon: MessageSquare }
+                { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+                { id: 'leads', label: 'Leads', icon: Users },
+                { id: 'sequences', label: 'Templates', icon: GitMerge },
+                { id: 'review', label: 'Review', icon: CheckCircle },
+                { id: 'inbox', label: 'Inbox', icon: MessageSquare }
               ].map(tab => (
                 <button
                   key={tab.id}

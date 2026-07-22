@@ -1,23 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { useToast } from '../ui/use-toast';
-import { Trash2, ShieldAlert, Settings, RefreshCw, Power, Play, Check, AlertTriangle } from 'lucide-react';
+import { Trash2, ShieldAlert, Settings, RefreshCw, Power, Play, Check, AlertTriangle, Fingerprint } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
+import { Business } from '../../types';
 
 interface OptionsTabProps {
   campaignId: string;
   campaignName: string;
   campaignStatus?: string;
+  campaignBusinessId?: string;
   onNameChange: (newName: string) => void;
+  onBusinessChange?: (bizId: string) => void;
   onDelete: () => void;
   onResume?: () => void;
 }
 
-const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', onNameChange, onDelete, onResume }: OptionsTabProps) => {
+const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', campaignBusinessId, onNameChange, onBusinessChange, onDelete, onResume }: OptionsTabProps) => {
   const { updateCampaign } = useApp();
   const [name, setName] = useState(campaignName);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [businessId, setBusinessId] = useState(campaignBusinessId || '');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
@@ -26,6 +31,16 @@ const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', onName
   const { toast } = useToast();
 
   const currentStatus = (campaignStatus || 'draft').toLowerCase();
+
+  useEffect(() => {
+    const fetchBusinesses = async () => {
+      const { data } = await supabase.from('businesses').select('*').eq('status', 'active');
+      if (data) {
+        setBusinesses(data);
+      }
+    };
+    fetchBusinesses();
+  }, []);
 
   const handleUpdateName = async () => {
     if (!name.trim()) return;
@@ -153,6 +168,48 @@ const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', onName
           </div>
         </div>
 
+      </div>
+      
+      {/* Sender Profile Settings */}
+      <div className="bg-card/40 border border-border/50 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-primary/10 p-2 rounded-lg text-primary">
+            <Fingerprint className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Sender Profile</h3>
+            <p className="text-xs text-muted-foreground">The persona and signature used for AI personalization.</p>
+          </div>
+        </div>
+
+        <div className="space-y-4 max-w-md">
+          <select
+            value={businessId}
+            onChange={async (e) => {
+              const newId = e.target.value;
+              setBusinessId(newId);
+              if (onBusinessChange) {
+                try {
+                  setIsSaving(true);
+                  await onBusinessChange(newId);
+                  toast({ title: 'Profile Updated', description: 'Sender Profile updated successfully.' });
+                } catch (error: any) {
+                  toast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
+                } finally {
+                  setIsSaving(false);
+                }
+              }
+            }}
+            className="w-full bg-foreground/[0.03] border border-border/50 rounded-xl px-4 py-3.5 text-sm font-semibold text-foreground focus:bg-foreground/[0.05] focus:border-primary/50 outline-none transition-all"
+          >
+            <option value="" disabled className="bg-[#111]">Select a Profile</option>
+            {businesses.map((biz) => (
+              <option key={biz.id} value={biz.id} className="bg-[#111]">
+                {biz.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Danger Zone */}

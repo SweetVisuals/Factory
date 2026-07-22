@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { X, Loader2, Target, Sparkles, Network } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/ui/use-toast';
-import { Campaign } from '../../types';
+import { Campaign, Business } from '../../types';
+import { supabase } from '../../lib/supabase';
 
 interface Props {
   onClose: () => void;
@@ -16,10 +17,25 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     name: '',
     niche: '',
     objective: '',
+    business_id: '',
     maxEmailsPerDay: '100',
     frequency: 'daily' as 'daily' | 'weekly',
   });
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    const fetchBusinesses = async () => {
+      const { data } = await supabase.from('businesses').select('*').eq('status', 'active');
+      if (data) {
+        setBusinesses(data);
+        if (data.length > 0) {
+          setFormData(prev => ({ ...prev, business_id: data[0].id }));
+        }
+      }
+    };
+    fetchBusinesses();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +50,7 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
         replyRate: '0%',
         niche: formData.niche,
         objective: formData.objective,
+        business_id: formData.business_id,
         schedule: {
           frequency: formData.frequency,
           maxEmailsPerDay: parseInt(formData.maxEmailsPerDay),
@@ -137,6 +154,26 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
               />
               <p className="text-[9px] font-medium text-white/30 tracking-wide mt-1">
                 Your autonomous agents will use this directive to automatically find, verify, and message prospects.
+              </p>
+            </div>
+
+            {/* Sender Profile / Business */}
+            <div className="space-y-1">
+              <label className={labelClassName}>Sender Profile (Business Context)</label>
+              <select
+                required
+                value={formData.business_id}
+                onChange={(e) => setFormData({ ...formData, business_id: e.target.value })}
+                className={inputClassName}
+              >
+                {businesses.map((biz) => (
+                  <option key={biz.id} value={biz.id} className="bg-[#111]">
+                    {biz.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[9px] font-medium text-white/30 tracking-wide mt-1">
+                The AI will adopt this persona and signature when generating emails for this campaign.
               </p>
             </div>
 
