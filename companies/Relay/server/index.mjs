@@ -791,44 +791,121 @@ app.get('/api/campaigns/:id/preview-email', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Campaign not found' });
     }
 
-    // 2. Fetch One Lead with a valid email address
+    // 2. Fetch templates
+    const { data: templates } = await supabaseAdmin
+      .from('templates')
+      .select('*')
+      .eq('campaign_id', id)
+      .order('step', { ascending: true });
+
+    const firstTemplate = templates && templates.length > 0 ? templates[0] : null;
+
+    // 3. Fetch leads linked to the campaign
     const { data: campLeads, error: leadErr } = await supabaseAdmin
       .from('campaign_leads')
-      .select('leads!inner(*)')
-      .eq('campaign_id', id)
-      .not('leads.email', 'eq', '')
-      .not('leads.email', 'is', null)
-      .limit(1);
-      
-    if (leadErr || !campLeads || campLeads.length === 0 || !campLeads[0].leads) {
-      return res.status(404).json({ success: false, error: 'No leads found with a valid email address in this campaign to preview.' });
+      .select('lead_id')
+      .eq('campaign_id', id);
+
+    if (leadErr || !campLeads || campLeads.length === 0) {
+      return res.status(404).json({ success: false, error: 'No leads found in this campaign to preview.' });
     }
+
+    const leadIds = campLeads.map(cl => cl.lead_id);
+    const { data: leads, error: leadsErr } = await supabaseAdmin
+      .from('leads')
+      .select('*')
+      .in('id', leadIds)
+      .not('email', 'eq', '')
+      .not('email', 'is', null)
+      .limit(5);
+
+    if (leadsErr || !leads || leads.length === 0) {
+      return res.status(404).json({ success: false, error: 'No leads with a valid email found to preview.' });
+    }
+
+    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-0a7858e4ab064eb18241a7005f04df41';
     
-    const lead = campLeads[0].leads;
+    // Generate previews concurrently using direct fetch to skip the rate-limiter & queue
+    const previews = await Promise.all(leads.map(async (lead) => {
+      const leadFirstName = lead.name ? lead.name.split(' ')[0] : '';
+      const company = campaign.company_name || 'Our Company';
+      
+      const templateSubject = firstTemplate ? firstTemplate.subject : 'Introduction';
+      const templateContent = firstTemplate ? firstTemplate.content : 'Hi [LEAD FIRST NAME], just wanted to connect.';
 
-    // 3. Fetch Tone (if any)
-    let emailToneData = null;
-    if (campaign.email_tone_id) {
-      const { data: tone } = await supabaseAdmin
-        .from('email_tones')
-        .select('*')
-        .eq('id', campaign.email_tone_id)
-        .single();
-      emailToneData = tone;
-    }
+      const systemPrompt = `You are a professional B2B Cold Outreach Marketer.
+REWRITE this email template for a specific lead. 
 
-    // 4. Generate Preview
-    const engineResult = generateEmail({
-      lead: lead,
-      campaign: campaign,
-      business: campaign.businesses,
-      emailTone: emailToneData,
-      stepIndex: 0,
-      totalSteps: 5,
-      senderAccount: { name: 'Preview Sender', email: 'preview@example.com' }
-    });
+Instructions for tone & length:
+- Keep it SHORT, punchy, and highly conversational. Do NOT be wordy or overly formal.
+- DO NOT use complex, technical sales jargon. Speak like a normal human peer.
+- If the original template is long, aggressively shorten it while keeping the core message.
+- TONE CORRECTION: If the template sounds pestery, desperate, or needy, REWRITE it to be confident and understanding.
 
-    res.json({ success: true, data: { lead, email: engineResult } });
+Instructions for personalization:
+1. Replace [[notes]] with a specific, brief observation from the Research Notes. 
+2. CRITICAL ANTI-HALLUCINATION RULE: NEVER invent or assume facts, industries, or concepts (e.g., "trucks", "real estate", "e-commerce") that are NOT explicitly mentioned in the Research Notes.
+3. GREETING: Start with "Hi ${leadFirstName}," — NEVER use full names or last names.
+4. Replace {{first_name}} with "${leadFirstName}" and {{company}} with "${lead.company || ''}".
+5. CRITICAL: Replace <company> or [MY COMPANY] with our company name: "${company}". Do NOT confuse our company with the lead's company.
+6. CRITICAL: NEVER mention the lead's job title, role, or position.
+7. Output: JSON ("subject", "content").`;
+
+      const userPrompt = `Personalise the email for ${leadFirstName} at ${lead.company || 'their company'}. You are sending this from our company, ${company}.
+Research Notes: "${lead.summary || 'General interest'}"
+
+Template Subject: ${templateSubject}
+Template Body: ${templateContent}`;
+
+      try {
+        const response = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            response_format: { type: 'json_object' }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Direct DeepSeek API returned status ${response.status}`);
+        }
+
+        const resData = await response.json();
+        const content = JSON.parse(resData.choices[0].message.content);
+        return {
+          lead,
+          email: {
+            subject: content.subject,
+            body: content.content
+          }
+        };
+      } catch (err) {
+        console.error(`Error generating direct preview for lead ${lead.id}:`, err.message);
+        // Fallback simple interpolation
+        let content = templateContent
+          .replace(/\[LEAD FIRST NAME\]/g, leadFirstName)
+          .replace(/\[LEAD COMPANY\]/g, lead.company || '')
+          .replace(/\[MY COMPANY\]/g, company)
+          .replace(/\[PERSONALISED DETAIL\]/g, lead.personalised_detail || '');
+        return {
+          lead,
+          email: {
+            subject: templateSubject,
+            body: content
+          }
+        };
+      }
+    }));
+
+    res.json({ success: true, data: previews });
   } catch (error) {
     console.error('Preview Generation Error:', error);
     res.status(500).json({
