@@ -143,7 +143,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   return (
     <>
     <header className="sticky top-0 z-[100] w-full bg-[#111111] border-b border-white/5 text-foreground shadow-sm">
-      <div className="flex h-12 items-center px-4 gap-4 md:gap-6 select-none">
+      <div className="flex h-[73px] items-center px-4 gap-4 md:gap-6 select-none">
         {/* Brand */}
         <div className="flex items-center gap-3 font-bold cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/dashboard')}>
           <Logo iconOnly={false} />
