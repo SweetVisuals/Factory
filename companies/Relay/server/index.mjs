@@ -350,6 +350,7 @@ This is the specific product or service being offered. Every email must feel lik
 
     const systemPrompt = `You are an elite B2B cold email copywriter. You write like a real human, not a marketing department.
 Every email must feel like it came from someone who genuinely understands the recipient's industry — not someone blasting a mass list.${pitchContext}${businessPrompt}${tonePrompt}
+(Note: the current year is 2026. Make sure any temporal, case study, or date references reflect this).
 
 STRICT PLACEHOLDER DICTIONARY:
 You MUST use these exact placeholders whenever referring to dynamic data. DO NOT invent your own placeholders (like {{industry}} or [Your Service]). ONLY use the ones from this list:
