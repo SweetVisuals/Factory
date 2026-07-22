@@ -1,7 +1,7 @@
-﻿const { Client } = require('ssh2');
+const { Client } = require('ssh2');
 const conn = new Client();
 conn.on('ready', () => {
-  conn.exec('cd /root/Factory/companies/Relay && tail -n 100 scraper_debug.log', (err, stream) => {
+  conn.exec('tail -n 200 /root/.pm2/logs/relay-backend-out.log', (err, stream) => {
     if (err) throw err;
     stream.on('close', (code, signal) => {
       conn.end();
