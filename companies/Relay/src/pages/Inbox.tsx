@@ -228,7 +228,7 @@ const Inbox = () => {
     if (!sig) return '';
     const textHtml = sig.content.replace(/\n/g, '<br/>');
     const imgHtml = sig.imageUrl ? `<img src="${sig.imageUrl}" alt="Signature Logo" style="max-width: 100%; display: block; margin-top: 6px;" />` : '';
-    return `<div class="composer-signature-block" style="margin-top: 16px; color: #888; font-size: 13px; line-height: 1.5;">--<br/>${textHtml}${imgHtml}</div>`;
+    return `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${textHtml}${imgHtml}</div>`;
   };
 
   const injectReplySignature = (sig: any) => {
