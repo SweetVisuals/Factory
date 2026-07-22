@@ -199,12 +199,12 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
     <>
       {/* Backdrop */}
       <div
-        className={`fixed top-[73px] bottom-0 left-0 right-0 z-[90] h-[calc(100vh-73px)] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed top-[46px] bottom-0 left-0 right-0 z-[90] h-[calc(100vh-46px)] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
       {/* Drawer */}
-      <div className={`fixed top-[73px] right-0 z-[90] h-[calc(100vh-73px)] w-full max-w-[780px] bg-[#0a0a0a] border-l border-white/10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+      <div className={`fixed top-[46px] right-0 z-[90] h-[calc(100vh-46px)] w-full max-w-[780px] bg-[#0a0a0a] border-l border-white/10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         
         {/* HEADER */}
         <div className="shrink-0 p-6 pb-4 border-b border-white/10 bg-[#111]">
