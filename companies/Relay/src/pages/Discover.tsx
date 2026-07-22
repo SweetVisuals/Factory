@@ -13,6 +13,7 @@ import {
   Copy, ExternalLink, ChevronDown, Hash, Filter, Facebook, Instagram, Twitter, BrainCircuit
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { LeadIntelligenceDrawer } from '../components/lead-scraper/LeadIntelligenceDrawer';
 
 interface Campaign {
   id: string;
@@ -60,6 +61,8 @@ const Discover: React.FC = () => {
 
   // Expanded row
   const [selectedLeadPanel, setSelectedLeadPanel] = useState<Lead | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<Lead | null>(null);
 
   // Deep Research
   const [researchingId, setResearchingId] = useState<string | null>(null);
@@ -217,12 +220,15 @@ const Discover: React.FC = () => {
 
   const handleOpenLeadPanel = (e: React.MouseEvent, lead: Lead) => {
     e.stopPropagation();
-    setSelectedLeadPanel(prev => prev?.id === lead.id ? null : lead);
+    setSelectedLeadForDrawer(lead);
+    setDrawerOpen(true);
   };
 
   const handleDeepResearch = async (lead: Lead) => {
     if (researchingId) return;
     setResearchingId(lead.id);
+    setSelectedLeadForDrawer(lead);
+    setDrawerOpen(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -230,17 +236,29 @@ const Discover: React.FC = () => {
       const res = await axios.post('/api/deep-research', {
         company: lead.company,
         website: lead.website,
-        notesContext: ''
+        notesContext: '',
+        leadId: lead.id
       }, {
         headers: { Authorization: token ? `Bearer ${token}` : '' }
       });
       if (res.data.success) {
         const researchData = res.data.data;
+        const status = res.data.status || 'completed';
+        const score = res.data.research_score || 0;
+        
         setDeepResearchResults(prev => ({ ...prev, [lead.id]: researchData }));
-        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, summary: researchData, research_status: 'completed' } : l));
-        if (selectedLeadPanel?.id === lead.id) {
-          setSelectedLeadPanel({ ...lead, summary: researchData, research_status: 'completed' });
-        }
+        
+        // Form a fully updated lead object
+        const updatedLead = { 
+          ...lead, 
+          summary: researchData, 
+          research_status: status,
+          research_score: score,
+          ...res.data.structured
+        };
+
+        setLeads(prev => prev.map(l => l.id === lead.id ? updatedLead : l));
+        setSelectedLeadForDrawer(updatedLead);
         toast({ title: 'Research Complete', description: `AI research completed for ${lead.company}` });
       }
     } catch (e) {
@@ -682,128 +700,16 @@ const Discover: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Side Lead Panel / Mobile Full-Screen Modal */}
-          {selectedLeadPanel && (
-            <>
-              <div 
-                className="fixed xl:hidden inset-0 bg-black/60 backdrop-blur-sm z-[190] transition-opacity duration-300"
-                onClick={() => setSelectedLeadPanel(null)}
-              />
-              <div className="fixed xl:relative inset-0 xl:inset-auto w-full xl:w-[400px] shrink-0 bg-[#0A0A0A] border-0 xl:border-l border-white/10 animate-in slide-in-from-right-8 duration-200 z-[200] xl:z-40 flex flex-col h-full shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-center text-sm font-black text-white/60 uppercase">
-                    {(selectedLeadPanel.name || '?')[0]}
-                  </div>
-                  <div className="flex flex-col">
-                    <h3 className="text-lg font-black text-white tracking-tight truncate max-w-[200px]" title={selectedLeadPanel.name}>{selectedLeadPanel.name || 'Unknown'}</h3>
-                    <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest truncate max-w-[200px]" title={selectedLeadPanel.title}>{selectedLeadPanel.title || 'No Title'}</div>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedLeadPanel(null)} className="p-2 text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                
-                {/* Contact Info */}
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Contact Information</h4>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                      <div className="flex items-center gap-3">
-                        <MailCheck className="w-4 h-4 text-white/30" />
-                        <span className="text-sm font-mono text-white/80">{selectedLeadPanel.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <StatusDot status={selectedLeadPanel.validation_status} />
-                        <span className={cn("text-[9px] font-bold uppercase tracking-widest",
-                          selectedLeadPanel.validation_status === 'valid' ? 'text-emerald-400' :
-                          selectedLeadPanel.validation_status === 'invalid' ? 'text-rose-400' :
-                          selectedLeadPanel.validation_status === 'catch_all' ? 'text-amber-400' : 'text-white/25'
-                        )}>
-                          {selectedLeadPanel.validation_status || 'Unknown'}
-                        </span>
-                      </div>
-                    </div>
-                    {selectedLeadPanel.phone && (
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                        <Phone className="w-4 h-4 text-white/30" />
-                        <span className="text-sm font-medium text-white/80">{selectedLeadPanel.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Company Details */}
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Company Details</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Company</span>
-                      <span className="text-sm font-semibold text-white/80 truncate" title={selectedLeadPanel.company}>{selectedLeadPanel.company || '—'}</span>
-                    </div>
-                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Location</span>
-                      <span className="text-sm font-semibold text-white/80 truncate" title={selectedLeadPanel.location}>{selectedLeadPanel.location || '—'}</span>
-                    </div>
-                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Industry</span>
-                      <span className="text-sm font-semibold text-white/80 truncate" title={selectedLeadPanel.industry}>{selectedLeadPanel.industry || '—'}</span>
-                    </div>
-                    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Employees</span>
-                      <span className="text-sm font-semibold text-white/80 truncate">{selectedLeadPanel.employees || '—'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Social Links */}
-                {(selectedLeadPanel.linkedin || selectedLeadPanel.website) && (
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Links & Socials</h4>
-                    <div className="flex gap-2 flex-wrap">
-                      {selectedLeadPanel.linkedin && (
-                        <a href={selectedLeadPanel.linkedin} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[120px] flex items-center justify-center gap-2 p-3 rounded-xl bg-[#0077b5]/10 border border-[#0077b5]/20 text-[#0077b5] hover:bg-[#0077b5]/20 transition-all font-bold text-xs uppercase tracking-wider">
-                          <Linkedin size={14} /> LinkedIn
-                        </a>
-                      )}
-                      {selectedLeadPanel.website && (
-                        <a href={`https://${selectedLeadPanel.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[120px] flex items-center justify-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-white/70 hover:text-white hover:bg-white/10 transition-all font-bold text-xs uppercase tracking-wider">
-                          <Globe size={14} /> Website
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Deep Research */}
-                {selectedLeadPanel.summary && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Deep Research</h4>
-                      {selectedLeadPanel.research_status && (
-                        <span className={cn(
-                          "text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full",
-                          selectedLeadPanel.research_status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
-                          selectedLeadPanel.research_status === 'error' ? 'bg-rose-500/10 text-rose-400' :
-                          'bg-amber-500/10 text-amber-400'
-                        )}>
-                          {selectedLeadPanel.research_status}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs leading-relaxed text-white/60 p-4 rounded-xl bg-white/[0.02] border border-white/5 whitespace-pre-wrap">
-                      {selectedLeadPanel.summary}
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            </div>
-          </>
-        )}
+          {/* Lead Intelligence Drawer */}
+          <LeadIntelligenceDrawer
+            lead={selectedLeadForDrawer}
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            onReResearch={(id) => {
+              // Re-fetch list elements to update view status if necessary
+              fetchLeadsData();
+            }}
+          />
 
         {/* Floating Action Toolbar */}
         {selectedLeadIds.length > 0 && (

@@ -20,6 +20,7 @@ import { CustomCheckbox } from '@/components/ui/CustomCheckbox';
 import { supabase } from '@/lib/supabase';
 import axios from 'axios';
 import { cn } from '@/lib/utils';
+import { LeadIntelligenceDrawer } from '../lead-scraper/LeadIntelligenceDrawer';
 
 interface Props {
   campaignId: string;
@@ -52,6 +53,8 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
   const [isDeletingBounced, setIsDeletingBounced] = useState(false);
   const [activeStatusTab, setActiveStatusTab] = useState<'prospects' | 'step1_complete' | 'replies' | 'bounced' | 'all'>('prospects');
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<Lead | null>(null);
 
   React.useEffect(() => {
     loadLeads();
@@ -316,26 +319,47 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
   const handleDeepResearch = async (lead: Lead) => {
     if (researchingId) return;
     setResearchingId(lead.id);
+    setSelectedLeadForDrawer(lead);
+    setDrawerOpen(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       const res = await axios.post('/api/deep-research', {
         company: lead.company,
         website: lead.website,
-        notesContext: ''
+        notesContext: '',
+        leadId: lead.id
       }, {
         headers: { Authorization: token ? `Bearer ${token}` : '' }
       });
       if (res.data.success) {
-        setDeepResearchResults(prev => ({ ...prev, [lead.id]: res.data.data }));
-        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, summary: res.data.data } : l));
-        if (activeSummaryLead?.id === lead.id) setActiveSummaryLead({ ...lead, summary: res.data.data });
+        const researchData = res.data.data;
+        const status = res.data.status || 'completed';
+        const score = res.data.research_score || 0;
+
+        setDeepResearchResults(prev => ({ ...prev, [lead.id]: researchData }));
+        
+        const updatedLead = {
+          ...lead,
+          summary: researchData,
+          research_status: status,
+          research_score: score,
+          ...res.data.structured
+        };
+
+        setLeads(prev => prev.map(l => l.id === lead.id ? updatedLead : l));
+        setSelectedLeadForDrawer(updatedLead);
       }
     } catch (e) {
       toast({ title: "Research Failed", description: "AI failed to research this lead.", variant: "destructive" });
     } finally {
       setResearchingId(null);
     }
+  };
+
+  const handleOpenLeadDrawer = (lead: Lead) => {
+    setSelectedLeadForDrawer(lead);
+    setDrawerOpen(true);
   };
 
   const handlePrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
@@ -633,7 +657,7 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
 
                           {/* View Button - Always on the right */}
                           <button
-                            onClick={() => setActiveSummaryLead(lead)}
+                            onClick={() => handleOpenLeadDrawer(lead)}
                             className={cn(
                               "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 border ml-auto",
                               "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border-muted"
@@ -718,61 +742,15 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!activeSummaryLead} onOpenChange={(open) => !open && setActiveSummaryLead(null)}>
-        <DialogContent className="bg-card border border-border text-foreground rounded-3xl p-0 max-w-3xl overflow-hidden shadow-2xl">
-          <div className="p-10 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-10">
-              <div className="flex items-center gap-6">
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                  <BrainCircuit size={28} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-foreground">{activeSummaryLead?.company} Research</h3>
-                  <p className="text-sm font-medium text-muted-foreground mt-1">AI Lead Research</p>
-                </div>
-              </div>
-              <Button
-                onClick={() => activeSummaryLead && handleDeepResearch(activeSummaryLead)}
-                disabled={!!researchingId}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 h-12 font-bold text-sm gap-3 shadow-md"
-              >
-                {researchingId === activeSummaryLead?.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Activity size={18} />}
-                Run AI Research
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[60vh] pr-4">
-              {researchingId === activeSummaryLead?.id ? (
-                <div className="flex flex-col items-center justify-center py-20 space-y-6 text-muted-foreground">
-                  <div className="relative">
-                    <Loader2 className="w-16 h-16 animate-spin text-primary/30" />
-                    <BrainCircuit className="w-8 h-8 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" />
-                  </div>
-                  <div className="text-center space-y-1">
-                    <p className="text-base font-bold text-foreground">Researching Lead...</p>
-                    <p className="text-sm font-medium">Finding social profiles and company info...</p>
-                  </div>
-                </div>
-              ) : activeSummaryLead?.summary ? (
-                <div className="prose prose-sm max-w-none space-y-6">
-                  {activeSummaryLead.summary.split('\n').map((line: string, i: number) => {
-                    if (line.startsWith('##')) return <h4 key={i} className="text-lg font-bold text-foreground border-b border-border pb-3 mt-8">{line.replace(/#/g, '').trim()}</h4>;
-                    if (line.startsWith('**')) return <p key={i} className="font-semibold text-foreground bg-muted/40 p-4 rounded-xl border border-border">{line.replace(/\*\*/g, '').trim()}</p>;
-                    return <p key={i} className="text-muted-foreground leading-relaxed">{line}</p>;
-                  })}
-                </div>
-              ) : (
-                <div className="py-20 text-center border border-dashed border-border rounded-3xl space-y-6 bg-muted/10">
-                  <p className="text-sm font-medium text-muted-foreground">No research data available.</p>
-                  <Button onClick={() => activeSummaryLead && handleDeepResearch(activeSummaryLead)} className="bg-primary/10 text-primary hover:bg-primary/20 rounded-xl px-8 h-12 text-sm font-bold shadow-sm">
-                    Start AI Research
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Lead Intelligence Drawer */}
+      <LeadIntelligenceDrawer
+        lead={selectedLeadForDrawer}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onReResearch={(id) => {
+          loadLeads();
+        }}
+      />
     </div>
   );
 };
