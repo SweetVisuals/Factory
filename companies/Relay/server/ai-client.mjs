@@ -49,6 +49,7 @@ async function fetchWithTimeout(url, options, timeoutMs = 15000) {
 }
 
 export async function fetchAIChatCompletion(params, log = console.log) {
+
   return executionQueue.enqueue(async () => {
     const {
       messages,
@@ -58,7 +59,7 @@ export async function fetchAIChatCompletion(params, log = console.log) {
       max_tokens = 150
     } = params;
 
-    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-0a7858e4ab064eb18241a7005f04df41';
     
     // 1. Try DeepSeek API first if key exists (strictly no fallback if this key exists)
     if (DEEPSEEK_API_KEY) {
