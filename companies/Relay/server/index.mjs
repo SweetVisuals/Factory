@@ -457,6 +457,121 @@ SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "$
   }
 }
 
+async function ensureCampaignSchedules(campaignId) {
+  try {
+    // 1. Check if campaign has > 1 lead
+    const { count: leadCount } = await client
+      .from('campaign_leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('campaign_id', campaignId);
+      
+    if (!leadCount || leadCount <= 1) return;
+    
+    // 2. Check if schedules already exist
+    const { count: scheduleCount } = await client
+      .from('scheduled_emails')
+      .select('*', { count: 'exact', head: true })
+      .eq('campaign_id', campaignId);
+      
+    if (scheduleCount > 0) return; // Already generated
+    
+    console.log(`[Auto Schedule] Triggering schedule generation for campaign ${campaignId} with ${leadCount} leads...`);
+    
+    // 3. Ensure templates exist (if not, call generateAndSaveSequencesForCampaign)
+    let { data: templates } = await client
+      .from('templates')
+      .select('*')
+      .eq('campaign_id', campaignId);
+      
+    if (!templates || templates.length === 0) {
+      console.log(`[Auto Schedule] No templates found. Generating templates first...`);
+      const success = await generateAndSaveSequencesForCampaign(campaignId, false);
+      if (!success) {
+        console.error(`[Auto Schedule] Failed to generate templates for campaign ${campaignId}`);
+        return;
+      }
+      
+      // Re-fetch templates
+      const { data: refetched } = await client
+        .from('templates')
+        .select('*')
+        .eq('campaign_id', campaignId);
+      templates = refetched;
+    }
+    
+    if (!templates || templates.length === 0) return;
+    
+    // 4. Ensure linked email account
+    const { data: linkedAccounts } = await client
+      .from('campaign_email_accounts')
+      .select('email_account_id')
+      .eq('campaign_id', campaignId);
+      
+    let emailAccountIds = (linkedAccounts || []).map(a => a.email_account_id);
+    if (emailAccountIds.length === 0) {
+      const defaultEmailAccountId = 'd87152f1-6c2a-4362-be9d-539050fd07e7';
+      await client
+        .from('campaign_email_accounts')
+        .insert({
+          campaign_id: campaignId,
+          email_account_id: defaultEmailAccountId
+        });
+      emailAccountIds = [defaultEmailAccountId];
+    }
+    
+    // 5. Generate schedules in scheduled_emails
+    const startDate = new Date();
+    const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    
+    for (const tpl of templates) {
+      const { data: scheduleData, error: schedError } = await client
+        .from('scheduled_emails')
+        .insert({
+          campaign_id: campaignId,
+          template_id: tpl.id,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          scheduled_for: startDate.toISOString(),
+          total_emails: 100,
+          interval_minutes: 15,
+          emails_per_account: 500,
+          status: 'paused'
+        })
+        .select()
+        .single();
+        
+      if (schedError) {
+        console.error(`[Auto Schedule] Failed to insert schedule:`, schedError);
+        continue;
+      }
+      
+      // 6. Link schedules to email accounts in schedule_email_accounts
+      await client
+        .from('schedule_email_accounts')
+        .insert(
+          emailAccountIds.map(accId => ({
+            schedule_id: scheduleData.id,
+            email_account_id: accId,
+            emails_sent: 0,
+            emails_remaining: 500
+          }))
+        );
+    }
+    
+    // 7. Update campaign status. If > 1000 leads, 'review'. Else 'paused'.
+    const targetStatus = leadCount > 1000 ? 'review' : 'paused';
+    await client
+      .from('campaigns')
+      .update({ status: targetStatus })
+      .eq('id', campaignId);
+      
+    console.log(`[Auto Schedule] Successfully generated schedules for campaign ${campaignId} (status: ${targetStatus}).`);
+    
+  } catch (error) {
+    console.error('[Auto Schedule] Error generating schedules:', error);
+  }
+}
+
 app.post('/api/generate-sequences', async (req, res) => {
   try {
     const { campaignName, niche, company, pitch, contactNumber, primaryEmail, count = 5, isSingle = false, targetStep = 1 } = req.body;
@@ -1774,10 +1889,8 @@ app.post('/api/scrape-leads', async (req, res) => {
                 if (campaignLeadCount === 1) {
                   log(`[Scraper] Campaign ${campaignName} reached first lead. Triggering automated sequence generation...`);
                   generateAndSaveSequencesForCampaign(campaignId, false); // generate without pausing
-                }
-                if (campaignLeadCount === 1000) {
-                  log(`[Scraper] Campaign ${campaignName} reached 1000 leads. Pausing for review...`);
-                  await client.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
+                } else if (campaignLeadCount > 1) {
+                  ensureCampaignSchedules(campaignId);
                 }
               }
               
@@ -1912,10 +2025,8 @@ app.post('/api/scrape-leads', async (req, res) => {
               if (campaignLeadCount === 1) {
                 log(`[Scraper] Campaign ${campaignName} reached first lead. Triggering automated sequence generation...`);
                 generateAndSaveSequencesForCampaign(campaignId, false); // generate without pausing
-              }
-              if (campaignLeadCount === 1000) {
-                log(`[Scraper] Campaign ${campaignName} reached 1000 leads. Pausing for review...`);
-                await client.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
+              } else if (campaignLeadCount > 1) {
+                ensureCampaignSchedules(campaignId);
               }
               
               // Update Campaign Stats every 10 leads to avoid overloading DB
