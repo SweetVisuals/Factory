@@ -28,6 +28,36 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
       if (leadsCount !== null) {
         setDbSpace(leadsCount / 1024); // Convert KB to MB
       }
+
+      // Fetch campaigns needing review or paused
+      const { data: campaignAlerts } = await supabase
+        .from('campaigns')
+        .select('id, name, status, created_at')
+        .in('status', ['review', 'paused', 'error', 'stopped'])
+        .order('created_at', { ascending: false });
+        
+      if (campaignAlerts && campaignAlerts.length > 0) {
+        const loadedNotifications = campaignAlerts.map(c => {
+          const isPaused = c.status === 'paused';
+          const isReview = c.status === 'review';
+          return {
+            id: c.id,
+            title: (isPaused || isReview) ? 'Action Required' : 'Campaign Alert',
+            message: isReview
+              ? `Campaign "${c.name}" has over 1000 leads and is ready for review.`
+              : isPaused 
+              ? `Campaign "${c.name}" schedule is ready for review.` 
+              : `Campaign "${c.name}" status changed to ${c.status}`,
+            time: new Date(c.created_at || Date.now()).toLocaleTimeString(),
+            read: false
+          };
+        });
+        setNotifications(prev => {
+          const existingIds = new Set(prev.map(n => n.id));
+          const newNotifications = loadedNotifications.filter(n => !existingIds.has(n.id));
+          return [...prev, ...newNotifications].slice(0, 10);
+        });
+      }
     };
     fetchStatus();
 
@@ -172,8 +202,8 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
             >
               {unreadCount > 0 ? (
                 <>
-                  <BellRing size={16} className="text-emerald-400 animate-pulse" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                  <BellRing size={16} className="text-red-500 animate-pulse" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                 </>
               ) : (
                 <Bell size={16} />

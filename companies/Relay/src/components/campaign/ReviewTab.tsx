@@ -26,8 +26,9 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
 
   const fetchPreview = async () => {
     try {
-      // In production, might need full domain, but proxy handles /api
-      const res = await fetch(`/api/campaigns/${campaignId}/preview-email`);
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const baseUrl = isDev ? 'http://localhost:3001' : '';
+      const res = await fetch(`${baseUrl}/api/campaigns/${campaignId}/preview-email`);
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
