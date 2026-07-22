@@ -219,7 +219,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             start_date: getLondonTimestamp(newStart, '09:00'),
             end_date: getLondonTimestamp(newEnd, '09:00'),
             scheduled_for: getLondonTimestamp(newStart, '09:00'),
-            status: 'scheduled'
+            status: 'paused'
           })
           .eq('id', item.id);
       }
@@ -250,7 +250,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             total_emails: emailsPerDay || 0,
             interval_minutes: interval || 15,
             emails_per_account: emailsPerAccount || 500,
-            status: 'scheduled',
+            status: 'paused',
             scheduled_for: getLondonTimestamp(startDate, startTime)
           })
           .select().single();
@@ -264,7 +264,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
           }))
         );
       }
-      await supabase.from('campaigns').update({ status: 'in_progress' }).eq('id', campaignId);
+      await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
       toast({ title: "Launch Successful", description: "Campaign core activated." });
       await loadScheduledEmails();
     } catch (err: any) {
@@ -359,7 +359,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             total_emails: schedule.totalEmails,
             interval_minutes: schedule.interval,
             emails_per_account: schedule.emailsPerAccount,
-            status: 'scheduled'
+            status: 'paused'
           })
           .select().single();
         if (scheduleError) throw scheduleError;
@@ -372,7 +372,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
           }))
         );
       }
-      await supabase.from('campaigns').update({ status: 'in_progress' }).eq('id', campaignId);
+      await supabase.from('campaigns').update({ status: 'paused' }).eq('id', campaignId);
       toast({ title: "Launch Successful", description: "Temporal logic synced to campaign core." });
       setShowWizard(false);
       await loadScheduledEmails();

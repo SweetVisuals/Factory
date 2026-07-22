@@ -23,7 +23,7 @@ If you think a sentence could be better, that's not your call to make here. The 
 ## 2. The Locked Template
 
 ```
-Hi [FIRST NAME] 👋,
+Hi [FIRST NAME],
 
 I hope business is booming! I've done some digging and seen the great [PERSONALISED DETAIL] you put out there, you're clearly talented at what you do. But I bet you hate all the admin (like this) that goes with it!
 

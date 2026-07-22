@@ -261,7 +261,7 @@ function extractBusinessContext(overviewMd, niche) {
 const TRADES_STEP0 = [
   (g, cn, sn, loc, hn, nl, pain, hook, res) => {
     const detail = (res && res.toLowerCase() !== 'work') ? res : 'work';
-    const greetingLine = g ? `Hi ${g} 👋,` : `Hi there 👋,`;
+    const greetingLine = g ? `Hi ${g},` : `Hi there,`;
     const subjectName = g ? g : sn;
     const cleanDetail = detail.charAt(0).toUpperCase() + detail.slice(1);
     

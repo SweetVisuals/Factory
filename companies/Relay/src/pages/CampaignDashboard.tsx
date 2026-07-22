@@ -6,7 +6,7 @@ import Layout from '../components/layout/Layout';
 import PageHeader from '../components/layout/PageHeader';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { AlertCircle, Zap, LayoutDashboard, Users, GitMerge, Calendar, Mail, Inbox, BarChart3, Settings2, Target, ChevronDown, ChevronRight, Database, Sparkles, Folder, Activity, MessageSquare, ArrowLeft, Phone } from 'lucide-react';
+import { AlertCircle, Zap, LayoutDashboard, Users, GitMerge, Calendar, Mail, Inbox, BarChart3, Settings2, Target, ChevronDown, ChevronRight, Database, Sparkles, Folder, Activity, MessageSquare, ArrowLeft, Phone, CheckCircle } from 'lucide-react';
 import CampaignStats from '../components/campaign/CampaignStats';
 import CampaignTabs from '../components/campaign/CampaignTabs';
 import LeadsTable from '../components/campaign/LeadsTable';
@@ -21,6 +21,7 @@ import CampaignScraperTab from '../components/campaign/CampaignScraperTab';
 import ColdCallingTab from '../components/campaign/ColdCallingTab';
 import OptionsTab from '../components/campaign/OptionsTab';
 import ProgressTab from '../components/campaign/ProgressTab';
+import ReviewTab from '../components/campaign/ReviewTab';
 import { cn } from '../lib/utils';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { LeadDetailModal } from '../components/modals/LeadDetailModal';
@@ -244,6 +245,12 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
             </div>
           </div>
         );
+      case 'review':
+        return (
+          <div className="animate-in fade-in duration-200">
+            <ReviewTab campaignId={campaign.id} />
+          </div>
+        );
       case 'sequences':
         return (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 animate-in fade-in duration-200">
@@ -365,6 +372,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                 { id: 'analytics', label: 'Analytics & Deal Flow', icon: BarChart3 },
                 { id: 'leads', label: 'Prospect Database', icon: Users },
                 { id: 'sequences', label: 'Sequences & Triggers', icon: GitMerge },
+                { id: 'review', label: 'Review & Approve', icon: CheckCircle },
                 { id: 'inbox', label: 'Unified Inbox', icon: MessageSquare }
               ].map(tab => (
                 <button

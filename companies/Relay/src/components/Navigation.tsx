@@ -60,10 +60,13 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns' }, async (payload) => {
         if (payload.new.status === 'paused' || payload.new.status === 'error' || payload.new.status === 'stopped') {
+          const isPaused = payload.new.status === 'paused';
           setNotifications(prev => [{
             id: Date.now(),
-            title: 'Campaign Alert',
-            message: `Campaign "${payload.new.name}" status changed to ${payload.new.status}`,
+            title: isPaused ? 'Action Required' : 'Campaign Alert',
+            message: isPaused 
+              ? `Campaign "${payload.new.name}" schedule is ready for review.` 
+              : `Campaign "${payload.new.name}" status changed to ${payload.new.status}`,
             time: new Date().toLocaleTimeString(),
             read: false
           }, ...prev].slice(0, 10));

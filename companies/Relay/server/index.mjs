@@ -28,6 +28,7 @@ import { startCompaniesHouseCron } from './companies_house_cron.mjs';
 import { startAutoAssignCron } from './auto_assign_cron.mjs';
 import { startScraperSchedulerCron } from './scraper_scheduler_cron.mjs';
 import { startResearchCron } from './research_cron.mjs';
+import { generateEmail } from './email_engine.mjs';
 import { researchAndSummarizeLead, AIRateLimitError } from './research_helper.mjs';
 import { startEmailerCron } from './emailer_cron.mjs';
 import { startBounceProcessorCron } from './bounce_processor_cron.mjs';
@@ -440,6 +441,68 @@ SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "$
     });
   }
 });
+
+app.get('/api/campaigns/:id/preview-email', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    
+    // 1. Fetch Campaign
+    const { data: campaign, error: campErr } = await supabaseAdmin
+      .from('campaigns')
+      .select('*, businesses(*)')
+      .eq('id', id)
+      .single();
+      
+    if (campErr || !campaign) {
+      return res.status(404).json({ success: false, error: 'Campaign not found' });
+    }
+
+    // 2. Fetch One Lead
+    const { data: campLeads, error: leadErr } = await supabaseAdmin
+      .from('campaign_leads')
+      .select('leads(*)')
+      .eq('campaign_id', id)
+      .limit(1);
+      
+    if (leadErr || !campLeads || campLeads.length === 0 || !campLeads[0].leads) {
+      return res.status(404).json({ success: false, error: 'No leads found in this campaign to preview.' });
+    }
+    
+    const lead = campLeads[0].leads;
+
+    // 3. Fetch Tone (if any)
+    let emailToneData = null;
+    if (campaign.email_tone_id) {
+      const { data: tone } = await supabaseAdmin
+        .from('email_tones')
+        .select('*')
+        .eq('id', campaign.email_tone_id)
+        .single();
+      emailToneData = tone;
+    }
+
+    // 4. Generate Preview
+    const engineResult = generateEmail({
+      lead: lead,
+      campaign: campaign,
+      business: campaign.businesses,
+      emailTone: emailToneData,
+      stepIndex: 0,
+      totalSteps: 5,
+      senderAccount: { name: 'Preview Sender', email: 'preview@example.com' }
+    });
+
+    res.json({ success: true, data: { lead, email: engineResult } });
+  } catch (error) {
+    console.error('Preview Generation Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate preview'
+    });
+  }
+});
+
 app.post('/api/generate-lead-emails', async (req, res) => {
   try {
     const { campaignId, leads, templateContent, templateSubject, company, contactNumber, primaryEmail } = req.body;
