@@ -187,7 +187,41 @@ const CampaignScraperTab = ({ campaignId }: CampaignScraperTabProps) => {
         </div>
       </div>
 
-      {/* Neural Link Feed is below */}
+      {/* Collapsible Search Form */}
+      <div className="bg-foreground/[0.02]">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="w-full flex items-center justify-between px-6 py-4 hover:bg-foreground/[0.03] transition-all"
+        >
+          <div className="flex items-center gap-3">
+            {showForm ? <ChevronDown size={14} className="text-foreground/40" /> : <ChevronRight size={14} className="text-foreground/40" />}
+            <span className="text-[10px] font-black text-foreground/60 uppercase tracking-[0.2em]">Search Configuration</span>
+          </div>
+          <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">
+            {showForm ? 'Collapse' : 'Expand'}
+          </span>
+        </button>
+        
+        {showForm && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+            <LeadScraperForm onSearch={handleSearch} />
+          </div>
+        )}
+      </div>
+
+      {/* Full-width Results */}
+      <LeadScraperResults
+        results={searchResults}
+        scrapeStatus={scrapeStatus}
+        hasSearched={hasSearched}
+        logs={logs}
+        onClearResults={() => setSearchResults([])}
+        onDeleteLead={(id) => setSearchResults(prev => prev.filter(l => l.id !== id))}
+        onPause={handlePause}
+        onResume={handleResume}
+        onCancel={handleCancel}
+      />
+
       {/* Collapsible Telemetry Log */}
       <div className="bg-foreground/[0.02]">
         <button

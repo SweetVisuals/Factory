@@ -1972,6 +1972,7 @@ app.post('/api/scrape-leads', async (req, res) => {
       // PRE-INSERTION AI RESEARCH: Always run synchronous AI research before saving to DB
       let researchSummary = lead.summary || '';
       let researchStatus = lead.research_status || 'completed';
+      let structuredData = {};
       const hasEmail = lead.email && lead.email.trim() !== '';
       
       if (!researchSummary || researchSummary.length < 20) {
@@ -1980,6 +1981,12 @@ app.post('/api/scrape-leads', async (req, res) => {
           const res = await researchAndSummarizeLead(lead, log, campaignPitch);
           researchSummary = res.summary;
           researchStatus = res.status || 'completed';
+          if (res.structured) {
+            structuredData = res.structured;
+            // Remove duplicates from structuredData that shouldn't override basic lead data
+            delete structuredData.personalised_detail;
+            delete structuredData.quick_fact;
+          }
         } catch (err) {
           log(`[Deep Research] Research error for ${lead.company || 'lead'}: ${err.message}. Using baseline detail.`);
           researchSummary = `## ⚡ Personalised Detail\nwork\n\n## 🔬 Quick Fact\nNo specific details found.`;
@@ -2088,6 +2095,7 @@ app.post('/api/scrape-leads', async (req, res) => {
           role: lead.role || '',
           name: (lead.name && lead.name.trim() && lead.name.trim().toLowerCase() !== 'unknown') ? lead.name.trim() : (lead.company || ''),
           research_status: researchStatus,
+          ...structuredData,
           validation_status: validationStatus,
           validation_details: validationDetails,
           updated_at: new Date().toISOString()
