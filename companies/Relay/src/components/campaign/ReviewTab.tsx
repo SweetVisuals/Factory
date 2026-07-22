@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { useApp } from '@/context/AppContext';
+import { api } from '@/lib/api/api';
 import { Play, Loader2, Eye, Mail, CalendarClock, Target, AlertCircle, ChevronLeft, ChevronRight, ExternalLink, FileText } from 'lucide-react';
 
 interface ReviewTabProps {
@@ -30,15 +31,10 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
   const fetchPreview = async () => {
     try {
       setIsPreviewLoading(true);
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const baseUrl = isDev ? 'http://localhost:3001' : '';
-      const res = await fetch(`${baseUrl}/api/campaigns/${campaignId}/preview-email`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data)) {
-          setPreviewData(data.data);
-          setCurrentPreviewIndex(0);
-        }
+      const res = await api.get(`/campaigns/${campaignId}/preview-email`);
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
+        setPreviewData(res.data.data);
+        setCurrentPreviewIndex(0);
       }
     } catch (err) {
       console.error('Failed to fetch preview', err);
