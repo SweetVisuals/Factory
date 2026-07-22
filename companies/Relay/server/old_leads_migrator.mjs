@@ -89,6 +89,10 @@ async function runMigrationCycle() {
             review_count: null
           },
           ...structuredData,
+          // Prioritize direct statutory metadata over AI deductions
+          company_size: lead.company_size || structuredData.company_size || null,
+          annual_revenue: lead.annual_revenue || structuredData.annual_revenue || null,
+          year_founded: lead.year_founded || structuredData.year_founded || null,
           research_score: res.research_score || 0,
           validation_status: lead.validation_status || null,
           validation_details: lead.validation_details || null,

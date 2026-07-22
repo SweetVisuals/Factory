@@ -2117,6 +2117,10 @@ app.post('/api/scrape-leads', async (req, res) => {
             review_count: null
           },
           ...structuredData,
+          // Prioritize direct statutory metadata (e.g. from Companies House) over AI deductions
+          company_size: lead.company_size || structuredData.company_size || null,
+          annual_revenue: lead.annual_revenue || structuredData.annual_revenue || null,
+          year_founded: lead.year_founded || structuredData.year_founded || null,
           research_score: res?.research_score || 0,
           validation_status: validationStatus,
           validation_details: validationDetails,
