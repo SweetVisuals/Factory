@@ -64,8 +64,8 @@ export const TableRow: React.FC<Props & { validationStatus?: 'idle' | 'loading' 
         </td>
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-none bg-foreground/[0.03] flex items-center justify-center shrink-0 group-hover:bg-foreground/[0.05] transition-colors">
-              <Mail size={14} className="text-muted-foreground" />
+            <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-white/[0.06] transition-colors">
+              <Mail size={14} className="text-white/40" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
@@ -92,32 +92,32 @@ export const TableRow: React.FC<Props & { validationStatus?: 'idle' | 'loading' 
         {!hidePersonalColumns && (
           <td className="px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-none bg-foreground/[0.03] flex items-center justify-center shrink-0 group-hover:bg-foreground/[0.05] transition-colors">
-                <User size={14} className="text-muted-foreground" />
+              <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-white/[0.06] transition-colors">
+                <User size={14} className="text-white/40" />
               </div>
-              <span className="text-[13px] font-bold text-foreground/80">{lead.name || 'Unknown'}</span>
+              <span className="text-[13px] font-bold text-white/90">{lead.name || 'Unknown'}</span>
             </div>
           </td>
         )}
 
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-none bg-foreground/[0.03] flex items-center justify-center shrink-0 group-hover:bg-foreground/[0.05] transition-colors">
-              <Building2 size={14} className="text-muted-foreground" />
+            <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-white/[0.06] transition-colors">
+              <Building2 size={14} className="text-white/40" />
             </div>
-            <span className="text-[13px] font-bold text-foreground/80 truncate max-w-[150px]">{lead.company}</span>
+            <span className="text-[13px] font-bold text-white/90 truncate max-w-[150px]">{lead.company}</span>
           </div>
         </td>
 
         <td className="px-6 py-4">
           <button
             onClick={() => setDrawerOpen(true)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-none transition-all font-black uppercase tracking-widest text-[9px] ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all font-bold uppercase tracking-widest text-[9px] border ${
               lead.research_status === 'completed' 
-                ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' 
                 : lead.research_status === 'failed' || lead.research_status === 'error'
-                  ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                  : 'bg-foreground/[0.03] text-muted-foreground hover:bg-foreground/[0.05]'
+                  ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                  : 'bg-white/[0.03] text-white/50 border-white/5 hover:bg-white/[0.06] hover:text-white'
             }`}
           >
             <BrainCircuit size={12} />
@@ -131,22 +131,22 @@ export const TableRow: React.FC<Props & { validationStatus?: 'idle' | 'loading' 
 
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-none bg-foreground/[0.03] flex items-center justify-center shrink-0 group-hover:bg-foreground/[0.05] transition-colors">
-              <MapPin size={14} className="text-muted-foreground" />
+            <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-white/[0.06] transition-colors">
+              <MapPin size={14} className="text-white/40" />
             </div>
-            <span className="text-[13px] font-bold text-foreground/70 truncate max-w-[120px]">{lead.location || '-'}</span>
+            <span className="text-[13px] font-bold text-white/70 truncate max-w-[120px]">{lead.location || '-'}</span>
           </div>
         </td>
 
         <td className="px-6 py-4">
           {lead.website ? (
-            <a href={lead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:text-foreground transition-colors group/link">
-              <div className="w-8 h-8 rounded-none bg-primary/10 flex items-center justify-center group-hover/link:bg-primary transition-colors">
+            <a href={lead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:text-white transition-colors group/link">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover/link:bg-primary transition-colors">
                 <Globe size={14} className="group-hover/link:text-background" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Visit</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Visit</span>
             </a>
-          ) : <span className="text-foreground/10">-</span>}
+          ) : <span className="text-white/20">-</span>}
         </td>
 
         <td className="px-6 py-4">
@@ -188,7 +188,7 @@ const SocialLink = ({ href, icon }: { href: string, icon: React.ReactNode }) => 
     href={href} 
     target="_blank" 
     rel="noreferrer" 
-    className="w-8 h-8 rounded-none bg-foreground/[0.03] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.1] transition-all"
+    className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all"
   >
     {icon}
   </a>
