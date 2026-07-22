@@ -86,7 +86,12 @@ ${pitchContext}Known: ${leadContext}
 TEXT:
 ${optimizedScraped}
 
-Output JSON ONLY (no markdown blocks, no null lists, empty arrays/null if missing):
+CRITICAL INSTRUCTIONS:
+1. You MUST populate ALL fields in the JSON. Do not leave them null or empty unless absolutely impossible.
+2. If direct data is missing from the text, make highly educated logical deductions based on the company's niche/type (e.g., local estate agents usually have WordPress, Google Analytics; target market is local property owners/buyers; company size is typically 1-10; services offered are residential sales/lettings).
+3. A maximum of 2 fields in total may be left empty/null/empty arrays. All other fields must be filled with factual data or logical deductions.
+
+Output JSON ONLY (no markdown blocks):
 {
   "company_description": "2-3 short sentences summarizing their business & focus.",
   "services_offered": ["service1", "service2"],
