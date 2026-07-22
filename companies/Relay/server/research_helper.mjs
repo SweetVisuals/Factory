@@ -56,57 +56,54 @@ function calculateResearchScore(parsed) {
 }
 
 /**
- * Build the comprehensive deep research AI prompt.
+ * Compresses scraped raw text by removing repetitive boilerplate, whitespace, and noise
+ * to minimize input tokens sent to the LLM.
  */
-function buildResearchPrompt(companyName, rawWebsite, scrapedReport, campaignPitch, lead) {
-  const pitchContext = campaignPitch ? `\nCAMPAIGN OBJECTIVE / PITCH:\n${campaignPitch}\n` : '';
-  const leadContext = [
-    lead.industry ? `Industry: ${lead.industry}` : '',
-    lead.location ? `Location: ${lead.location}` : '',
-    lead.employees ? `Employees: ${lead.employees}` : '',
-    lead.title ? `Contact Title: ${lead.title}` : '',
-    lead.role ? `Contact Role: ${lead.role}` : '',
-  ].filter(Boolean).join('\n');
-
-  return `You are an elite business intelligence analyst. Your job is to extract MAXIMUM useful information from the scraped data below about "${companyName}" (${rawWebsite}).
-
-${pitchContext}
-KNOWN LEAD DATA:
-${leadContext || 'None available'}
-
-SCRAPED DATA:
-${scrapedReport.substring(0, 8000)}
-
-INSTRUCTIONS:
-Analyze ALL the scraped data thoroughly. Extract every piece of useful business intelligence you can find. Do NOT hallucinate or invent information — only report what is evidenced in the data. If a field cannot be determined from the data, use null for strings/objects or empty arrays for lists.
-
-Respond with ONLY valid JSON in this exact schema:
-{
-  "company_description": "2-4 sentence comprehensive overview of what the company does, their mission, and market position",
-  "services_offered": ["service1", "service2", ...],
-  "key_people": [{"name": "Full Name", "title": "Job Title", "linkedin": "linkedin URL or null"}],
-  "pain_points": [{"area": "Area name", "description": "Why this is a pain point for them", "severity": "high|medium|low"}],
-  "growth_signals": [{"type": "hiring|expansion|award|funding|new_product", "detail": "What the signal is", "date": "date if known or null"}],
-  "target_market": "Who their customers/clients are",
-  "competitive_advantage": "What differentiates them from competitors",
-  "company_size": "Employee count or range (e.g. '11-50', '50-200') or null",
-  "year_founded": "Year as string or null",
-  "annual_revenue": "Revenue estimate/range or null",
-  "tech_stack": ["technology1", "technology2", ...],
-  "social_presence": {"google_rating": number_or_null, "review_count": number_or_null, "facebook_url": "url_or_null", "instagram_url": "url_or_null", "twitter_url": "url_or_null", "linkedin_url": "url_or_null"},
-  "recent_news": [{"headline": "News item", "date": "date or null", "source": "source or null"}],
-  "personalised_detail": "A specific 5-15 word observation about their work that shows you researched them. Must reference a REAL project, service, or achievement found in the data. If nothing specific found, use 'work'.",
-  "quick_fact": "One verified sentence about the company from the data. If nothing found, use 'No specific details available.'"
+function cleanScrapedNoise(text) {
+  if (!text) return '';
+  return text
+    .replace(/(cookie policy|privacy policy|terms of service|all rights reserved|agree to our cookies)/gi, '')
+    .replace(/\s+/g, ' ')
+    .substring(0, 3500); // Cap at 3,500 characters to keep input tokens low (~800 tokens)
 }
 
-CRITICAL RULES:
-- Extract REAL data only. Never invent services, people, or facts.
-- For pain_points: Infer business challenges from their industry, size, and services (e.g. a small estate agency likely struggles with manual property listings, tenant management overhead).
-- For growth_signals: Look for mentions of hiring, new offices, awards, partnerships, new services.
-- For key_people: Look in team pages, about pages, LinkedIn snippets. Include owners, directors, managers.
-- For services_offered: Be specific, not generic. "Residential lettings" not just "property services".
-- For tech_stack: Only if explicitly mentioned (e.g. "Powered by WordPress", "Built with React").
-- social_presence google_rating should be a number like 4.5, not a string.`;
+/**
+ * Build the token-optimized deep research AI prompt.
+ */
+function buildResearchPrompt(companyName, rawWebsite, scrapedReport, campaignPitch, lead) {
+  const pitchContext = campaignPitch ? `Campaign Pitch: ${campaignPitch}\n` : '';
+  const leadContext = [
+    lead.industry ? `Ind: ${lead.industry}` : '',
+    lead.location ? `Loc: ${lead.location}` : '',
+    lead.title ? `Title: ${lead.title}` : '',
+  ].filter(Boolean).join(', ');
+
+  const optimizedScraped = cleanScrapedNoise(scrapedReport);
+
+  return `Extract business intelligence for "${companyName}" (${rawWebsite}) from the scraped text below.
+${pitchContext}Known: ${leadContext}
+
+TEXT:
+${optimizedScraped}
+
+Output JSON ONLY (no markdown blocks, no null lists, empty arrays/null if missing):
+{
+  "company_description": "2-3 short sentences summarizing their business & focus.",
+  "services_offered": ["service1", "service2"],
+  "key_people": [{"name": "Name", "title": "Title", "linkedin": "URL or null"}],
+  "pain_points": [{"area": "Area", "description": "Challenge details", "severity": "high|medium|low"}],
+  "growth_signals": [{"type": "hiring|expansion|award", "detail": "Details"}],
+  "target_market": "Target audience",
+  "competitive_advantage": "Main differentiator",
+  "company_size": "Employee count range or null",
+  "year_founded": "Year or null",
+  "annual_revenue": "Revenue or null",
+  "tech_stack": ["tech1", "tech2"],
+  "social_presence": {"google_rating": 4.5, "review_count": 100, "facebook_url": "url", "instagram_url": "url", "twitter_url": "url", "linkedin_url": "url"},
+  "recent_news": [{"headline": "Title", "date": "date"}],
+  "personalised_detail": "5-12 words referencing a specific project/service seen in text. Default: 'work'.",
+  "quick_fact": "1 verified sentence from text."
+}`;
 }
 
 /**
@@ -233,7 +230,7 @@ export async function researchAndSummarizeLead(lead, log = console.log, campaign
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2,
         response_format: { type: 'json_object' },
-        max_tokens: 1500
+        max_tokens: 700
       }, log);
 
       if (aiRes && aiRes.choices && aiRes.choices[0]) {
