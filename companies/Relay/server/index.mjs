@@ -751,15 +751,17 @@ app.get('/api/campaigns/:id/preview-email', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Campaign not found' });
     }
 
-    // 2. Fetch One Lead
+    // 2. Fetch One Lead with a valid email address
     const { data: campLeads, error: leadErr } = await supabaseAdmin
       .from('campaign_leads')
-      .select('leads(*)')
+      .select('leads!inner(*)')
       .eq('campaign_id', id)
+      .not('leads.email', 'eq', '')
+      .not('leads.email', 'is', null)
       .limit(1);
       
     if (leadErr || !campLeads || campLeads.length === 0 || !campLeads[0].leads) {
-      return res.status(404).json({ success: false, error: 'No leads found in this campaign to preview.' });
+      return res.status(404).json({ success: false, error: 'No leads found with a valid email address in this campaign to preview.' });
     }
     
     const lead = campLeads[0].leads;
