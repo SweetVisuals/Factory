@@ -8,6 +8,59 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 const execPromise = util.promisify(exec);
 
+export function detectTechStackFromHtml(html) {
+    if (!html) return [];
+    const tech = [];
+    const lowerHtml = html.toLowerCase();
+    if (lowerHtml.includes('wp-content') || lowerHtml.includes('wp-includes')) tech.push('WordPress');
+    if (lowerHtml.includes('shopify.theme') || lowerHtml.includes('cdn.shopify.com') || lowerHtml.includes('shopify')) tech.push('Shopify');
+    if (lowerHtml.includes('data-wf-page') || lowerHtml.includes('webflow')) tech.push('Webflow');
+    if (lowerHtml.includes('gtag') || lowerHtml.includes('google-analytics') || lowerHtml.includes('googleanalytics') || lowerHtml.includes('ua-')) tech.push('Google Analytics');
+    if (lowerHtml.includes('fbpixel') || lowerHtml.includes('connect.facebook.net') || lowerHtml.includes('fbq(')) tech.push('Facebook Pixel');
+    if (lowerHtml.includes('js.hs-scripts.com') || lowerHtml.includes('hubspot')) tech.push('HubSpot');
+    if (lowerHtml.includes('wix-first-paint') || lowerHtml.includes('wix.com')) tech.push('Wix');
+    if (lowerHtml.includes('squarespace.com') || lowerHtml.includes('static1.squarespace.com')) tech.push('Squarespace');
+    if (lowerHtml.includes('sentry.io')) tech.push('Sentry');
+    if (lowerHtml.includes('cloudflare.com')) tech.push('Cloudflare');
+    if (lowerHtml.includes('stripe.com') || lowerHtml.includes('stripe.js')) tech.push('Stripe');
+    if (lowerHtml.includes('bootstrap.min.css') || lowerHtml.includes('bootstrap.min.js')) tech.push('Bootstrap');
+    if (lowerHtml.includes('jquery.min.js') || lowerHtml.includes('jquery-')) tech.push('jQuery');
+    if (lowerHtml.includes('/_next/') || lowerHtml.includes('next.js')) tech.push('Next.js');
+    if (lowerHtml.includes('react')) tech.push('React');
+    if (lowerHtml.includes('tailwind')) tech.push('TailwindCSS');
+    if (lowerHtml.includes('elementor')) tech.push('Elementor (WordPress)');
+    if (lowerHtml.includes('yoast')) tech.push('Yoast SEO');
+    if (lowerHtml.includes('recaptcha')) tech.push('Google reCAPTCHA');
+    return [...new Set(tech)];
+}
+
+export function extractServicesFromHtml($, html) {
+    const services = [];
+    $('a').each((i, el) => {
+        const href = $(el).attr('href') || '';
+        const text = $(el).text().trim();
+        const hrefLower = href.toLowerCase();
+        if (text && text.length > 3 && text.length < 35) {
+            if (hrefLower.includes('/services') || hrefLower.includes('/what-we-do') || hrefLower.includes('/solutions') || hrefLower.includes('/products/') || hrefLower.includes('/capabilities')) {
+                if (!services.includes(text) && !/contact|about|home|blog|news|careers/i.test(text)) {
+                    services.push(text);
+                }
+            }
+        }
+    });
+    if (services.length < 3) {
+        $('h2, h3').each((i, el) => {
+            const text = $(el).text().trim();
+            if (text && text.length > 3 && text.length < 35) {
+                if (!/contact|about|subscribe|follow|copyright|latest|news|blog|testimonials/i.test(text)) {
+                    services.push(text);
+                }
+            }
+        });
+    }
+    return [...new Set(services)].slice(0, 10);
+}
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -408,21 +461,26 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                 const addressBtn = document.querySelector('button[data-item-id="address"]');
                 const websiteBtn = document.querySelector('a[data-item-id="authority"]');
                 const phoneBtn = document.querySelector('button[data-item-id^="phone:tel:"]');
+                const categoryBtn = document.querySelector('button[jsaction*="pane.rating.category"]') || document.querySelector('span[class*="fontBodyMedium"] button') || document.querySelector('button[data-item-id="category"]');
                 return {
                     address: addressBtn ? addressBtn.innerText.replace(/^.*\\n/, '') : '',
                     website: websiteBtn ? websiteBtn.href : '',
-                    phone: phoneBtn ? phoneBtn.innerText.replace(/^.*\\n/, '') : ''
+                    phone: phoneBtn ? phoneBtn.innerText.replace(/^.*\\n/, '') : '',
+                    category: categoryBtn ? categoryBtn.innerText : ''
                 };
             });
 
             let website = details.website || '';
             const phone = details.phone || '';
             const address = details.address || '';
+            const category = details.category || '';
             
             if (!name) continue;
 
             let email = '';
             let social = { linkedin: '', facebook: '', twitter: '', instagram: '' };
+            let tech_stack = [];
+            let services_offered = [];
 
             // Fast deep scrape if website exists
             if (website && !website.includes('google.com')) {
@@ -447,12 +505,21 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                     $('a').each((i, el) => {
                         const href = $(el).attr('href');
                         if (href) {
-                            if (href.includes('linkedin.com/company')) social.linkedin = href;
+                            if (href.includes('linkedin.com/company') || href.includes('linkedin.com/in')) social.linkedin = href;
                             if (href.includes('facebook.com') && !href.includes('sharer')) social.facebook = href;
                             if (href.includes('instagram.com')) social.instagram = href;
                             if (href.includes('twitter.com') || href.includes('x.com')) social.twitter = href;
                         }
                     });
+
+                    // NATIVE EXTRACTION WITHOUT AI:
+                    try {
+                        tech_stack = detectTechStackFromHtml(html);
+                        services_offered = extractServicesFromHtml($, html);
+                    } catch (e) {
+                        log(`Error during native extraction: ${e.message}`);
+                    }
+
                     return validEmails;
                 };
                 
@@ -505,6 +572,9 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                 linkedin: social.linkedin, 
                 tiktok: '',
                 location: address,
+                industry: category,
+                tech_stack: tech_stack,
+                services_offered: services_offered,
                 source: 'Native Maps'
             };
 
@@ -1041,7 +1111,14 @@ async function gatherExternalIntel(browser, companyName) {
 // FIXED WEBSITE SCRAPER
 async function scrapeWebsite(browser, url, log = console.log, notesContext = '', deepResearch = false, companyNameOverride = '') {
     const page = await browser.newPage();
-    const data = { email: '', phone: '', summary: '', social: { twitter: '', facebook: '', instagram: '', linkedin: '', tiktok: '' } };
+    const data = { 
+        email: '', 
+        phone: '', 
+        summary: '', 
+        social: { twitter: '', facebook: '', instagram: '', linkedin: '', tiktok: '' },
+        tech_stack: [],
+        services_offered: []
+    };
 
     // Aggregated text for AI summary
     let aggregatedText = '';
@@ -1179,7 +1256,16 @@ async function scrapeWebsite(browser, url, log = console.log, notesContext = '',
                     return clone.innerText.replace(/\s+/g, ' ').trim();
                 });
 
-                return { emails: validEmails, phone, social, text: rawText };
+                // NATIVE EXTRACTION WITHOUT AI:
+                let techStack = [];
+                let services = [];
+                try {
+                    techStack = detectTechStackFromHtml(htmlContent);
+                    const $ = cheerio.load(htmlContent);
+                    services = extractServicesFromHtml($, htmlContent);
+                } catch (e) { }
+
+                return { emails: validEmails, phone, social, text: rawText, techStack, services };
             };
 
             // --- SCAN HOME PAGE ---
@@ -1187,6 +1273,8 @@ async function scrapeWebsite(browser, url, log = console.log, notesContext = '',
             homeData.emails.forEach(e => allFoundEmails.add(e));
             if (homeData.phone) data.phone = homeData.phone;
             Object.assign(data.social, homeData.social);
+            if (homeData.techStack) data.tech_stack = [...new Set([...data.tech_stack, ...homeData.techStack])];
+            if (homeData.services) data.services_offered = [...new Set([...data.services_offered, ...homeData.services])];
             aggregatedText += ` [HOME PAGE]: ${homeData.text.substring(0, 1500)} \n`;
 
             // 4. DEEP CRAWL: Visit key pages
@@ -1233,6 +1321,8 @@ async function scrapeWebsite(browser, url, log = console.log, notesContext = '',
                     Object.keys(subData.social).forEach(k => {
                         if (!data.social[k] && subData.social[k]) data.social[k] = subData.social[k];
                     });
+                    if (subData.techStack) data.tech_stack = [...new Set([...data.tech_stack, ...subData.techStack])];
+                    if (subData.services) data.services_offered = [...new Set([...data.services_offered, ...subData.services])];
 
                     let pageType = 'PAGE';
                     if (link.includes('about')) pageType = 'ABOUT US';

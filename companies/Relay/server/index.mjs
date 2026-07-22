@@ -2095,6 +2095,17 @@ app.post('/api/scrape-leads', async (req, res) => {
           role: lead.role || '',
           name: (lead.name && lead.name.trim() && lead.name.trim().toLowerCase() !== 'unknown') ? lead.name.trim() : (lead.company || ''),
           research_status: researchStatus,
+          tech_stack: lead.tech_stack || [],
+          services_offered: lead.services_offered || [],
+          industry: lead.industry || null,
+          social_presence: {
+            facebook_url: lead.facebook || '',
+            instagram_url: lead.instagram || '',
+            twitter_url: lead.twitter || '',
+            linkedin_url: lead.linkedin || '',
+            google_rating: null,
+            review_count: null
+          },
           ...structuredData,
           validation_status: validationStatus,
           validation_details: validationDetails,
