@@ -423,8 +423,8 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-10 bg-foreground/[0.02] rounded-none w-1/3"></div>
-        <div className="h-32 bg-foreground/[0.01] rounded-none"></div>
+        <div className="h-10 bg-foreground/[0.02] rounded-xl w-1/3"></div>
+        <div className="h-32 bg-foreground/[0.01] rounded-xl"></div>
       </div>
     );
   }
@@ -437,7 +437,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
   if (showWizard) {
     return (
       <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex items-center justify-between bg-foreground/[0.02] p-4 rounded-none">
+        <div className="flex items-center justify-between bg-foreground/[0.02] p-4 rounded-xl">
           <div>
             <h3 className="text-xs font-black text-foreground uppercase tracking-wider">Auto-Schedule Review</h3>
             <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mt-0.5">Verify sequence timeline details</p>
@@ -459,9 +459,9 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             </span>
             <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
               {stagedSchedules.map((schedule, i) => (
-                <div key={i} className="p-4 bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-all flex flex-col gap-3 rounded-none">
+                <div key={i} className="p-4 bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-all flex flex-col gap-3 rounded-xl">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="flex items-center justify-center h-5 w-5 bg-primary/10 text-primary text-[10px] font-black rounded-none shrink-0">
+                    <span className="flex items-center justify-center h-5 w-5 bg-primary/10 text-primary text-[10px] font-black rounded-lg shrink-0">
                       {i + 1}
                     </span>
                     <h4 className="font-black text-xs truncate text-foreground" title={schedule.templateName}>
@@ -480,7 +480,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                           updated[i] = { ...updated[i], startDate: e.target.value };
                           setStagedSchedules(updated);
                         }}
-                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-none"
+                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-xl"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -494,7 +494,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                           updated[i] = { ...updated[i], endDate: e.target.value };
                           setStagedSchedules(updated);
                         }}
-                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-none"
+                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-xl"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -513,7 +513,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                           }
                           setStagedSchedules(updated);
                         }}
-                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-none text-center"
+                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-xl text-center"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -532,7 +532,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                           }
                           setStagedSchedules(updated);
                         }}
-                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-none text-center"
+                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-xl text-center"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -551,7 +551,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                           }
                           setStagedSchedules(updated);
                         }}
-                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-none text-center"
+                        className="h-9 px-3 bg-foreground/[0.02] border-none text-xs font-bold text-foreground focus:outline-none focus:bg-foreground/[0.05] rounded-xl text-center"
                       />
                     </div>
                   </div>
@@ -561,7 +561,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
           </div>
  
           {/* Senders selection nested for wizard review */}
-          <div className="space-y-4 bg-foreground/[0.01] p-4 rounded-none">
+          <div className="space-y-4 bg-foreground/[0.01] p-4 rounded-xl">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em]">
                 Schedule Senders
@@ -582,7 +582,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                     key={account.id}
                     onClick={() => handleToggleAccount(account.id)}
                     className={`
-                      flex items-center gap-3 p-2.5 rounded-none cursor-pointer transition-all duration-150 select-none
+                      flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all duration-150 select-none
                       ${isSelected ? 'bg-primary/5 text-primary' : 'bg-foreground/[0.02] text-foreground hover:bg-foreground/[0.04]'}
                     `}
                   >
@@ -597,11 +597,11 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
               <Button
                 onClick={handleWizardLaunch}
                 disabled={selectedEmailAccounts.length === 0 || isSaving}
-                className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/95 rounded-none font-black text-[10px] uppercase tracking-[0.15em] border-none transition-all shadow-lg shadow-primary/10"
+                className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/95 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] border-none transition-all shadow-lg shadow-primary/10"
               >
                 {isSaving ? (
                   <div className="flex items-center justify-center gap-2">
-                    <div className="h-3 w-3 border-2 border-primary-foreground/30 border-t-white rounded-none animate-spin" />
+                    <div className="h-3 w-3 border-2 border-primary-foreground/30 border-t-white rounded-full animate-spin" />
                     <span>Synchronizing...</span>
                   </div>
                 ) : (
@@ -622,7 +622,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
   return (
     <div className="space-y-6">
       {/* Test / Shift Header Strip */}
-      <div className="flex items-center justify-between bg-foreground/[0.02] p-3 rounded-none">
+      <div className="flex items-center justify-between bg-foreground/[0.02] p-3 rounded-xl">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.15em]">
             UK Execution Time (BST/GMT)
@@ -631,7 +631,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
         <Button
           onClick={() => setShowTestModal(true)}
           variant="outline"
-          className="h-7 px-3 bg-foreground/[0.02] text-foreground hover:bg-foreground/[0.05] text-[9px] font-black uppercase tracking-widest rounded-none border-none transition-all flex items-center gap-1"
+          className="h-7 px-3 bg-foreground/[0.02] text-foreground hover:bg-foreground/[0.05] text-[9px] font-black uppercase tracking-widest rounded-xl border-none transition-all flex items-center gap-1"
         >
           <Sparkles className="w-3 h-3 text-primary animate-pulse" />
           Test Email Output
@@ -653,9 +653,9 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
       />
 
       {/* Auto / Manual Setup Section */}
-      <div className="bg-foreground/[0.01] p-4 rounded-none">
+      <div className="bg-foreground/[0.01] p-4 rounded-xl">
         {!isManualMode ? (
-          <div className="flex flex-col gap-4 p-4 bg-gradient-to-br from-primary/5 to-transparent rounded-none">
+          <div className="flex flex-col gap-4 p-4 bg-gradient-to-br from-primary/5 to-transparent rounded-xl">
             <div className="space-y-1 text-left">
               <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -668,7 +668,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleAutoSchedule}
-                className="h-8 px-4 bg-primary text-primary-foreground hover:bg-primary/95 rounded-none font-black text-[9px] uppercase tracking-widest border-none transition-all"
+                className="h-8 px-4 bg-primary text-primary-foreground hover:bg-primary/95 rounded-xl font-black text-[9px] uppercase tracking-widest border-none transition-all"
               >
                 Auto-Schedule Sequence
               </Button>
@@ -716,13 +716,13 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
       </div>
 
       {/* Target Senders checklist (compact design stacked in flow) */}
-      <div className="bg-foreground/[0.01] p-4 rounded-none space-y-3">
+      <div className="bg-foreground/[0.01] p-4 rounded-xl space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.15em]">
               Senders for Schedule
             </span>
-            <span className="px-2 py-0.5 bg-foreground/[0.05] text-foreground/50 text-[8px] font-black uppercase rounded-none">
+            <span className="px-2 py-0.5 bg-foreground/[0.05] text-foreground/50 text-[8px] font-black uppercase rounded-full">
               {selectedEmailAccounts.length} selected
             </span>
           </div>
@@ -739,7 +739,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
           <input
             type="text"
             placeholder="Filter email addresses..."
-            className="w-full pl-8 pr-3 py-2 bg-foreground/[0.02] border-none rounded-none focus:outline-none focus:bg-foreground/[0.04] text-[10px] text-foreground placeholder:text-foreground/20 font-bold uppercase tracking-wider"
+            className="w-full pl-8 pr-3 py-2 bg-foreground/[0.02] border-none rounded-xl focus:outline-none focus:bg-foreground/[0.04] text-[10px] text-foreground placeholder:text-foreground/20 font-bold uppercase tracking-wider"
             onChange={(e) => {
               const search = e.target.value.trim().toLowerCase();
               setFilteredEmailAccounts(
@@ -760,7 +760,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                   key={account.id}
                   onClick={() => handleToggleAccount(account.id)}
                   className={`
-                    flex items-center justify-between p-2 rounded-none cursor-pointer transition-all duration-150 select-none
+                    flex items-center justify-between p-2 rounded-xl cursor-pointer transition-all duration-150 select-none
                     ${isSelected ? 'bg-primary/5 text-primary' : 'bg-foreground/[0.02] hover:bg-foreground/[0.04] text-foreground'}
                   `}
                 >
@@ -768,14 +768,14 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                     <CustomCheckbox checked={isSelected} onChange={() => {}} />
                     <span className="text-xs truncate font-bold">{account.email}</span>
                   </div>
-                  <span className="text-[7px] bg-foreground/[0.05] px-1 py-0.5 rounded-none font-black text-foreground/30 uppercase tracking-widest shrink-0">
+                  <span className="text-[7px] bg-foreground/[0.05] px-1 py-0.5 rounded-md font-black text-foreground/30 uppercase tracking-widest shrink-0">
                     Ready
                   </span>
                 </div>
               );
             })
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-center bg-foreground/[0.01] rounded-none">
+            <div className="flex flex-col items-center justify-center py-6 text-center bg-foreground/[0.01] rounded-xl">
               <AlertCircle className="h-4 w-4 text-foreground/10 mb-1" />
               <p className="text-[9px] text-foreground/20 uppercase tracking-widest font-black">No accounts found</p>
             </div>
@@ -788,10 +788,10 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             <Button
               onClick={handleSchedule}
               disabled={templates.length === 0 || !startDate || !endDate || selectedEmailAccounts.length === 0 || isSaving}
-              className="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/95 rounded-none font-black text-[10px] uppercase tracking-widest border-none transition-all shadow-md"
+              className="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/95 rounded-xl font-black text-[10px] uppercase tracking-widest border-none transition-all shadow-md"
             >
               {isSaving ? (
-                <div className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-white rounded-none animate-spin" />
+                <div className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
               )}
@@ -800,7 +800,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             <Button
               onClick={handlePersonalizeLaunch}
               disabled={templates.length === 0 || !startDate || !endDate || selectedEmailAccounts.length === 0 || isSaving}
-              className="w-full h-10 bg-foreground/[0.02] text-foreground hover:bg-foreground/[0.05] rounded-none font-black text-[9px] uppercase tracking-widest border-none transition-all"
+              className="w-full h-10 bg-foreground/[0.02] text-foreground hover:bg-foreground/[0.05] rounded-xl font-black text-[9px] uppercase tracking-widest border-none transition-all"
             >
               <Sparkles className="h-3.5 w-3.5 mr-1 text-primary animate-pulse" />
               <span>Personalize & Launch</span>
@@ -810,13 +810,13 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
       </div>
 
       {/* Active Schedules Panel */}
-      <div className="space-y-3 bg-foreground/[0.01] p-4 rounded-none">
+      <div className="space-y-3 bg-foreground/[0.01] p-4 rounded-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.15em]">
               Active Schedules
             </span>
-            <span className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] font-black uppercase rounded-none">
+            <span className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-wider rounded-full">
               {scheduledEmails.length} Running
             </span>
           </div>
@@ -824,7 +824,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
             onClick={handleRescheduleToToday}
             disabled={isSaving || scheduledEmails.length === 0}
             variant="outline"
-            className="gap-1 bg-foreground/[0.02] text-foreground hover:bg-foreground/[0.05] text-[9px] h-7 px-3 font-black rounded-none border-none transition-all"
+            className="gap-1 bg-foreground/[0.02] text-foreground hover:bg-foreground/[0.05] text-[9px] h-7 px-3 font-black rounded-xl border-none transition-all"
             title="Shift all schedules to start from today"
           >
             <RotateCcw className="h-2.5 w-2.5" />
@@ -841,7 +841,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
               const progress = Math.min(100, Math.max(0, (item.sentEmails / (item.totalEmails || 1)) * 100));
 
               return (
-                <div key={entryId} className="p-3 bg-foreground/[0.02] hover:bg-foreground/[0.03] rounded-none transition-all flex flex-col gap-2">
+                <div key={entryId} className="p-3 bg-foreground/[0.02] hover:bg-foreground/[0.03] rounded-xl transition-all flex flex-col gap-2">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     
                     {/* Name and Meta */}
@@ -852,7 +852,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                           {item.templateId ? (template?.name || 'Loading Template...') : 'Paused - Template Missing'}
                         </h4>
                         <div className={`
-                          px-1.5 py-0.5 rounded-none text-[8px] font-black uppercase tracking-wider
+                          px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider
                           ${!item.templateId
                             ? 'bg-amber-500/10 text-amber-500'
                             : item.sentEmails >= item.totalEmails
@@ -880,7 +880,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                         <span>{item.sentEmails}/{item.totalEmails} sent</span>
                         <span className="font-mono">{Math.round(progress)}%</span>
                       </div>
-                      <div className="h-1 w-full bg-foreground/[0.05] rounded-none overflow-hidden">
+                      <div className="h-1 w-full bg-foreground/[0.05] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary transition-all duration-500"
                           style={{ width: `${progress}%` }}
@@ -892,7 +892,7 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                     <div className="flex items-center gap-1 shrink-0 self-end sm:self-center">
                       <button
                         onClick={() => setVisibleEmails(prev => ({ ...prev, [entryId]: !showEmails }))}
-                        className="h-7 px-2 bg-foreground/[0.02] hover:bg-foreground/[0.05] text-[9px] font-black uppercase tracking-widest text-foreground/50 hover:text-primary transition-all flex items-center gap-0.5 rounded-none"
+                        className="h-7 px-2 bg-foreground/[0.02] hover:bg-foreground/[0.05] text-[9px] font-black uppercase tracking-widest text-foreground/50 hover:text-primary transition-all flex items-center gap-0.5 rounded-lg"
                         title="Toggle Accounts details"
                       >
                         {showEmails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -900,14 +900,14 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
                       </button>
                       <button
                         onClick={() => { setEditingSchedule(item); setShowEditModal(true); }}
-                        className="h-7 w-7 p-0 bg-foreground/[0.02] hover:bg-foreground/[0.05] text-foreground/40 hover:text-primary transition-all flex items-center justify-center rounded-none"
+                        className="h-7 w-7 p-0 bg-foreground/[0.02] hover:bg-foreground/[0.05] text-foreground/40 hover:text-primary transition-all flex items-center justify-center rounded-lg"
                         title="Edit Schedule Parameters"
                       >
                         <Info className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteSchedule(item.id)}
-                        className="h-7 w-7 p-0 bg-foreground/[0.02] hover:bg-foreground/[0.05] text-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center rounded-none"
+                        className="h-7 w-7 p-0 bg-foreground/[0.02] hover:bg-foreground/[0.05] text-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center rounded-lg"
                         title="Delete Schedule"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -917,17 +917,17 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
 
                   {/* Expandable Account Details */}
                   {showEmails && (
-                    <div className="mt-2 p-2 bg-foreground/[0.01] rounded-none space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="mt-2 p-2 bg-foreground/[0.01] rounded-xl space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
                       {item.emailAccounts.map(account => {
                         const accProgress = (account.sent / item.emailsPerAccount) * 100;
                         return (
-                          <div key={account.id} className="flex flex-col gap-1 p-2 bg-foreground/[0.02] rounded-none">
+                          <div key={account.id} className="flex flex-col gap-1 p-2 bg-foreground/[0.02] rounded-xl">
                             <span className="text-[10px] font-bold truncate text-foreground/60">{account.email || 'Unknown'}</span>
                             <div className="flex items-center justify-between text-[8px] font-bold text-foreground/30 uppercase tracking-widest">
                               <span>{account.sent} / {item.emailsPerAccount} sent</span>
                               <span className="font-mono">{Math.round(accProgress)}%</span>
                             </div>
-                            <div className="h-1 w-full bg-foreground/[0.05] rounded-none overflow-hidden">
+                            <div className="h-1 w-full bg-foreground/[0.05] rounded-full overflow-hidden">
                               <div className="h-full bg-primary/60" style={{ width: `${accProgress}%` }} />
                             </div>
                           </div>
@@ -939,8 +939,8 @@ const ScheduleEditor: React.FC<Props> = ({ campaignId, onScheduleChange }): Reac
               );
             })
           ) : (
-            <div className="flex flex-col items-center justify-center py-10 bg-foreground/[0.01] rounded-none">
-              <div className="p-3 bg-foreground/[0.02] rounded-none mb-2 text-foreground/20">
+            <div className="flex flex-col items-center justify-center py-10 bg-foreground/[0.01] rounded-xl">
+              <div className="p-3 bg-foreground/[0.02] rounded-xl mb-2 text-foreground/20">
                 <Mail className="h-5 w-5 animate-pulse" />
               </div>
               <h4 className="text-xs font-black text-foreground/40 uppercase tracking-wider mb-0.5">No Active Schedules</h4>

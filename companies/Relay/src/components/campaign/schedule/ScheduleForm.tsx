@@ -44,7 +44,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
       {/* Propagation Logic Registry */}
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-white/[0.02] rounded-none">
+          <div className="p-3 bg-white/[0.02] rounded-xl">
             <Zap className="h-6 w-6 text-primary" />
           </div>
           <div>
@@ -53,9 +53,9 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
           </div>
         </div>
         
-        <div className="p-6 bg-white/[0.01] rounded-none flex items-center justify-between group hover:bg-white/[0.02] transition-all">
+        <div className="p-6 bg-white/[0.01] rounded-xl flex items-center justify-between group hover:bg-white/[0.02] transition-all">
           <div className="flex items-center gap-4">
-            <div className="p-2 bg-primary/10 rounded-none">
+            <div className="p-2 bg-primary/10 rounded-lg">
               <Mail className="h-4 w-4 text-primary" />
             </div>
             <div>
@@ -63,7 +63,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
               <div className="text-[10px] text-white/20 uppercase tracking-widest font-black">Automatic 3-day stagger active</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-none">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg">
             <Activity size={12} className="text-primary animate-pulse" />
             <span className="text-[10px] font-black text-primary uppercase tracking-widest">Optimized</span>
           </div>
@@ -74,7 +74,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
         {/* Temporal Matrix */}
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/[0.02] rounded-none">
+            <div className="p-3 bg-white/[0.02] rounded-xl">
               <Calendar className="h-6 w-6 text-primary" />
             </div>
             <div>
@@ -83,7 +83,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
             </div>
           </div>
 
-          <div className="space-y-5 p-8 bg-white/[0.01] rounded-none relative overflow-hidden">
+          <div className="space-y-5 p-8 bg-white/[0.01] rounded-xl relative overflow-hidden">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-1">Initiation Date</Label>
@@ -93,7 +93,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
                     value={startDate}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => onStartDateChange(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-none font-bold text-sm transition-all"
+                    className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-xl font-bold text-sm transition-all"
                   />
                 </div>
               </div>
@@ -104,7 +104,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
                     type="time"
                     value={startTime}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => onStartTimeChange(e.target.value)}
-                    className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-none font-bold text-sm transition-all"
+                    className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-xl font-bold text-sm transition-all"
                   />
                 </div>
               </div>
@@ -116,7 +116,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
                 value={endDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onEndDateChange(e.target.value)}
                 min={startDate || new Date().toISOString().split('T')[0]}
-                className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-none font-bold text-sm transition-all"
+                className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-xl font-bold text-sm transition-all"
               />
             </div>
           </div>
@@ -126,7 +126,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/[0.02] rounded-none">
+              <div className="p-3 bg-white/[0.02] rounded-xl">
                 <Shield className="h-6 w-6 text-primary" />
               </div>
               <div>
@@ -134,12 +134,12 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
                 <p className="text-[9px] text-white/20 uppercase tracking-widest font-black">Safety and performance limits</p>
               </div>
             </div>
-            <div className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-none text-[9px] font-black text-primary uppercase tracking-widest">
+            <div className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-lg text-[9px] font-black text-primary uppercase tracking-widest">
               30 Emails/Hr per Domain
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 p-8 bg-white/[0.01] rounded-none">
+          <div className="grid grid-cols-2 gap-6 p-8 bg-white/[0.01] rounded-xl">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-1">Max Daily Load</Label>
               <div className="relative group">
@@ -154,7 +154,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
                       if (!isNaN(parsed)) onEmailsPerDayChange(parsed);
                     }
                   }}
-                  className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-none font-bold text-sm transition-all pr-10"
+                  className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-xl font-bold text-sm transition-all pr-10"
                   placeholder="Total emails"
                 />
                 <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/10 group-focus-within:text-primary transition-colors" />
@@ -175,7 +175,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
                       if (!isNaN(parsed)) onIntervalChange(parsed);
                     }
                   }}
-                  className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-none font-bold text-sm transition-all pr-10"
+                  className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-xl font-bold text-sm transition-all pr-10"
                   placeholder="Min 15"
                 />
                 <Timer className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/10 group-focus-within:text-primary transition-colors" />
@@ -196,7 +196,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
                       if (!isNaN(parsed)) onEmailsPerAccountChange(parsed);
                     }
                   }}
-                  className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-none font-bold text-sm transition-all pr-10"
+                  className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-xl font-bold text-sm transition-all pr-10"
                   placeholder="Load/Acc"
                 />
                 <Users className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/10 group-focus-within:text-primary transition-colors" />
@@ -217,7 +217,7 @@ export const ScheduleForm: React.FC<ScheduleFormProps> = ({
                       if (!isNaN(parsed)) onIntervalAccountChange(parsed);
                     }
                   }}
-                  className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-none font-bold text-sm transition-all pr-10"
+                  className="bg-white/[0.02] border-none focus:bg-white/[0.04] h-12 rounded-xl font-bold text-sm transition-all pr-10"
                   placeholder="Relay gap"
                 />
                 <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/10 group-focus-within:text-primary transition-colors" />
