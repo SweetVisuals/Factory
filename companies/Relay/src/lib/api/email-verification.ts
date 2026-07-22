@@ -18,10 +18,11 @@ export const verifyImap = async (config: {
       success: data.success,
       message: data.success ? 'IMAP connection successful' : 'IMAP verification failed'
     };
-  } catch (error) {
+  } catch (error: any) {
+    const serverMessage = error?.response?.data?.error;
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'IMAP verification failed'
+      message: serverMessage || (error instanceof Error ? error.message : 'IMAP verification failed')
     };
   }
 };

@@ -57,6 +57,7 @@ export interface EmailAccount {
     name: string;
     content: string;
     imageUrl?: string | null;
+    isDefault?: boolean;
   }>;
   daily_limit?: number;
   smtp_password: string;

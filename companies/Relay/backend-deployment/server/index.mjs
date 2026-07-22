@@ -316,19 +316,22 @@ app.post('/api/verify-imap', async (req, res) => {
 
     const client = new ImapFlow({
       host,
-      port,
-      secure: port === 993,
+      port: Number(port),
+      secure: Number(port) === 993,
       auth: {
         user: email,
         pass: password,
       },
+      greetingTimeout: 15000,
+      tls: { rejectUnauthorized: false },
+      logger: false
     });
 
     await client.connect();
     await client.logout();
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'IMAP verification failed'
     });

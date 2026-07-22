@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { EmailAccount } from '../types';
-import { X, Paperclip, Send, Search, Image as ImageIcon, FileText, Bot, Settings, Minimize2, Maximize2, Minus, ChevronUp, Edit3 } from 'lucide-react';
+import { X, Paperclip, Send, Search, Image as ImageIcon, FileText, Bot, Settings, Minimize2, Maximize2, Minus, ChevronUp, ChevronDown, Edit3 } from 'lucide-react';
 import { api } from '../lib/api/api';
 import { cn } from '../lib/utils';
 import { useToast } from './ui/use-toast';

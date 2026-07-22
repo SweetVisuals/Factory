@@ -138,7 +138,9 @@ const EmailAccountsList: React.FC = () => {
                             <div className="flex items-center gap-3">
                               <div className={cn(
                                 "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border",
-                                account.status === 'active' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"
+                                account.status === 'active' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+                                (account.status === 'error' || account.status === 'invalid' || account.status === 'failed') ? "bg-red-500/10 border-red-500/20 text-red-400" :
+                                "bg-white/5 border-white/10 text-white/60"
                               )}>
                                 <Mail size={14} />
                               </div>
@@ -149,24 +151,30 @@ const EmailAccountsList: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-4 py-3.5">
-                            <Tooltip.Provider>
-                              <Tooltip.Root delayDuration={0}>
-                                <Tooltip.Trigger asChild>
-                                  <span className={cn(
-                                    "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border cursor-help",
-                                    account.status === 'active' ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"
-                                  )}>
-                                    {account.status === 'active' ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
-                                    {account.status}
-                                  </span>
-                                </Tooltip.Trigger>
-                                {account.status !== 'active' && account.error_message && (
-                                  <Tooltip.Content side="top" className="bg-black text-white font-bold tracking-wider px-3 py-1.5 rounded-md text-[10px] uppercase border border-white/10 shadow-xl z-50 max-w-xs text-center" sideOffset={5}>
-                                    {account.error_message}
-                                  </Tooltip.Content>
-                                )}
-                              </Tooltip.Root>
-                            </Tooltip.Provider>
+                            {account.status && account.status !== 'unverified' && account.status !== 'pending' ? (
+                              <Tooltip.Provider>
+                                <Tooltip.Root delayDuration={0}>
+                                  <Tooltip.Trigger asChild>
+                                    <span className={cn(
+                                      "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border cursor-help",
+                                      account.status === 'active' ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" :
+                                      (account.status === 'error' || account.status === 'invalid' || account.status === 'failed') ? "text-red-400 bg-red-500/10 border-red-500/20" :
+                                      "text-white/40 bg-white/5 border-white/10"
+                                    )}>
+                                      {account.status === 'active' ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
+                                      {account.status}
+                                    </span>
+                                  </Tooltip.Trigger>
+                                  {account.status !== 'active' && account.error_message && (
+                                    <Tooltip.Content side="top" className="bg-black text-white font-bold tracking-wider px-3 py-1.5 rounded-md text-[10px] uppercase border border-white/10 shadow-xl z-50 max-w-xs text-center" sideOffset={5}>
+                                      {account.error_message}
+                                    </Tooltip.Content>
+                                  )}
+                                </Tooltip.Root>
+                              </Tooltip.Provider>
+                            ) : (
+                              <span className="text-sm font-medium text-white/30">-</span>
+                            )}
                           </td>
                           <td className="px-4 py-3.5 text-center">
                             <span className="text-sm font-black text-white">{account.emailsSent || 0}</span>

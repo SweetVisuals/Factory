@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Compass, Target, Inbox, AtSign, UserCircle, MessageSquare, LogOut, Zap, Clock, Activity, Cpu, HardDrive, Bell, BellRing, Settings, Sparkles, Menu, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { openclawSupabase } from '../lib/openclaw';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
@@ -15,25 +14,16 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   const [isPaused, setIsPaused] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [apiLimit, setApiLimit] = useState<number>(0);
   const [dbSpace, setDbSpace] = useState<number>(0);
 
   const isAdmin = user?.email === 'ptnmgmt@gmail.com';
-  const MAX_API_LIMIT = isAdmin ? 11000 : 500;
   const MAX_DB_SPACE_MB = isAdmin ? 5120 : 250; // 5GB or 250MB
 
   const isActive = (path: string) => location.pathname === path;
 
   useEffect(() => {
     const fetchStatus = async () => {
-      // Fetch API limit (chat logs count)
-      const { count: apiCount } = await openclawSupabase.from('chat_logs').select('*', { count: 'exact', head: true });
-      if (apiCount !== null) {
-        setApiLimit(apiCount);
-      }
-
-      // Fetch DB space estimation (leads count proxy)
-      // Assuming each lead is approx 1KB
+      // Fetch DB space & usage estimation (leads count proxy)
       const { count: leadsCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
       if (leadsCount !== null) {
         setDbSpace(leadsCount / 1024); // Convert KB to MB
@@ -129,47 +119,23 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
         {/* System Tray (Right Side) */}
         <div className="flex items-center ml-auto gap-4">
           
-          {/* OS System Health Monitors & AI Balance */}
-          <div className="hidden lg:flex items-center gap-4 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">
-            <div 
-              onClick={() => navigate('/profile?tab=usage')}
-              className="flex items-center gap-2 w-24 group cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
-            >
-              <Sparkles size={12} className="text-emerald-400/80 shrink-0" />
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex justify-between text-[9px] font-bold text-foreground/50">
-                  <span>Usage</span>
-                  <span className="text-white/90 font-mono">{Math.round((((apiLimit / MAX_API_LIMIT) + (dbSpace / MAX_DB_SPACE_MB)) / 2) * 100)}%</span>
-                </div>
-                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-emerald-500/50 to-emerald-400 shadow-[0_0_2px_rgba(52,211,153,0.5)] transition-all duration-500" style={{ width: `${Math.min(100, (((apiLimit / MAX_API_LIMIT) + (dbSpace / MAX_DB_SPACE_MB)) / 2) * 100)}%` }} />
-                </div>
+          {/* OS System Health Monitor (Combined Metric) */}
+          <div 
+            onClick={() => navigate('/profile?tab=usage')}
+            className="hidden lg:flex items-center gap-3 bg-black/40 px-3.5 py-1.5 rounded-lg border border-white/5 cursor-pointer opacity-80 hover:opacity-100 transition-all hover:bg-white/5 group"
+            title="View System Usage Details"
+          >
+            <Sparkles size={13} className="text-emerald-400/90 shrink-0 group-hover:scale-110 transition-transform" />
+            <div className="flex flex-col gap-1 min-w-[120px]">
+              <div className="flex justify-between items-center text-[10px] font-bold text-foreground/60 gap-3">
+                <span>Usage & Quota</span>
+                <span className="text-white font-mono">{dbSpace < 1024 ? `${Math.round(dbSpace)} MB` : `${(dbSpace/1024).toFixed(1)} GB`} / {MAX_DB_SPACE_MB >= 1024 ? `${(MAX_DB_SPACE_MB/1024).toFixed(0)} GB` : `${MAX_DB_SPACE_MB} MB`} ({Math.min(100, Math.round((dbSpace / MAX_DB_SPACE_MB) * 100))}%)</span>
               </div>
-            </div>
-            <div className="w-px h-6 bg-white/10" />
-            <div className="flex items-center gap-2 w-24">
-              <Cpu size={12} className="text-foreground/50 shrink-0" />
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex justify-between text-[9px] font-bold text-foreground/50">
-                  <span>API Limit</span>
-                  <span>{apiLimit}/{MAX_API_LIMIT >= 1000 ? `${(MAX_API_LIMIT/1000).toFixed(0)}k` : MAX_API_LIMIT}</span>
-                </div>
-                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, (apiLimit / MAX_API_LIMIT) * 100)}%` }} />
-                </div>
-              </div>
-            </div>
-            <div className="w-px h-6 bg-white/10" />
-            <div className="flex items-center gap-2 w-24">
-              <HardDrive size={12} className="text-foreground/50 shrink-0" />
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex justify-between text-[9px] font-bold text-foreground/50">
-                  <span>DB Space</span>
-                  <span>{dbSpace < 1024 ? `${Math.round(dbSpace)} MB` : `${(dbSpace/1024).toFixed(1)} GB`} / {MAX_DB_SPACE_MB >= 1024 ? `${(MAX_DB_SPACE_MB/1024).toFixed(0)} GB` : `${MAX_DB_SPACE_MB} MB`}</span>
-                </div>
-                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${Math.min(100, (dbSpace / MAX_DB_SPACE_MB) * 100)}%` }} />
-                </div>
+              <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.5)] transition-all duration-500" 
+                  style={{ width: `${Math.min(100, Math.max(1, Math.round((dbSpace / MAX_DB_SPACE_MB) * 100)))}%` }} 
+                />
               </div>
             </div>
           </div>
