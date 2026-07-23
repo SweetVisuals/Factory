@@ -3,23 +3,46 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { useApp } from '@/context/AppContext';
 import { api } from '@/lib/api/api';
-import { Play, Loader2, Eye, Mail, CalendarClock, Target, AlertCircle, ChevronLeft, ChevronRight, ExternalLink, FileText } from 'lucide-react';
+import { Play, Loader2, Eye, Mail, CalendarClock, Target, AlertCircle, ChevronLeft, ChevronRight, ExternalLink, FileText, BrainCircuit } from 'lucide-react';
+import LeadIntelligenceDrawer from '../lead-scraper/LeadIntelligenceDrawer';
 
 interface ReviewTabProps {
   campaignId: string;
 }
 
 export default function ReviewTab({ campaignId }: ReviewTabProps) {
-  const { campaigns, updateCampaign } = useApp();
+  const { campaigns, updateCampaign, emailAccounts } = useApp();
   const [isApproving, setIsApproving] = useState(false);
   const [previewData, setPreviewData] = useState<any[] | null>(null);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [showResearchNotes, setShowResearchNotes] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const campaign = campaigns.find(c => c.id === campaignId);
+  const account = emailAccounts?.find(a => a.id === campaign?.email_account_id);
+
+  const getSignatureHtml = () => {
+    if (!account) return '';
+    try {
+      const sigs = typeof account.signatures === 'string' ? JSON.parse(account.signatures) : account.signatures;
+      if (Array.isArray(sigs)) {
+        const defSig = sigs.find((s: any) => s.isDefault) || sigs[0];
+        if (defSig) {
+          const textHtml = defSig.content ? defSig.content.replace(/\n/g, '<br/>') : '';
+          const imgHtml = defSig.imageUrl ? `<br/><img src="${defSig.imageUrl}" alt="Signature Logo" style="max-width: 100%; display: block; margin-top: 6px; max-height: 200px; height: 200px;" />` : '';
+          return `<div class="composer-signature-block" style="margin-top: 24px; line-height: 1.5; color: inherit; font-family: sans-serif;">${textHtml}${imgHtml}</div>`;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    if (account.signature) {
+      return `<div class="composer-signature-block" style="margin-top: 24px; line-height: 1.5; color: inherit; font-family: sans-serif;">${account.signature.replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px').replace(/height:\s*(?:50|30)px/gi, 'height: 200px')}</div>`;
+    }
+    return '';
+  };
 
   useEffect(() => {
     if (campaignId) {
@@ -222,64 +245,26 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
                         Subject: <strong className="text-foreground">{activeItem.email?.subject}</strong>
                       </div>
                       
-                      <div className="text-sm text-foreground/90 whitespace-pre-wrap font-sans leading-relaxed flex-1">
-                        {activeItem.email?.body}
+                      <div className="text-sm text-foreground whitespace-pre-wrap font-sans leading-relaxed flex-1">
+                        <div dangerouslySetInnerHTML={{ __html: (activeItem.email?.body || '').replace(/\n/g, '<br/>') + getSignatureHtml() }} />
                       </div>
                     </div>
                   </div>
 
                   {/* Lead Research Cross-Reference Side Panel */}
                   <div className="flex flex-col gap-4">
-                    <div className="bg-[#111]/80 border border-white/5 rounded-xl p-4 shadow-sm flex flex-col flex-1 h-full max-h-[450px]">
-                      <div className="flex items-center justify-between pb-2 border-b border-white/5 mb-3">
-                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                          <FileText size={12} className="text-primary" />
-                          Research details
-                        </span>
-                        <button 
-                          onClick={() => setShowResearchNotes(!showResearchNotes)}
-                          className="text-[10px] font-bold text-primary hover:underline"
-                        >
-                          {showResearchNotes ? 'Hide' : 'Show'}
-                        </button>
-                      </div>
-
-                      {showResearchNotes ? (
-                        <div className="flex-1 overflow-y-auto text-xs text-foreground/80 space-y-4 pr-1 font-sans custom-scrollbar leading-relaxed">
-                          <div>
-                            <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-wider block mb-1">Company Description</span>
-                            <p className="bg-white/[0.02] p-2.5 rounded border border-white/5">{activeItem.lead?.company_description || 'No description available'}</p>
-                          </div>
-                          
-                          {activeItem.lead?.personalised_detail && (
-                            <div>
-                              <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-wider block mb-1">Personalised Detail</span>
-                              <p className="bg-white/[0.02] p-2.5 rounded border border-white/5 text-emerald-400">{activeItem.lead.personalised_detail}</p>
-                            </div>
-                          )}
-
-                          <div>
-                            <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-wider block mb-1">Filing & Industry Info</span>
-                            <div className="bg-white/[0.02] p-2.5 rounded border border-white/5 grid grid-cols-2 gap-2 text-[11px]">
-                              <div><span className="text-muted-foreground">Founded:</span> {activeItem.lead?.year_founded || 'N/A'}</div>
-                              <div><span className="text-muted-foreground">Revenue:</span> {activeItem.lead?.annual_revenue || 'N/A'}</div>
-                              <div className="col-span-2"><span className="text-muted-foreground">Size:</span> {activeItem.lead?.company_size || 'N/A'}</div>
-                              <div className="col-span-2"><span className="text-muted-foreground">Location:</span> {activeItem.lead?.location || 'N/A'}</div>
-                            </div>
-                          </div>
-
-                          <div>
-                            <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-wider block mb-1">Raw Scraped Summary</span>
-                            <div className="bg-white/[0.02] p-2.5 rounded border border-white/5 font-mono text-[10px] whitespace-pre-wrap leading-tight text-white/50 max-h-[150px] overflow-y-auto">
-                              {activeItem.lead?.summary || 'No summary available.'}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex-1 flex items-center justify-center text-muted-foreground/40 text-xs">
-                          Research notes hidden
-                        </div>
-                      )}
+                    <div className="bg-[#111]/80 border border-white/5 rounded-xl p-6 shadow-sm flex flex-col flex-1 h-full max-h-[450px] items-center justify-center text-center">
+                      <BrainCircuit className="w-12 h-12 text-primary/40 mb-4" />
+                      <h4 className="text-foreground font-bold mb-2">Deep Intelligence</h4>
+                      <p className="text-xs text-muted-foreground mb-6 max-w-[200px]">
+                        Review all the data points, news, and insights our AI collected about this lead.
+                      </p>
+                      <button
+                        onClick={() => setIsDrawerOpen(true)}
+                        className="px-4 py-2 bg-primary/10 text-primary font-bold rounded-lg hover:bg-primary/20 transition-colors border border-primary/20 text-xs w-full max-w-[200px]"
+                      >
+                        Open Lead Details
+                      </button>
                     </div>
                   </div>
 
@@ -324,6 +309,14 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
         </div>
 
       </div>
+
+      {activeItem && activeItem.lead && (
+        <LeadIntelligenceDrawer
+          lead={activeItem.lead}
+          open={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+        />
+      )}
     </div>
   );
 }
