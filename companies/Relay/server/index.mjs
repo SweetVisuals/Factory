@@ -1038,18 +1038,26 @@ app.post('/api/send-direct-email', async (req, res) => {
     const { data: account } = await supabase.from('email_accounts').select('*').eq('id', accountId).single();
     if (!account) return res.status(404).json({ error: 'Account not found' });
 
+    const { data: decryptedPassword } = await supabase.rpc('decrypt_password', {
+      encrypted_password: account.encrypted_password
+    });
+
+    if (!decryptedPassword) {
+      return res.status(500).json({ error: 'Could not decrypt SMTP password' });
+    }
+
     let transporter;
     if (account.provider === 'google') {
       transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user: account.email, pass: account.app_password }
+        auth: { user: account.email, pass: decryptedPassword }
       });
     } else {
       transporter = nodemailer.createTransport({
         host: account.smtp_host,
         port: parseInt(account.smtp_port) || 465,
         secure: parseInt(account.smtp_port) === 465,
-        auth: { user: account.email, pass: account.app_password }
+        auth: { user: account.email, pass: decryptedPassword }
       });
     }
 
