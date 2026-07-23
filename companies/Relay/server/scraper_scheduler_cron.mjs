@@ -23,7 +23,7 @@ async function runScraperScheduler() {
         .select(`
             id, name, status, niche
         `)
-        .in('status', ['in_progress', 'active']);
+        .in('status', ['in_progress', 'active', 'draft', 'review', 'paused']);
 
     if (campaignError) {
         throw campaignError;
