@@ -5,6 +5,11 @@ import { cn } from '../lib/utils';
 import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X, Edit3, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { EmailMessage, EmailAccount, Campaign } from '../types';
+
+// Augment EmailMessage locally for the new field
+interface LocalEmailMessage extends EmailMessage {
+  isImportant?: boolean;
+}
 import { fetchEmailAccounts } from '../lib/api/email-accounts';
 import { api } from '../lib/api/api';
 import { useToast } from '../components/ui/use-toast';
@@ -13,6 +18,8 @@ import { ComposeDock } from '../components/ComposeDock';
 type FilterState = 
   | { type: 'all' }
   | { type: 'archive' }
+  | { type: 'important' }
+  | { type: 'trash' }
   | { type: 'business'; businessName: string }
   | { type: 'campaign'; businessName: string; campaignId: string };
 
@@ -26,6 +33,7 @@ interface Thread {
   campaignId?: string;
   accountId: string;
   folder: string; // Derived from latest message
+  isImportant?: boolean;
 }
 
 const Inbox = () => {
@@ -39,6 +47,7 @@ const Inbox = () => {
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
   const [filter, setFilter] = useState<FilterState>({ type: 'all' });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedThreads, setSelectedThreads] = useState<Set<string>>(new Set());
   
   // Reply State
   const [replyContent, setReplyContent] = useState('');
@@ -107,7 +116,8 @@ const Inbox = () => {
           id: email.id, uid: email.uid, accountId: email.email_account_id,
           from: email.from, to: email.to, subject: email.subject, date: email.received_at,
           snippet: email.snippet || '', text: email.body_text, html: email.body_html,
-          folder: email.folder as any, isRead: email.is_read, sequenceStep: email.sequence_step, campaignId: email.campaign_id
+          folder: email.folder as any, isRead: email.is_read, sequenceStep: email.sequence_step, campaignId: email.campaign_id,
+          isImportant: email.is_important
         }));
         
         setEmails(parsedEmails);
@@ -137,18 +147,22 @@ const Inbox = () => {
               isRead: email.folder === 'sent' ? true : email.isRead,
               campaignId: email.campaignId,
               accountId: email.accountId,
-              folder: email.folder
+              folder: email.folder,
+              isImportant: email.isImportant
             });
           }
           
           const thread = threadsMap.get(contactEmail)!;
           thread.messages.push(email);
+          if (email.isImportant) thread.isImportant = true;
           
           const emailDate = new Date(email.date);
           if (emailDate > thread.lastMessageAt) {
             thread.lastMessageAt = emailDate;
             thread.isRead = email.folder === 'sent' ? true : email.isRead;
-            thread.folder = email.folder;
+            if (email.folder !== 'sent' || thread.folder !== 'archive') {
+              thread.folder = email.folder;
+            }
           }
         });
 
@@ -422,13 +436,7 @@ const Inbox = () => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-[10px] font-bold text-white/30 uppercase tracking-widest">{threads.filter(t => t.folder !== 'archive').length} active threads</span>
-              <button 
-                onClick={() => setIsComposeOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-md hover:bg-primary/90 transition-all"
-              >
-                <Plus size={14} /> Compose
-              </button>
+              <span className="hidden sm:inline text-[10px] font-bold text-white/30 uppercase tracking-widest">{threads.filter(t => t.folder !== 'archive' && t.folder !== 'trash').length} conversations</span>
               <button onClick={handleRefresh} className={cn("p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all", refreshing && "animate-spin text-primary")}>
                 <RefreshCw size={14} />
               </button>
@@ -454,18 +462,32 @@ const Inbox = () => {
               <div className="space-y-0.5">
                 <span className="px-2 text-[10px] font-bold text-white/20 uppercase tracking-widest">Mailboxes</span>
                 <button
-                  onClick={() => { setFilter({ type: 'all' }); setSelectedThread(null); }}
+                  onClick={() => { setFilter({ type: 'all' }); setSelectedThread(null); setSelectedThreads(new Set()); }}
                   className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'all' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
                 >
-                  <InboxIcon size={14} /> Active
-                  <span className={cn("ml-auto text-[10px] font-black", filter.type === 'all' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.folder !== 'archive').length}</span>
+                  <InboxIcon size={14} /> Conversations
+                  <span className={cn("ml-auto text-[10px] font-black", filter.type === 'all' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.folder !== 'archive' && t.folder !== 'trash').length}</span>
                 </button>
                 <button
-                  onClick={() => { setFilter({ type: 'archive' }); setSelectedThread(null); }}
+                  onClick={() => { setFilter({ type: 'important' }); setSelectedThread(null); setSelectedThreads(new Set()); }}
+                  className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'important' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
+                >
+                  <Star size={14} /> Starred
+                  <span className={cn("ml-auto text-[10px] font-black", filter.type === 'important' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.isImportant && t.folder !== 'trash').length}</span>
+                </button>
+                <button
+                  onClick={() => { setFilter({ type: 'archive' }); setSelectedThread(null); setSelectedThreads(new Set()); }}
                   className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'archive' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
                 >
                   <Archive size={14} /> Archived
                   <span className={cn("ml-auto text-[10px] font-black", filter.type === 'archive' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.folder === 'archive').length}</span>
+                </button>
+                <button
+                  onClick={() => { setFilter({ type: 'trash' }); setSelectedThread(null); setSelectedThreads(new Set()); }}
+                  className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'trash' ? "bg-red-500/10 text-red-400" : "text-white/40 hover:text-white hover:bg-white/5")}
+                >
+                  <Trash2 size={14} /> Trash
+                  <span className={cn("ml-auto text-[10px] font-black", filter.type === 'trash' ? "text-red-400" : "text-white/20")}>{threads.filter(t => t.folder === 'trash').length}</span>
                 </button>
               </div>
 
@@ -532,34 +554,110 @@ const Inbox = () => {
                   No threads found
                 </div>
               ) : (
-                <div>
+                <div className="flex flex-col">
+                  {/* Bulk Actions Bar */}
+                  {selectedThreads.size > 0 && (
+                    <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-white/5 p-2 flex items-center gap-2 shadow-xl">
+                      <span className="text-xs font-bold text-white ml-2">{selectedThreads.size} selected</span>
+                      <div className="flex-1" />
+                      <button onClick={async () => {
+                        const threadsToUpdate = filteredThreads.filter(t => selectedThreads.has(t.id));
+                        await Promise.all(threadsToUpdate.map(t => handleAction('archive', t)));
+                        setSelectedThreads(new Set());
+                      }} className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded" title="Archive Selected">
+                        <Archive size={14} />
+                      </button>
+                      <button onClick={async () => {
+                        const threadsToUpdate = filteredThreads.filter(t => selectedThreads.has(t.id));
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session) {
+                          await Promise.all(threadsToUpdate.map(t => {
+                            const uids = t.messages.map(m => m.uid);
+                            return api.post('/emails/action', { emailAccountId: t.accountId, uids, action: 'trash', folder: t.folder }, { headers: { 'Authorization': `Bearer ${session.access_token}` } });
+                          }));
+                          fetchEmails();
+                          setSelectedThreads(new Set());
+                        }
+                      }} className="p-1.5 text-white/50 hover:text-red-400 hover:bg-red-400/10 rounded" title="Trash Selected">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
+                  {/* Thread Items */}
                   {filteredThreads.map(thread => {
                     const latestMsg = thread.messages[thread.messages.length - 1];
                     const isActive = selectedThread?.id === thread.id;
+                    const isSelected = selectedThreads.has(thread.id);
+                    
+                    const isBounced = thread.messages.some(m => m.subject.toLowerCase().includes('bounce') || m.subject.toLowerCase().includes('undeliverable') || m.subject.toLowerCase().includes('postmaster'));
+                    const isOptOut = !isBounced && thread.messages.some(m => m.subject.toLowerCase().includes('unsubscribe') || m.subject.toLowerCase().includes('opt-out') || m.text.toLowerCase().includes('unsubscribe') || m.text.toLowerCase().includes('remove me'));
+                    
+                    let domain = thread.contactEmail.split('@')[1];
+                    if (domain && domain.includes('>')) domain = domain.split('>')[0];
+                    const avatarUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : '';
+
                     return (
                       <div
                         key={thread.id}
-                        onClick={() => setSelectedThread(thread)}
                         className={cn(
-                          "px-4 py-3 cursor-pointer transition-all flex flex-col gap-0.5 border-b border-white/[0.03]",
+                          "px-3 py-3 cursor-pointer transition-all flex items-start gap-3 border-b border-white/[0.03] group",
                           isActive ? "bg-primary/[0.06] border-l-2 border-l-primary" : "border-l-2 border-l-transparent hover:bg-white/[0.02]",
-                          !thread.isRead && !isActive ? "bg-white/[0.02]" : ""
+                          !thread.isRead && !isActive ? "bg-white/[0.02]" : "",
+                          isBounced ? "border-l-red-500 bg-red-500/[0.02]" : isOptOut ? "border-l-orange-500 bg-orange-500/[0.02]" : ""
                         )}
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest('.thread-checkbox')) return;
+                          setSelectedThread(thread);
+                        }}
                       >
-                        <div className="flex justify-between items-center">
-                          <span className={cn("font-bold text-xs truncate pr-2", !thread.isRead ? "text-white" : "text-white/50")}>
-                            {thread.contactName}
-                          </span>
-                          <span className="text-[9px] font-bold text-white/20 uppercase tracking-wider shrink-0">
-                            {format(thread.lastMessageAt, 'MMM d')}
-                          </span>
+                        <div className="flex flex-col items-center gap-2 pt-0.5 shrink-0 thread-checkbox">
+                          <input 
+                            type="checkbox" 
+                            className="w-3.5 h-3.5 rounded-sm border-white/20 bg-transparent text-primary focus:ring-primary/50 cursor-pointer"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              const newSet = new Set(selectedThreads);
+                              if (e.target.checked) newSet.add(thread.id);
+                              else newSet.delete(thread.id);
+                              setSelectedThreads(newSet);
+                            }}
+                          />
+                          <button 
+                            className="opacity-0 group-hover:opacity-100 transition-opacity mt-1"
+                            onClick={async () => {
+                              // Toggle important status
+                              await supabase.from('inbox_emails').update({ is_important: !thread.isImportant }).in('id', thread.messages.map(m => m.id));
+                              fetchEmails();
+                            }}
+                          >
+                            <Star size={12} className={cn(thread.isImportant ? "fill-yellow-500 text-yellow-500 opacity-100" : "text-white/20 hover:text-white")} />
+                          </button>
                         </div>
-                        <div className="text-[11px] truncate font-medium text-white/40 flex items-center gap-1.5">
-                          {latestMsg.folder === 'sent' ? <Send size={9} className="text-white/20 shrink-0" /> : <Mail size={9} className="text-primary/60 shrink-0" />}
-                          {latestMsg.subject}
-                        </div>
-                        <div className="text-[10px] line-clamp-1 text-white/20">
-                          {latestMsg.snippet || latestMsg.text?.substring(0, 60)}
+                        
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt="" className="w-6 h-6 rounded bg-white/5 object-cover shrink-0 mt-0.5" />
+                        ) : (
+                          <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/50 shrink-0 mt-0.5">
+                            {thread.contactName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+
+                        <div className="flex flex-col gap-0.5 min-w-0 w-full">
+                          <div className="flex justify-between items-center gap-2">
+                            <span className={cn("font-bold text-xs truncate", !thread.isRead ? "text-white" : "text-white/50")}>
+                              {thread.contactName}
+                            </span>
+                            <span className="text-[9px] font-bold text-white/20 uppercase tracking-wider shrink-0">
+                              {format(thread.lastMessageAt, 'MMM d')}
+                            </span>
+                          </div>
+                          <div className="text-[11px] truncate font-medium text-white/40 flex items-center gap-1.5">
+                            {latestMsg.folder === 'sent' ? <Send size={9} className="text-white/20 shrink-0" /> : <Mail size={9} className="text-primary/60 shrink-0" />}
+                            {latestMsg.subject}
+                          </div>
+                          <div className="text-[10px] line-clamp-1 text-white/20">
+                            {latestMsg.snippet || latestMsg.text?.substring(0, 60)}
+                          </div>
                         </div>
                       </div>
                     );
