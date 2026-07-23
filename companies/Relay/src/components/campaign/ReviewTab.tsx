@@ -19,9 +19,9 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [account, setAccount] = useState<any>(null);
 
   const campaign = campaigns.find(c => c.id === campaignId);
-  const account = emailAccounts?.find(a => a.id === campaign?.email_account_id);
 
   const getSignatureHtml = () => {
     if (!account) return '';
@@ -48,8 +48,24 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
     if (campaignId) {
       fetchPreview();
       fetchSchedules();
+      fetchAccount();
     }
   }, [campaignId]);
+
+  const fetchAccount = async () => {
+    try {
+      const { data } = await supabase
+        .from('campaign_email_accounts')
+        .select('email_accounts(*)')
+        .eq('campaign_id', campaignId)
+        .limit(1);
+      if (data && data.length > 0) {
+        setAccount(data[0].email_accounts);
+      }
+    } catch (err) {
+      console.error('Failed to fetch account for review', err);
+    }
+  };
 
   const fetchPreview = async () => {
     try {
