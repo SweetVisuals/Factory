@@ -1001,8 +1001,7 @@ const Lists = () => {
                         <div className="space-y-6">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-1">
-                                    <h1 className="text-xl font-black uppercase tracking-tighter text-foreground">Target Registry</h1>
-                                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">{lists.length} ACTIVE LISTS</p>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{lists.length} ACTIVE LISTS</span>
                                 </div>
                                 <Button
                                     variant="ghost"

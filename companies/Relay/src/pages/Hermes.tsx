@@ -65,32 +65,18 @@ const Hermes = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-8 lg:p-12 space-y-12 animate-in fade-in duration-1000">
-      {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div>
-          <h1 className="text-6xl font-black text-foreground uppercase tracking-tighter italic flex items-center gap-6 leading-none pixel-font animate-flicker">
-            <Brain size={48} className="text-primary" />
-            HERMES.CMD
-          </h1>
-          <div className="flex items-center gap-4 mt-4">
-            <div className={`px-4 py-1 rounded-none text-[10px] font-black uppercase tracking-widest ${status.status === 'online' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-              ● {status.status}
-            </div>
-            <div className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.3em]">
-              DeepSeek AI Active
-            </div>
+      {/* Compact System Bar */}
+      <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <div className="flex items-center gap-4">
+          <Brain size={18} className="text-primary animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">C:\SYSTEM\HERMES.CMD</span>
+          <div className={`px-2 py-0.5 rounded-none text-[8px] font-black uppercase tracking-widest ${status.status === 'online' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+            ● {status.status}
           </div>
         </div>
-
-        <div className="flex gap-4">
-          <div className="p-6 rounded-none bg-foreground/[0.02] border-none flex flex-col items-end justify-center">
-             <div className="text-[10px] font-black text-foreground/20 uppercase tracking-widest mb-1">Processing Power</div>
-             <div className="text-2xl font-black text-foreground pixel-font">99.8%</div>
-          </div>
-          <div className="p-6 rounded-none bg-primary/10 border-none flex flex-col items-end justify-center">
-             <div className="text-[10px] font-black text-primary/40 uppercase tracking-widest mb-1">Latency</div>
-             <div className="text-2xl font-black text-primary pixel-font">14ms</div>
-          </div>
+        <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
+          <span>POWER: <span className="text-foreground">99.8%</span></span>
+          <span>LATENCY: <span className="text-primary">14ms</span></span>
         </div>
       </div>
 

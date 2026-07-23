@@ -207,38 +207,25 @@ const LeadScraper = () => {
   return (
     <Layout fullHeight>
       <div className="flex flex-col h-full bg-transparent">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between px-4 lg:px-8 py-4 lg:py-8 gap-4 shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 lg:gap-6">
-              <div className="w-12 h-12 lg:w-16 lg:h-16 bg-primary/10 flex items-center justify-center text-primary rounded-xl">
-                <Brain size={28} className="lg:w-9 lg:h-9" />
-              </div>
-              <div>
-                <h1 className="text-foreground text-2xl lg:text-4xl font-black uppercase tracking-tighter">Lead Scraper</h1>
-                <p className="text-muted-foreground/30 text-[9px] lg:text-[11px] font-black uppercase tracking-[0.5em] mt-1">Extract Leads and Contact Details</p>
-              </div>
-            </div>
-            {/* Mobile Filter Toggle */}
+        {/* Compact Top Bar */}
+        <div className="flex items-center justify-between px-4 lg:px-8 py-2 border-b border-white/5 bg-background shrink-0">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowMobileFilters(true)}
-              className="lg:hidden p-3 bg-white/[0.03] border border-white/5 rounded-lg text-white/50 hover:text-white transition-colors"
+              className="lg:hidden p-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-white/50 hover:text-white transition-colors"
             >
-              <Filter size={20} />
+              <Filter size={14} />
             </button>
-          </div>
-          
-          <div className="flex items-center gap-3 lg:gap-4 overflow-x-auto pb-2 lg:pb-0 hide-scrollbar">
             {scrapeStatus !== 'idle' && (
-              <div className="flex items-center gap-2 lg:gap-3 px-4 lg:px-6 py-2.5 lg:py-3 bg-primary/10 text-primary shrink-0 rounded-lg">
-                <div className="w-2 h-2 bg-primary animate-pulse rounded-full" />
-                <span className="text-[10px] lg:text-[11px] font-black uppercase tracking-[0.3em]">{scrapeStatus}</span>
+              <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-md text-[10px] font-bold uppercase tracking-wider">
+                <div className="w-1.5 h-1.5 bg-primary animate-pulse rounded-full" />
+                {scrapeStatus}
               </div>
             )}
-            <div className="flex items-center gap-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-foreground/[0.03] text-muted-foreground/30 shrink-0 rounded-lg">
-              <Activity size={16} />
-              <span className="text-[10px] lg:text-[11px] font-black uppercase tracking-widest">System Online</span>
-            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1 text-muted-foreground/40 text-[10px] font-bold tracking-widest">
+            <Activity size={12} />
+            System Online
           </div>
         </div>
 
