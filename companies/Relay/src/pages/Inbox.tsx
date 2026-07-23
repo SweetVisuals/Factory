@@ -14,6 +14,7 @@ import { fetchEmailAccounts } from '../lib/api/email-accounts';
 import { api } from '../lib/api/api';
 import { useToast } from '../components/ui/use-toast';
 import Layout from '../components/layout/Layout';
+import { CustomCheckbox } from '../components/ui/CustomCheckbox';
 import { ComposeDock } from '../components/ComposeDock';
 type FilterState = 
   | { type: 'all' }
@@ -594,17 +595,18 @@ const Inbox = () => {
                         }}
                       >
                         <div className="flex flex-col items-center gap-2 pt-0.5 shrink-0 thread-checkbox">
-                          <input 
-                            type="checkbox" 
-                            className="w-4 h-4 rounded border border-white/30 bg-black/40 text-primary focus:ring-primary/50 cursor-pointer accent-primary"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              const newSet = new Set(selectedThreads);
-                              if (e.target.checked) newSet.add(thread.id);
-                              else newSet.delete(thread.id);
-                              setSelectedThreads(newSet);
-                            }}
-                          />
+                          <div className="scale-75">
+                            <CustomCheckbox
+                              checked={isSelected}
+                              onChange={(e) => {
+                                e?.stopPropagation();
+                                const newSet = new Set(selectedThreads);
+                                if (!isSelected) newSet.add(thread.id);
+                                else newSet.delete(thread.id);
+                                setSelectedThreads(newSet);
+                              }}
+                            />
+                          </div>
                           <button 
                             className="opacity-0 group-hover:opacity-100 transition-opacity mt-1"
                             onClick={async () => {
