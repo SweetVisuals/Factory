@@ -16,6 +16,36 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   const [showNotifications, setShowNotifications] = useState(false);
   const [dbSpace, setDbSpace] = useState<number>(0);
   const [leadsCount, setLeadsCount] = useState<number>(0);
+  const [isLimited, setIsLimited] = useState(false);
+
+  useEffect(() => {
+    const checkRateLimit = () => {
+      const limitUntil = localStorage.getItem('ai_rate_limited_until');
+      if (limitUntil) {
+        const remaining = parseInt(limitUntil) - Date.now();
+        if (remaining > 0) {
+          setIsLimited(true);
+          const t = setTimeout(() => {
+            setIsLimited(false);
+            localStorage.removeItem('ai_rate_limited_until');
+          }, remaining);
+          return () => clearTimeout(t);
+        } else {
+          setIsLimited(false);
+          localStorage.removeItem('ai_rate_limited_until');
+        }
+      }
+    };
+    
+    checkRateLimit();
+    window.addEventListener('ai-rate-limit-updated', checkRateLimit);
+    const interval = setInterval(checkRateLimit, 5000);
+    
+    return () => {
+      window.removeEventListener('ai-rate-limit-updated', checkRateLimit);
+      clearInterval(interval);
+    };
+  }, []);
 
   const isAdmin = user?.email === 'ptnmgmt@gmail.com';
   const MAX_DB_SPACE_MB = isAdmin ? 5120 : 250; // 5GB or 250MB
@@ -172,42 +202,47 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
 
         {/* System Tray (Right Side) */}
         <div className="flex items-center ml-auto gap-4">
-          
-          {/* OS System Health Monitor (Combined Metric) */}
+          {/* Tray Item: Limits */}
+          <div 
+            className={cn(
+              "flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border transition-all text-xs select-none",
+              isLimited ? "border-red-500/20 bg-red-500/5" : "border-white/5"
+            )}
+            title={isLimited ? "AI Engine Cooldown Active" : "AI Engine Cooldown & Rate Limits"}
+          >
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Limits</span>
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", isLimited ? "bg-red-400" : "bg-emerald-400")}></span>
+                <span className={cn("relative inline-flex rounded-full h-2 w-2", isLimited ? "bg-red-500" : "bg-emerald-500")}></span>
+              </span>
+              <span className={cn("font-mono text-[9px] font-bold uppercase tracking-wider", isLimited ? "text-red-400" : "text-emerald-400")}>
+                {isLimited ? 'COOLDOWN' : 'NORMAL'}
+              </span>
+            </div>
+          </div>
+
+          {/* Tray Item: Usage */}
           <div 
             onClick={() => navigate('/profile?tab=usage')}
-            className="hidden lg:flex items-center gap-3 bg-black/40 px-3.5 py-1.5 rounded-lg border border-white/5 cursor-pointer opacity-80 hover:opacity-100 transition-all hover:bg-white/5 group"
-            title="View System Usage Details"
+            className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/5 transition-all text-xs"
+            title="View System Usage"
           >
-            <Sparkles size={13} className="text-emerald-400/90 shrink-0 group-hover:scale-110 transition-transform" />
-            <div className="flex flex-col gap-1 min-w-[120px]">
-              <div className="flex justify-between items-center text-[10px] font-bold text-foreground/60 gap-3">
-                <span>Usage & Quota</span>
-                {(() => {
-                  const quotaLimit = isAdmin ? 10000 : 100;
-                  const usagePct = Math.min(100, Math.round((leadsCount / quotaLimit) * 100));
-                  return (
-                    <>
-                      <span className="text-white font-mono">
-                        {leadsCount.toLocaleString()} / {quotaLimit.toLocaleString()} Leads ({usagePct}%)
-                      </span>
-                    </>
-                  );
-                })()}
-              </div>
-              <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                {(() => {
-                  const quotaLimit = isAdmin ? 10000 : 100;
-                  const usagePct = Math.min(100, Math.max(1, Math.round((leadsCount / quotaLimit) * 100)));
-                  return (
-                    <div 
-                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.5)] transition-all duration-500" 
-                      style={{ width: `${usagePct}%` }} 
-                    />
-                  );
-                })()}
-              </div>
-            </div>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Usage</span>
+            {(() => {
+              const quotaLimit = isAdmin ? 10000 : 100;
+              const usagePct = Math.min(100, Math.round((leadsCount / quotaLimit) * 100));
+              return (
+                <>
+                  <div className="h-1.5 w-12 bg-white/10 rounded-full overflow-hidden shrink-0">
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${usagePct}%` }} />
+                  </div>
+                  <span className="font-mono text-[9px] font-bold text-white shrink-0">
+                    {usagePct}%
+                  </span>
+                </>
+              );
+            })()}
           </div>
 
           {/* Engine Controls */}

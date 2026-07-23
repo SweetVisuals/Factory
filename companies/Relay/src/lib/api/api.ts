@@ -30,5 +30,16 @@ api.interceptors.request.use(async (config) => {
   return Promise.reject(error);
 });
 
+api.interceptors.response.use((response) => {
+  return response;
+}, (error) => {
+  if (error.response && error.response.status === 429) {
+    const cooldownTime = Date.now() + 60000; // 60s cooldown indicator
+    localStorage.setItem('ai_rate_limited_until', cooldownTime.toString());
+    window.dispatchEvent(new Event('ai-rate-limit-updated'));
+  }
+  return Promise.reject(error);
+});
+
 export { api };
 

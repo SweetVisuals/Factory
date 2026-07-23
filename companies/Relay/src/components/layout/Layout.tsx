@@ -15,7 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children, fullHeight = false }) => {
             {/* Top Navigation Bar */}
             <Navigation onToggleChat={() => setIsChatExpanded(!isChatExpanded)} isChatExpanded={isChatExpanded} />
             
-            <div className="flex-1 flex overflow-hidden relative w-full pt-8">
+            <div className="flex-1 flex overflow-hidden relative w-full">
                             {fullHeight ? (
                     <main className="flex-1 flex flex-col h-full overflow-hidden bg-background w-full pb-16 xl:pb-0">
                         {children}

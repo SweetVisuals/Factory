@@ -596,7 +596,7 @@ const Inbox = () => {
                         <div className="flex flex-col items-center gap-2 pt-0.5 shrink-0 thread-checkbox">
                           <input 
                             type="checkbox" 
-                            className="w-3.5 h-3.5 rounded-sm border-white/20 bg-transparent text-primary focus:ring-primary/50 cursor-pointer"
+                            className="w-4 h-4 rounded border border-white/30 bg-black/40 text-primary focus:ring-primary/50 cursor-pointer accent-primary"
                             checked={isSelected}
                             onChange={(e) => {
                               const newSet = new Set(selectedThreads);
