@@ -1027,7 +1027,7 @@ app.post('/api/send-direct-email', async (req, res) => {
       transporter = nodemailer.createTransport({
         host: account.smtp_host,
         port: parseInt(account.smtp_port) || 465,
-        secure: true,
+        secure: parseInt(account.smtp_port) === 465,
         auth: { user: account.email, pass: account.app_password }
       });
     }
