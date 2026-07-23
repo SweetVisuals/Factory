@@ -1061,17 +1061,41 @@ app.post('/api/send-direct-email', async (req, res) => {
       });
     }
 
+    let finalHtml = html;
+    let finalAttachments = attachments ? attachments.map(att => ({
+      filename: att.name,
+      content: att.content,
+      encoding: 'base64'
+    })) : [];
+
+    if (finalHtml) {
+      const regex = /<img([^>]*)src="data:image\/([^;]+);base64,([^"]+)"([^>]*)>/gi;
+      let match;
+      let imgCount = 0;
+      while ((match = regex.exec(finalHtml)) !== null) {
+        imgCount++;
+        const ext = match[2];
+        const base64Data = match[3];
+        const cid = `inline-img-${Date.now()}-${imgCount}`;
+        
+        finalAttachments.push({
+          filename: `signature-image-${imgCount}.${ext}`,
+          content: base64Data,
+          encoding: 'base64',
+          cid: cid
+        });
+        
+        finalHtml = finalHtml.replace(match[0], `<img${match[1]}src="cid:${cid}"${match[4]}>`);
+      }
+    }
+
     const mailOptions = {
       from: `"${account.name || ''}" <${account.email}>`,
       to,
       subject,
       text,
-      html,
-      attachments: attachments ? attachments.map(att => ({
-        filename: att.name,
-        content: att.content,
-        encoding: 'base64'
-      })) : []
+      html: finalHtml,
+      attachments: finalAttachments
     };
 
     const info = await transporter.sendMail(mailOptions);

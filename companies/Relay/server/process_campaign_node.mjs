@@ -1023,11 +1023,38 @@ CRITICAL RULES:
           }
           const transporter = smtpPool.get(a.id);
 
+          let rawHtml = g.replace(/\n/g, "<br/>");
+          let finalHtml = rawHtml;
+          let finalAttachments = [];
+
+          if (finalHtml) {
+            const regex = /<img([^>]*)src="data:image\/([^;]+);base64,([^"]+)"([^>]*)>/gi;
+            let match;
+            let imgCount = 0;
+            while ((match = regex.exec(finalHtml)) !== null) {
+              imgCount++;
+              const ext = match[2];
+              const base64Data = match[3];
+              const cid = `inline-img-${Date.now()}-${imgCount}`;
+              
+              finalAttachments.push({
+                filename: `signature-image-${imgCount}.${ext}`,
+                content: base64Data,
+                encoding: 'base64',
+                cid: cid
+              });
+              
+              finalHtml = finalHtml.replace(match[0], `<img${match[1]}src="cid:${cid}"${match[4]}>`);
+            }
+          }
+
           (await transporter.sendMail({
             from: a.name ? '"' + a.name + '" <' + a.email + ">" : a.email,
             to: t.email,
             subject: T,
             text: g,
+            html: finalHtml,
+            attachments: finalAttachments
           }),
             // ═══ RATE LIMITER: Record successful send ═══
             await recordEmailSent(n, { accountId: a.id, campaignId: e.campaign_id }),
