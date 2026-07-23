@@ -451,7 +451,7 @@ const Discover: React.FC = () => {
           <div className={`
             absolute lg:relative z-50 lg:z-0
             inset-y-0 left-0
-            w-[320px] lg:w-[350px] shrink-0
+            w-[320px] lg:w-[420px] shrink-0
             bg-[#111111] lg:bg-transparent
             border-r border-white/5
             transform transition-transform duration-300 ease-in-out

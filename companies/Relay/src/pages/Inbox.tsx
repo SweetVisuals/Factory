@@ -421,23 +421,23 @@ const Inbox = () => {
 
   return (
     <Layout fullHeight>
-      <div className="flex flex-col h-full bg-background animate-in fade-in duration-200">
+      <div className="flex flex-col h-full bg-background animate-in fade-in duration-200 p-4 md:p-6 gap-6">
         
         {/* Canonical Header */}
-        <div className="px-8 py-5 pb-3 shrink-0">
-          <div className="flex items-end justify-between w-full">
+        <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm shrink-0">
+          <div className="flex items-center justify-between w-full">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
-                <h1 className="text-4xl font-black text-white tracking-tighter">Inbox</h1>
+                <h1 className="text-3xl font-black text-foreground tracking-tighter">Global Inbox</h1>
               </div>
-              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.2em] ml-5">
                 Unified conversation threads
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-[10px] font-bold text-white/30 uppercase tracking-widest">{threads.filter(t => t.folder !== 'archive' && t.folder !== 'trash').length} conversations</span>
-              <button onClick={handleRefresh} className={cn("p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all", refreshing && "animate-spin text-primary")}>
+              <span className="hidden sm:inline text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{threads.filter(t => t.folder !== 'archive' && t.folder !== 'trash').length} conversations</span>
+              <button onClick={handleRefresh} className={cn("p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all", refreshing && "animate-spin text-primary")}>
                 <RefreshCw size={14} />
               </button>
             </div>
@@ -445,10 +445,11 @@ const Inbox = () => {
         </div>
 
         {/* Main Inbox Application Shell */}
-        <div className="flex flex-1 overflow-hidden border-t border-white/5">
+        <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1">
+          <div className="flex flex-1 overflow-hidden">
 
           {/* Sidebar */}
-          <div className="hidden lg:flex w-60 border-r border-white/5 flex-col bg-[#1a1a1a]/50 shrink-0">
+          <div className="hidden lg:flex w-60 border-r border-border/50 flex-col bg-muted/20 shrink-0">
             <div className="p-4 border-b border-white/5">
               <button 
                 onClick={() => setIsComposeOpen(true)}
@@ -911,7 +912,8 @@ const Inbox = () => {
               </div>
             )}
           </div>
-
+          
+          </div>
         </div>
       </div>
       
