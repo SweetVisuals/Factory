@@ -41,7 +41,8 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
     if (account.signature) {
       return `<div class="composer-signature-block" style="margin-top: 24px; line-height: 1.5; color: inherit; font-family: sans-serif;">${account.signature.replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px').replace(/height:\s*(?:50|30)px/gi, 'height: 200px')}</div>`;
     }
-    return '';
+    // Default fallback matching backend campaign_sender.mjs buildFullEmail
+    return `<div class="composer-signature-block" style="margin-top: 24px; line-height: 1.5; color: inherit; font-family: sans-serif;">Regards,<br/><br/>Nicolas<br/>Relay — AI & Automation Systems<br/>+44 7864 851184<br/>nicolas@relaysolutions.net<br/>www.relaysolutions.net</div>`;
   };
 
   useEffect(() => {
@@ -54,13 +55,20 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
 
   const fetchAccount = async () => {
     try {
-      const { data } = await supabase
+      const { data: links } = await supabase
         .from('campaign_email_accounts')
-        .select('email_accounts(*)')
+        .select('email_account_id')
         .eq('campaign_id', campaignId)
         .limit(1);
-      if (data && data.length > 0) {
-        setAccount(data[0].email_accounts);
+      if (links && links.length > 0) {
+        const { data: acc } = await supabase
+          .from('email_accounts')
+          .select('*')
+          .eq('id', links[0].email_account_id)
+          .maybeSingle();
+        if (acc) {
+          setAccount(acc);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch account for review', err);

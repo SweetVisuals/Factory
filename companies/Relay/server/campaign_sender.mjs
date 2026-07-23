@@ -99,12 +99,16 @@ function applyTemplate(templateStr, lead, isSubject = false) {
   // Smart first name: use actual name, fall back to company name, NEVER use "there"
   let firstName = '';
   if (name) {
-    firstName = name.split(' ')[0];
-    // Make sure it's actually a person's name, not a company name repeated
-    const lowerFirst = firstName.toLowerCase();
-    if (lowerFirst === 'the' || lowerFirst === 'a' || lowerFirst === 'an' || lowerFirst === 'unknown' ||
-        lowerFirst === company.toLowerCase() || firstName.length <= 1) {
-      firstName = '';
+    const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'lettings', 'letting', 'estate', 'agents', 'agent', 'agency', 'co.uk', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
+    const isLikelyCompany = name.length > 30 || businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(name)) || name.includes('&');
+    if (!isLikelyCompany) {
+      firstName = name.split(' ')[0];
+      // Make sure it's actually a person's name, not a company name repeated
+      const lowerFirst = firstName.toLowerCase();
+      if (lowerFirst === 'the' || lowerFirst === 'a' || lowerFirst === 'an' || lowerFirst === 'unknown' ||
+          lowerFirst === company.toLowerCase() || firstName.length <= 1) {
+        firstName = '';
+      }
     }
   }
   

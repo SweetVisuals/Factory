@@ -824,7 +824,8 @@ app.get('/api/campaigns/:id/preview-email', async (req, res) => {
       let leadFirstName = '';
       if (lead.name) {
         const firstPart = lead.name.split(' ')[0];
-        const isLikelyCompany = lead.name.toLowerCase().includes('ltd') || lead.name.toLowerCase().includes('llc') || lead.name.toLowerCase().includes(' & ') || lead.name.toLowerCase().includes('and') || lead.name.length > 30;
+        const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'lettings', 'letting', 'estate', 'agents', 'agent', 'agency', 'co.uk', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
+        const isLikelyCompany = lead.name.length > 30 || businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(lead.name)) || lead.name.includes('&');
         if (!isLikelyCompany && firstPart.length > 2) {
           leadFirstName = firstPart;
         }

@@ -587,7 +587,7 @@ export async function runProcessCampaign() {
           N = (t.company || "").trim(),
           y = p.split(" ")[0];
         const D = p.toLowerCase();
-        const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
+        const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'lettings', 'letting', 'estate', 'agents', 'agent', 'agency', 'co.uk', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
         const isBusinessName = businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(D)) || D.includes('&');
         const nameIsUnusable = !p || D === 'the' || D.startsWith('the ') ||
             D.startsWith('a ') || D.startsWith('an ') ||
