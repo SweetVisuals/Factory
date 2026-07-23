@@ -577,14 +577,24 @@ async function ensureCampaignSchedules(campaignId) {
       
     let emailAccountIds = (linkedAccounts || []).map(a => a.email_account_id);
     if (emailAccountIds.length === 0) {
-      const defaultEmailAccountId = 'd87152f1-6c2a-4362-be9d-539050fd07e7';
-      await client
-        .from('campaign_email_accounts')
-        .insert({
-          campaign_id: campaignId,
-          email_account_id: defaultEmailAccountId
-        });
-      emailAccountIds = [defaultEmailAccountId];
+      const { data: firstAccount } = await client
+        .from('email_accounts')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+        
+      if (firstAccount) {
+        await client
+          .from('campaign_email_accounts')
+          .insert({
+            campaign_id: campaignId,
+            email_account_id: firstAccount.id
+          });
+        emailAccountIds = [firstAccount.id];
+      } else {
+        console.error(`[Auto Schedule] No email accounts exist in the database. Cannot auto-assign.`);
+        return;
+      }
     }
     
     // 5. Generate schedules in scheduled_emails
