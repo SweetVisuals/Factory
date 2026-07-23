@@ -3,7 +3,7 @@ const { Client } = require('ssh2');
 const conn = new Client();
 conn.on('ready', () => {
   console.log('Client :: ready');
-  conn.exec('cd /root/Factory/companies/Relay && git pull origin main && rm -rf node_modules && npm install && npm run build && pm2 restart all', (err, stream) => {
+  conn.exec('cd /root/Factory/companies/Relay && git pull origin main && rm -rf node_modules && npm install && npm run build && cp -rf dist/* /var/www/relay/ && chown -R caddy:caddy /var/www/relay && pm2 restart all', (err, stream) => {
     if (err) throw err;
     stream.on('close', (code, signal) => {
       console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);

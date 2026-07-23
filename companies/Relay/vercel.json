@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://api.relaysolutions.net/api/$1"
+      "destination": "https://5-75-252-100.nip.io/api/$1"
     },
     {
       "source": "/(.*)",

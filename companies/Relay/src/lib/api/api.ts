@@ -2,7 +2,7 @@ import axios from 'axios';
 import { supabase } from '../supabase';
 
 const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-const defaultBaseURL = isDevelopment ? 'http://localhost:3000/api' : 'https://api.relaysolutions.net/api';
+const defaultBaseURL = isDevelopment ? 'http://localhost:3000/api' : 'https://5-75-252-100.nip.io/api';
 
 let configuredURL = import.meta.env.VITE_API_URL || defaultBaseURL;
 if (configuredURL && !configuredURL.endsWith('/api')) {
