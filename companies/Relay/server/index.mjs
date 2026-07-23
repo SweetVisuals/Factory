@@ -848,14 +848,14 @@ Instructions for tone & length:
 Instructions for personalization:
 1. Replace [[notes]] with a specific, brief observation from the Research Notes. 
 2. CRITICAL ANTI-HALLUCINATION RULE: NEVER invent or assume facts, industries, or concepts that are NOT explicitly mentioned in the Research Notes.
-3. GREETING: If first name is provided, start with "Hi ${leadFirstName},". If NO first name is provided, start with "Hi there," or "Hi team,". NEVER guess a name.
+3. GREETING: If first name is provided, start with "Hi ${leadFirstName},". If NO first name is provided, start with "Hi ${lead.company || 'there'},". NEVER guess a name.
 4. Replace {{company}} with "${lead.company || ''}".
 5. CRITICAL: Replace <company> or [MY COMPANY] with our company name: "${company}". Do NOT confuse our company with the lead's company.
 6. CRITICAL: NEVER mention the lead's job title, role, or position.
 7. CRITICAL: NEVER include a sign-off or signature. End the email body immediately after the final sentence. DO NOT include "Best," or "[Your Name]".
 8. Output: JSON ("subject", "content").`;
 
-      const userPrompt = `Personalise the email for ${leadFirstName ? leadFirstName : 'the team'} at ${lead.company || 'their company'}. You are sending this from our company, ${company}.
+      const userPrompt = `Personalise the email for ${leadFirstName ? leadFirstName : (lead.company || 'the team')} at ${lead.company || 'their company'}. You are sending this from our company, ${company}.
 Research Notes: "${lead.summary || 'General interest'}"
 
 Template Subject: ${templateSubject}

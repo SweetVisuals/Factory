@@ -594,7 +594,7 @@ export async function runProcessCampaign() {
             (N && D === N.toLowerCase()) ||
             isBusinessName || p.split(' ').length > 3 || y.length <= 2;
         if (nameIsUnusable) {
-          y = 'team';
+          y = N || 'there';
         } else {
           y = y.charAt(0).toUpperCase() + y.slice(1).toLowerCase();
         }
