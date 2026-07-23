@@ -1640,6 +1640,20 @@ export async function performDeepResearch(company, website, notesContext = '') {
                 log(`LinkedIn posts search error: ${e.message}`);
             }
 
+            // Search: Public Facebook Posts (No Cookies/Google Dork method)
+            try {
+                const facebookQuery = `site:facebook.com "${company}" posts`;
+                await page.goto(`https://www.google.com/search?q=${encodeURIComponent(facebookQuery)}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                const facebookPosts = await page.evaluate(() => {
+                    return Array.from(document.querySelectorAll('div.g')).map(el => el.innerText).slice(0, 5).join('\n---\n');
+                });
+                if (facebookPosts && facebookPosts.trim()) {
+                    aggregatedData += `[FACEBOOK_PUBLIC_POSTS]:\n${facebookPosts}\n\n`;
+                }
+            } catch (e) {
+                log(`Facebook posts search error: ${e.message}`);
+            }
+
             await page.close();
         } catch (e) {
             log(`Google search error: ${e.message}`);
