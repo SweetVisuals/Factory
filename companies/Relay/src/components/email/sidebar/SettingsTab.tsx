@@ -41,11 +41,14 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
       setSignatures(account.signatures);
     } else if (account.signature) {
       // Seed default signature if legacy exists
+      const imgMatch = account.signature.match(/<img[^>]*src="([^"]+)"/i);
+      const extractedImageUrl = imgMatch ? imgMatch[1] : null;
+      
       const initialSig: SignatureItem = {
         id: 'legacy-default',
         name: 'Default Signature',
-        content: account.signature,
-        imageUrl: null,
+        content: account.signature.replace(/<br\s*\/?>/gi, '\n').replace(/<img[^>]*>/gi, '').replace(/<div[^>]*>/gi, '').replace(/<\/div>/gi, '').trim(),
+        imageUrl: extractedImageUrl,
         isDefault: true
       };
       setSignatures([initialSig]);
