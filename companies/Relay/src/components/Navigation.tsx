@@ -204,10 +204,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
         <div className="flex items-center ml-auto gap-4">
           {/* Tray Item: Limits */}
           <div 
-            className={cn(
-              "flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border transition-all text-xs select-none",
-              isLimited ? "border-red-500/20 bg-red-500/5" : "border-white/5"
-            )}
+            className="flex items-center gap-2 transition-all text-xs select-none mr-2"
             title={isLimited ? "AI Engine Cooldown Active" : "AI Engine Cooldown & Rate Limits"}
           >
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Limits</span>
