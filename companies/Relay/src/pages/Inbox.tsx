@@ -515,7 +515,7 @@ const Inbox = () => {
                               onClick={() => { setFilter({ type: 'campaign', businessName, campaignId }); setSelectedThread(null); }}
                               className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all min-w-0", isCampSelected ? "bg-primary/10 text-primary" : "text-white/30 hover:text-white hover:bg-white/5")}
                             >
-                              <Folder size={10} className="shrink-0" /> <span className="truncate flex-1 text-left capitalize">{campaign ? campaign.name : 'Unknown'}</span> <span className="ml-auto text-[9px] font-black shrink-0">{count}</span>
+                              <Folder size={10} className="shrink-0" /> <span className="truncate flex-1 text-left uppercase">{campaign ? campaign.name : 'Unknown'}</span> <span className="ml-auto text-[9px] font-black shrink-0">{count}</span>
                             </button>
                           );
                         })}

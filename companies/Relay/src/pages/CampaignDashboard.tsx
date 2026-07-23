@@ -333,7 +333,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                 </button>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-black text-white tracking-tight capitalize">{cleanName}</h1>
+                    <h1 className="text-2xl font-black text-white tracking-tight uppercase">{cleanName}</h1>
                     {loc && (
                       <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
                         {loc}

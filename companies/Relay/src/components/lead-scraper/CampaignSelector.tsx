@@ -68,7 +68,7 @@ export const CampaignSelector: React.FC<Props> = ({
             <SelectContent>
               {campaigns.map((campaign) => (
                 <SelectItem key={campaign.id} value={campaign.id}>
-                  {campaign.name}
+                  <span className="uppercase">{campaign.name}</span>
                 </SelectItem>
               ))}
             </SelectContent>

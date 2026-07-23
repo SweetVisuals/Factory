@@ -224,8 +224,8 @@ const SavedLists: React.FC<Props> = ({ campaignId, onLeadsAdded }) => {
         <td className="px-6 py-3">
           <div className="flex items-center">
             {list.campaign ? (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-none border-none border-primary/20">
-                {list.campaign.name}
+              <span className="bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                <span className="uppercase">{list.campaign.name}</span>
               </span>
             ) : (
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/30 px-2 py-0.5 rounded-none border-none border-border/50">
