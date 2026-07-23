@@ -54,7 +54,7 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
   const getSignatureHtml = (sig: any) => {
     if (!sig) return '';
     const textHtml = sig.content.replace(/\n/g, '<br/>');
-    const imgHtml = sig.imageUrl ? `<img src="${sig.imageUrl}" alt="Signature Logo" style="max-width: 100%; display: block; margin-top: 6px;" />` : '';
+    const imgHtml = sig.imageUrl ? `<img src="${sig.imageUrl}" alt="Signature Logo" style="display: block; margin-top: 6px; max-height: 200px; height: 200px;" />` : '';
     return `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${textHtml}${imgHtml}</div>`;
   };
 
@@ -108,7 +108,11 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
         const rawSig = acc.signature || `Best,<br/>${acc.name || acc.email.split('@')[0]}`;
         const legacySig = rawSig
           .replace(/max-height:\s*[^;\s"']+\s*;?/gi, '')
-          .replace(/height:\s*[^;\s"']+\s*;?/gi, '');
+          .replace(/height:\s*[^;\s"']+\s*;?/gi, '')
+          .replace(/width:\s*[^;\s"']+\s*;?/gi, '')
+          .replace(/\bwidth\s*=\s*["']?\d+["']?/gi, '')
+          .replace(/\bheight\s*=\s*["']?\d+["']?/gi, '')
+          .replace(/<img\s+/gi, '<img style="max-height: 200px; height: 200px; display: block; margin-top: 6px;" ');
         sigHtml = `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${legacySig}</div>`;
       }
 
