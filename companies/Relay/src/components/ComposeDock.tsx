@@ -167,14 +167,52 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
 
   const generateRandomBody = () => {
     const randomBody = emailBodies[Math.floor(Math.random() * emailBodies.length)];
-    const acc = accounts.find(a => a.id === selectedAccountId);
-    const rawSig = acc?.signature || `<br/>Best,<br/>${acc?.name || acc?.email.split('@')[0]}`;
-    const sig = rawSig
-      .replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px')
-      .replace(/height:\s*(?:50|30)px/gi, 'height: 200px');
-    
     const formattedBody = randomBody.replace(/\n/g, '<br/>');
-    const newHtml = `<div>${formattedBody}</div><div style="margin-top: 16px; color: #888;">--<br/>${sig}</div>`;
+
+    if (!editorRef.current) return;
+    
+    let currentHtml = editorRef.current.innerHTML;
+    
+    // Remove existing signature block to cleanly add body then signature
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(currentHtml, 'text/html');
+    const existingSig = doc.querySelector('.composer-signature-block');
+    let sigHtmlToUse = '';
+    
+    if (existingSig) {
+      sigHtmlToUse = existingSig.outerHTML;
+      existingSig.remove();
+    } else {
+      // Generate standard signature format if none exists
+      const acc = accounts.find(a => a.id === selectedAccountId);
+      if (acc) {
+        let defaultSig = null;
+        if (acc.signatures && Array.isArray(acc.signatures)) {
+          defaultSig = acc.signatures.find(s => s.isDefault) || acc.signatures[0];
+        }
+
+        if (defaultSig) {
+          sigHtmlToUse = getSignatureHtml(defaultSig);
+        } else {
+          const rawSig = acc.signature || `Best,<br/>${acc.name || acc.email.split('@')[0]}`;
+          const legacySig = rawSig
+            .replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px')
+            .replace(/height:\s*(?:50|30)px/gi, 'height: 200px');
+          sigHtmlToUse = `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${legacySig}</div>`;
+        }
+      }
+    }
+    
+    let cleanBody = doc.body.innerHTML.trim();
+    // Trim trailing linebreaks or spacing
+    cleanBody = cleanBody.replace(/(?:<br\s*\/?>|\s)+$/, '');
+    if (cleanBody === '<div><br></div>' || cleanBody === '<div><br/></div>' || cleanBody === '<br>' || cleanBody === '') {
+      cleanBody = '';
+    } else {
+      cleanBody += '<br/><br/>';
+    }
+
+    const newHtml = `${cleanBody}<div>${formattedBody}</div><br/>${sigHtmlToUse}`;
     
     setHtmlContent(newHtml);
     if (editorRef.current) {
