@@ -4,73 +4,6 @@ import { researchAndSummarizeLead, AIRateLimitError } from './research_helper.mj
 
 let supabase = null;
 let isRunning = false;
-let isResearching = false;
-
-async function runAutoResearch() {
-  if (!supabase) return;
-  if (isResearching) {
-    console.log('[Auto-Research] Previous research cycle still running. Skipping research.');
-    return;
-  }
-  isResearching = true;
-  try {
-    // Find leads in active campaigns that have a website but no/weak summary
-    const { data: rows, error } = await supabase
-      .from('campaign_leads')
-      .select('lead_id, campaigns!inner(id, status, pitch, objective), leads!inner(id, name, company, website, summary)')
-      .in('campaigns.status', ['in_progress', 'email_only', 'active'])
-      .limit(30);
-
-    if (error || !rows || rows.length === 0) return;
-
-    // Filter for leads that actually need research
-    const needsResearch = rows
-      .filter(r => {
-        const lead = r.leads;
-        if (!lead?.website) return false;
-        if (lead.summary && lead.summary.length > 50) return false; // Already has research
-        return true;
-      })
-      .slice(0, 5); // Max 5 per cycle to avoid blocking sends
-
-    if (needsResearch.length === 0) return;
-
-    console.log(`[Auto-Research] Found ${needsResearch.length} unresearched leads. Starting Puppeteer research...`);
-
-    for (const row of needsResearch) {
-      const lead = row.leads;
-      if (!lead?.website) continue;
-      try {
-        const company = lead.company || lead.name || 'Unknown';
-        const campaignPitch = row.campaigns?.pitch || row.campaigns?.objective || '';
-        console.log(`[Auto-Research] Researching ${company} (${lead.website})...`);
-        const res = await researchAndSummarizeLead(lead, console.log, campaignPitch);
-        if (res.summary) {
-          await supabase
-            .from('leads')
-            .update({ 
-              summary: res.summary,
-              research_status: res.status,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', lead.id);
-          console.log(`[Auto-Research] ✅ Saved research for ${company}`);
-        }
-      } catch (err) {
-        if (err instanceof AIRateLimitError) {
-          console.log(`[Auto-Research] Rate limit hit. Pausing auto-research cron for 60 seconds...`);
-          await new Promise(r => setTimeout(r, 60000));
-        } else {
-          console.error(`[Auto-Research] ❌ Failed for ${lead.company || 'Unknown'}: ${err.message}`);
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[Auto-Research] Error:', err.message);
-  } finally {
-    isResearching = false;
-  }
-}
 
 async function runEmailerCron() {
   if (isRunning) {
@@ -111,10 +44,6 @@ async function runEmailerCron() {
     }
 
     console.log('[Emailer Cron] Running campaign processing...');
-    if (hasAiCredits) {
-      // Trigger auto-research in background (decoupled)
-      runAutoResearch().catch(err => console.error('[Auto-Research Error]', err));
-    }
     
     // Process campaign immediately
     const resultString = await runProcessCampaign();
@@ -137,7 +66,7 @@ export function startEmailerCron() {
   
   supabase = createClient(supabaseUrl, supabaseKey);
 
-  console.log('[Emailer Cron] Initialized. Running every 1 minute (with auto-research).');
+  console.log('[Emailer Cron] Initialized. Running every 1 minute.');
   
   setTimeout(() => {
     runEmailerCron();

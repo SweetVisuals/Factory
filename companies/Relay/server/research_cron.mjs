@@ -69,10 +69,11 @@ async function runResearchCron() {
           const res = await researchAndSummarizeLead(lead, console.log, campaignPitch);
           
           // Build the update payload with all structured fields
+          const isComplete = res.status === 'completed';
           const updatePayload = {
             summary: res.summary,
             research_status: res.status,
-            research_attempts: 0,
+            research_attempts: isComplete ? 0 : (lead.research_attempts || 0) + 1,
             research_score: res.research_score || 0,
             research_data_raw: res.research_data_raw || null,
             researched_at: new Date().toISOString(),

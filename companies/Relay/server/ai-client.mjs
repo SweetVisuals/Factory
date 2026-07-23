@@ -119,6 +119,10 @@ export async function fetchAIChatCompletion(params, log = console.log) {
             if (dsResult.status === 429) {
               log(`[AI-Client] DeepSeek 429 Rate Limit. Waiting 15 seconds before retry...`);
               await new Promise(r => setTimeout(r, 15000));
+            } else if (dsResult.status === 402) {
+              const backoff = 15000 * Math.pow(2, dsRetries);
+              log(`[AI-Client] DeepSeek 402 Insufficient Balance. Waiting ${backoff / 1000} seconds before retry...`);
+              await new Promise(r => setTimeout(r, backoff));
             } else if (dsResult.status >= 500) {
               log(`[AI-Client] DeepSeek server error. Waiting 5 seconds before retry...`);
               await new Promise(r => setTimeout(r, 5000));
