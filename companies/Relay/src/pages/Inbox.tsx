@@ -244,7 +244,10 @@ const Inbox = () => {
     if (!sig) {
       const acc = accounts.find(a => a.id === replyFromAccountId);
       if (acc?.signature) {
-        return `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${acc.signature.replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px').replace(/height:\s*(?:50|30)px/gi, 'height: 200px')}</div>`;
+        const legacySig = acc.signature
+          .replace(/max-height:\s*[^;\s"']+\s*;?/gi, '')
+          .replace(/height:\s*[^;\s"']+\s*;?/gi, '');
+        return `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${legacySig}</div>`;
       }
       return '';
     }

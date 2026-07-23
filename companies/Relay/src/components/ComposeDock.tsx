@@ -107,8 +107,8 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
       } else {
         const rawSig = acc.signature || `Best,<br/>${acc.name || acc.email.split('@')[0]}`;
         const legacySig = rawSig
-          .replace(/max-height:\s*(?:50|30)px/gi, 'max-height: 200px')
-          .replace(/height:\s*(?:50|30)px/gi, 'height: 200px');
+          .replace(/max-height:\s*[^;\s"']+\s*;?/gi, '')
+          .replace(/height:\s*[^;\s"']+\s*;?/gi, '');
         sigHtml = `<div class="composer-signature-block" style="margin-top: 16px; line-height: 1.5;">${legacySig}</div>`;
       }
 
