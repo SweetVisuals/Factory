@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
-import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X, Edit3, Plus } from 'lucide-react';
+import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X, Edit3, Plus, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { EmailMessage, EmailAccount, Campaign } from '../types';
 
@@ -18,6 +18,7 @@ import { CustomCheckbox } from '../components/ui/CustomCheckbox';
 import { ComposeDock } from '../components/ComposeDock';
 type FilterState = 
   | { type: 'all' }
+  | { type: 'replies' }
   | { type: 'archive' }
   | { type: 'important' }
   | { type: 'trash' }
@@ -46,7 +47,7 @@ const Inbox = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
-  const [filter, setFilter] = useState<FilterState>({ type: 'all' });
+  const [filter, setFilter] = useState<FilterState>({ type: 'replies' });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedThreads, setSelectedThreads] = useState<Set<string>>(new Set());
   
@@ -305,6 +306,12 @@ const Inbox = () => {
         if (thread.folder === 'archive') return false;
       }
 
+      if (filter.type === 'replies') {
+        // A thread is a "reply" if it has at least one message in the inbox
+        const hasReply = thread.messages.some(m => m.folder === 'inbox');
+        if (!hasReply) return false;
+      }
+
       const emailBusiness = getBusinessName(thread.accountId);
       if (filter.type === 'business' && emailBusiness !== filter.businessName) return false;
       if (filter.type === 'campaign' && (emailBusiness !== filter.businessName || thread.campaignId !== filter.campaignId)) return false;
@@ -446,10 +453,18 @@ const Inbox = () => {
               <div className="space-y-0.5">
                 <span className="px-2 text-[10px] font-bold text-white/20 uppercase tracking-widest">Mailboxes</span>
                 <button
+                  onClick={() => { setFilter({ type: 'replies' }); setSelectedThread(null); setSelectedThreads(new Set()); }}
+                  className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'replies' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
+                >
+                  <MessageSquare size={14} className={cn(filter.type === 'replies' ? "text-primary" : "text-white/30")} />
+                  Replies
+                </button>
+                <button
                   onClick={() => { setFilter({ type: 'all' }); setSelectedThread(null); setSelectedThreads(new Set()); }}
                   className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'all' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
                 >
-                  <InboxIcon size={14} /> Conversations
+                  <InboxIcon size={14} className={cn(filter.type === 'all' ? "text-primary" : "text-white/30")} />
+                  All Conversations
                   <span className={cn("ml-auto text-[10px] font-black", filter.type === 'all' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.folder !== 'archive' && t.folder !== 'trash').length}</span>
                 </button>
                 <button
