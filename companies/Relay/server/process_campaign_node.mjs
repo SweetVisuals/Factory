@@ -594,7 +594,28 @@ export async function runProcessCampaign() {
             (N && D === N.toLowerCase()) ||
             isBusinessName || p.split(' ').length > 3 || y.length <= 2;
         if (nameIsUnusable) {
-          y = N || 'there';
+          // Fallback to key person name from research if primary name is unusable
+          let keyPersonFirstName = '';
+          if (t.key_people) {
+            try {
+              const people = typeof t.key_people === 'string' ? JSON.parse(t.key_people) : t.key_people;
+              if (Array.isArray(people) && people.length > 0 && people[0].name) {
+                const firstPersonName = people[0].name.trim();
+                const firstPersonPart = firstPersonName.split(' ')[0];
+                const isLikelyCompany = firstPersonName.length > 30 || businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(firstPersonName)) || firstPersonName.includes('&');
+                if (!isLikelyCompany && firstPersonPart.length > 2) {
+                  keyPersonFirstName = firstPersonPart;
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing key_people in worker:', e);
+            }
+          }
+          if (keyPersonFirstName) {
+            y = keyPersonFirstName.charAt(0).toUpperCase() + keyPersonFirstName.slice(1).toLowerCase();
+          } else {
+            y = N || 'there';
+          }
         } else {
           y = y.charAt(0).toUpperCase() + y.slice(1).toLowerCase();
         }

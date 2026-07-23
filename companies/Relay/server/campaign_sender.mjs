@@ -98,8 +98,8 @@ function applyTemplate(templateStr, lead, isSubject = false) {
   
   // Smart first name: use actual name, fall back to company name, NEVER use "there"
   let firstName = '';
+  const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'lettings', 'letting', 'estate', 'agents', 'agent', 'agency', 'co.uk', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
   if (name) {
-    const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'lettings', 'letting', 'estate', 'agents', 'agent', 'agency', 'co.uk', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
     const isLikelyCompany = name.length > 30 || businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(name)) || name.includes('&');
     if (!isLikelyCompany) {
       firstName = name.split(' ')[0];
@@ -109,6 +109,23 @@ function applyTemplate(templateStr, lead, isSubject = false) {
           lowerFirst === company.toLowerCase() || firstName.length <= 1) {
         firstName = '';
       }
+    }
+  }
+
+  // Fallback to key person name from research if primary name is a company
+  if (!firstName && lead.key_people) {
+    try {
+      const people = typeof lead.key_people === 'string' ? JSON.parse(lead.key_people) : lead.key_people;
+      if (Array.isArray(people) && people.length > 0 && people[0].name) {
+        const firstPersonName = people[0].name.trim();
+        const firstPersonPart = firstPersonName.split(' ')[0];
+        const isLikelyCompany = firstPersonName.length > 30 || businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(firstPersonName)) || firstPersonName.includes('&');
+        if (!isLikelyCompany && firstPersonPart.length > 2) {
+          firstName = firstPersonPart;
+        }
+      }
+    } catch (e) {
+      // ignore
     }
   }
   
@@ -144,7 +161,7 @@ function applyTemplate(templateStr, lead, isSubject = false) {
 async function fetchPendingBatch(campaignId) {
   const { data, error } = await supabase
     .from('campaign_leads')
-    .select('lead_id, leads!inner(id, email, name, company, personalized_email, personalized_subject, industry, location)')
+    .select('lead_id, leads!inner(id, email, name, company, personalized_email, personalized_subject, industry, location, key_people)')
     .eq('campaign_id', campaignId)
     .eq('status', 'pending')
     .limit(BATCH_SIZE);
@@ -173,7 +190,7 @@ async function fetchPendingBatch(campaignId) {
 async function skipInvalidLeads(campaignId) {
   const { data } = await supabase
     .from('campaign_leads')
-    .select('lead_id, leads!inner(id, email, personalized_email)')
+    .select('lead_id, leads!inner(id, email, personalized_email, key_people)')
     .eq('campaign_id', campaignId)
     .eq('status', 'pending')
     .limit(200);

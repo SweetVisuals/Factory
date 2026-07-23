@@ -822,12 +822,29 @@ app.get('/api/campaigns/:id/preview-email', async (req, res) => {
     const previews = await Promise.all(leads.map(async (lead) => {
       // If the name is too long or contains keywords, it's probably a company name incorrectly placed in the name field
       let leadFirstName = '';
+      const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'lettings', 'letting', 'estate', 'agents', 'agent', 'agency', 'co.uk', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
       if (lead.name) {
         const firstPart = lead.name.split(' ')[0];
-        const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'lettings', 'letting', 'estate', 'agents', 'agent', 'agency', 'co.uk', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
         const isLikelyCompany = lead.name.length > 30 || businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(lead.name)) || lead.name.includes('&');
         if (!isLikelyCompany && firstPart.length > 2) {
           leadFirstName = firstPart;
+        }
+      }
+
+      // Fallback to key person name from research if primary name is a company
+      if (!leadFirstName && lead.key_people) {
+        try {
+          const people = typeof lead.key_people === 'string' ? JSON.parse(lead.key_people) : lead.key_people;
+          if (Array.isArray(people) && people.length > 0 && people[0].name) {
+            const firstPersonName = people[0].name.trim();
+            const firstPersonPart = firstPersonName.split(' ')[0];
+            const isLikelyCompany = firstPersonName.length > 30 || businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(firstPersonName)) || firstPersonName.includes('&');
+            if (!isLikelyCompany && firstPersonPart.length > 2) {
+              leadFirstName = firstPersonPart;
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing key_people in preview:', e);
         }
       }
 
