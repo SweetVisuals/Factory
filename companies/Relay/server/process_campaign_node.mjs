@@ -587,18 +587,14 @@ export async function runProcessCampaign() {
           N = (t.company || "").trim(),
           y = p.split(" ")[0];
         const D = p.toLowerCase();
-        const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'real estate', 'clinic', 'dental', 'medical', 'events'];
-        const isBusinessName = businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(D));
+        const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
+        const isBusinessName = businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(D)) || D.includes('&');
         const nameIsUnusable = !p || D === 'the' || D.startsWith('the ') ||
             D.startsWith('a ') || D.startsWith('an ') ||
             (N && D === N.toLowerCase()) ||
-            isBusinessName || p.split(' ').length > 3;
+            isBusinessName || p.split(' ').length > 3 || y.length <= 2;
         if (nameIsUnusable) {
-          if (N && N.length > 1 && N.length <= 30) {
-            y = N;
-          } else {
-            y = 'there';
-          }
+          y = 'team';
         } else {
           y = y.charAt(0).toUpperCase() + y.slice(1).toLowerCase();
         }
@@ -692,7 +688,8 @@ CRITICAL RULES:
 1. You MUST keep the exact wording and structure of the original template. DO NOT rewrite the email entirely.
 2. ONLY replace the exact placeholders listed above. Leave everything else exactly the same.
 3. For [PERSONALISED DETAIL], extract a highly relevant, single short sentence from the Lead Goals & Notes that flows naturally into the template sentence.
-4. Output ONLY valid JSON: { "subject": "Finished subject line", "body": "Finished email body" }`;
+4. NEVER include a sign-off or signature. End the email body immediately after the final sentence. DO NOT include "Best,", "[Your Name]", or any sign-off greeting.
+5. Output ONLY valid JSON: { "subject": "Finished subject line", "body": "Finished email body" }`;
             const R =
                 'Original Template Subject: "' + e.templates.subject + '"\nOriginal Template Body: "' + i + '"\nLead Name: ' + s + '\nLead Company: ' + (t.company || "their business") + '\nLead Goals & Notes: "' + (t.summary || "") + '"\nMy Company: "' + (a?.company || e.campaigns?.businesses?.name || "our company") + '"\nIndustry: "' + (e.campaigns?.niche || "your industry") + '"\n\nInstructions: Return the template with the placeholders dynamically replaced based on this exact lead data.';
             let r;

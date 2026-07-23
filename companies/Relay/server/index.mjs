@@ -819,9 +819,17 @@ app.get('/api/campaigns/:id/preview-email', async (req, res) => {
 
     const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-0a7858e4ab064eb18241a7005f04df41';
     
-    // Generate previews concurrently using direct fetch to skip the rate-limiter & queue
     const previews = await Promise.all(leads.map(async (lead) => {
-      const leadFirstName = lead.name ? lead.name.split(' ')[0] : '';
+      // If the name is too long or contains keywords, it's probably a company name incorrectly placed in the name field
+      let leadFirstName = '';
+      if (lead.name) {
+        const firstPart = lead.name.split(' ')[0];
+        const isLikelyCompany = lead.name.toLowerCase().includes('ltd') || lead.name.toLowerCase().includes('llc') || lead.name.toLowerCase().includes(' & ') || lead.name.toLowerCase().includes('and') || lead.name.length > 30;
+        if (!isLikelyCompany && firstPart.length > 2) {
+          leadFirstName = firstPart;
+        }
+      }
+
       const company = campaign.company_name || 'Our Company';
       
       const templateSubject = firstTemplate ? firstTemplate.subject : 'Introduction';
@@ -838,14 +846,15 @@ Instructions for tone & length:
 
 Instructions for personalization:
 1. Replace [[notes]] with a specific, brief observation from the Research Notes. 
-2. CRITICAL ANTI-HALLUCINATION RULE: NEVER invent or assume facts, industries, or concepts (e.g., "trucks", "real estate", "e-commerce") that are NOT explicitly mentioned in the Research Notes.
-3. GREETING: Start with "Hi ${leadFirstName}," — NEVER use full names or last names.
-4. Replace {{first_name}} with "${leadFirstName}" and {{company}} with "${lead.company || ''}".
+2. CRITICAL ANTI-HALLUCINATION RULE: NEVER invent or assume facts, industries, or concepts that are NOT explicitly mentioned in the Research Notes.
+3. GREETING: If first name is provided, start with "Hi ${leadFirstName},". If NO first name is provided, start with "Hi there," or "Hi team,". NEVER guess a name.
+4. Replace {{company}} with "${lead.company || ''}".
 5. CRITICAL: Replace <company> or [MY COMPANY] with our company name: "${company}". Do NOT confuse our company with the lead's company.
 6. CRITICAL: NEVER mention the lead's job title, role, or position.
-7. Output: JSON ("subject", "content").`;
+7. CRITICAL: NEVER include a sign-off or signature. End the email body immediately after the final sentence. DO NOT include "Best," or "[Your Name]".
+8. Output: JSON ("subject", "content").`;
 
-      const userPrompt = `Personalise the email for ${leadFirstName} at ${lead.company || 'their company'}. You are sending this from our company, ${company}.
+      const userPrompt = `Personalise the email for ${leadFirstName ? leadFirstName : 'the team'} at ${lead.company || 'their company'}. You are sending this from our company, ${company}.
 Research Notes: "${lead.summary || 'General interest'}"
 
 Template Subject: ${templateSubject}

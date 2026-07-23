@@ -253,11 +253,11 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
 
                   {/* Lead Research Cross-Reference Side Panel */}
                   <div className="flex flex-col gap-4">
-                    <div className="bg-[#111]/80 border border-white/5 rounded-xl p-6 shadow-sm flex flex-col flex-1 h-full max-h-[450px] items-center justify-center text-center">
+                    <div className="bg-[#111]/80 border border-white/5 rounded-xl p-6 shadow-sm flex flex-col flex-1 items-center justify-center text-center">
                       <BrainCircuit className="w-12 h-12 text-primary/40 mb-4" />
-                      <h4 className="text-foreground font-bold mb-2">Deep Intelligence</h4>
+                      <h4 className="text-foreground font-bold mb-2">Lead Intelligence</h4>
                       <p className="text-xs text-muted-foreground mb-6 max-w-[200px]">
-                        Review all the data points, news, and insights our AI collected about this lead.
+                        View the AI research and insights collected for this lead.
                       </p>
                       <button
                         onClick={() => setIsDrawerOpen(true)}

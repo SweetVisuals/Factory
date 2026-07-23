@@ -176,7 +176,7 @@ const CampaignsTab = ({ account }: CampaignsTabProps) => {
               <div className="flex justify-between items-start gap-3">
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-xs text-white truncate">{campaign.name}</h4>
+                    <h4 className="font-bold text-xs text-white truncate capitalize">{campaign.name}</h4>
                     <span className={cn(
                       "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
                       campaign.status === 'Active' || campaign.status === 'in_progress'
