@@ -679,8 +679,9 @@ const Inbox = () => {
                     >
                       <ArrowLeft size={16} />
                     </button>
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-black text-sm border border-primary/20 shrink-0">
-                      {selectedThread.contactName.charAt(0).toUpperCase()}
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-black text-sm border border-primary/20 shrink-0 overflow-hidden">
+                      <img src={`https://www.google.com/s2/favicons?domain=${selectedThread.contactEmail.split('@')[1]}&sz=64`} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                      <span className="hidden">{selectedThread.contactName.charAt(0).toUpperCase()}</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="font-bold text-sm text-white">{selectedThread.contactName}</span>
@@ -749,7 +750,7 @@ const Inbox = () => {
                 {/* Reply Box */}
                 <div className="p-4 border-t border-white/5 shrink-0">
                   <div className="max-w-3xl mx-auto">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden focus-within:border-primary/30 transition-colors">
+                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-visible focus-within:border-primary/30 transition-colors">
                       {/* From Selector */}
                       <div className="flex items-center px-4 py-2.5 border-b border-white/5 bg-white/[0.01]">
                         <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest mr-3">From:</span>

@@ -588,11 +588,14 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                         <div className="flex items-center gap-3">
                           <div className="relative">
                             <div className={cn(
-                              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all duration-300",
+                              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all duration-300 overflow-hidden shrink-0",
                               lead.status === 'bounced' ? "bg-red-500/20 text-red-500 ring-2 ring-red-500/30" :
                               isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover/row:bg-primary/10 group-hover/row:text-primary"
                             )}>
-                              {lead.status === 'bounced' ? <XCircle size={14} /> : (lead.name || lead.email).charAt(0).toUpperCase()}
+                              {lead.status === 'bounced' ? <XCircle size={14} /> : lead.website ? (
+                                <img src={`https://www.google.com/s2/favicons?domain=${lead.website}&sz=64`} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                              ) : null}
+                              <span className={lead.website ? "hidden" : ""}>{(lead.name || lead.email).charAt(0).toUpperCase()}</span>
                             </div>
                             {lead.status === 'bounced' && (
                               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card animate-pulse" />

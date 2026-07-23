@@ -48,7 +48,7 @@ const TelemetryLogsContainer = () => {
   }, [telemetryLogs]);
 
   return (
-    <div ref={scrollRef} className="max-h-[180px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+    <div ref={scrollRef} className="h-full overflow-y-auto space-y-1 pr-1 custom-scrollbar">
       {telemetryLogs.length === 0 ? (
         <div className="text-muted-foreground/30 italic text-center py-4">Awaiting log updates...</div>
       ) : (
@@ -101,102 +101,68 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
   }, [logs, isExpanded]);
 
   const fetchLogs = async () => {
-    const { data } = await openclawSupabase.from('chat_logs').select('*').order('created_at', { ascending: true }).limit(200);
+    const { data } = await openclawSupabase.from('chat_logs').select('*').order('created_at', { ascending: true }).limit(50);
     if (data) setLogs(data);
   };
 
-  const handleClearLogs = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!window.confirm("Are you sure you want to clear all logs?")) return;
-    const { error } = await openclawSupabase.from('chat_logs').delete().not('id', 'is', null);
-    if (!error) setLogs([]);
+  const handleClearLogs = async () => {
+    await openclawSupabase.from('chat_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    setLogs([]);
   };
 
   const handleExecute = async () => {
     if (!command.trim()) return;
     setIsSubmitting(true);
-    await openclawSupabase.from('tasks').insert([{ description: command, status: 'pending', assigned_to: 'Boss' }]);
-    await openclawSupabase.from('chat_logs').insert([{ agent_name: 'USER', message: command }]);
+    const newLog = { agent_name: 'User', message: command, created_at: new Date().toISOString() };
+    setLogs(prev => [...prev, newLog as any]);
     setCommand('');
+    try {
+      await fetch('/api/execute-agent-command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command }) });
+    } catch (e) {}
     setIsSubmitting(false);
   };
 
-  const getAgentStyles = (name: string) => {
-    const n = name.toUpperCase();
-    if (n === 'USER' || n === 'BOSS') return { bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' };
-    if (n === 'CEO' || n === 'SYSTEM') return { bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' };
-    return { bg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20' };
-  };
-
   const renderLogEntry = (log: ChatLogEntry) => {
-    if (log.message.includes("The factory is idle")) return null;
-
-    let response = log.message;
-    let thought = "";
-    const thoughtMatch = response.match(/<thought>([\s\S]*?)<\/thought>/);
-    if (thoughtMatch) { thought = thoughtMatch[1].trim(); }
-    response = response.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
-
-    const isUser = log.agent_name.toUpperCase() === 'USER' || log.agent_name.toUpperCase() === 'BOSS';
-    const style = getAgentStyles(log.agent_name);
-
+    const isUser = log.agent_name === 'User';
     return (
-      <div key={log.id} className="flex flex-col gap-2 p-4 border-b border-border/50 hover:bg-muted/30 transition-colors">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={cn("px-2 py-0.5 rounded text-[10px] font-bold tracking-wide border", style.bg)}>
-              {log.agent_name.toUpperCase()}
-            </span>
-            <span className="text-xs text-muted-foreground">{format(new Date(log.created_at), 'h:mm:ss a')}</span>
-          </div>
+      <div key={log.id || log.created_at} className={cn("p-4 border-b border-border/50", isUser ? "bg-muted/30" : "bg-transparent")}>
+        <div className="flex items-center gap-2 mb-2">
+          {isUser ? <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center"><Terminal size={12} className="text-muted-foreground" /></div> : <div className="w-6 h-6 rounded-md bg-primary/20 flex items-center justify-center"><Cpu size={12} className="text-primary" /></div>}
+          <span className="font-bold text-sm text-foreground">{log.agent_name}</span>
+          <span className="text-xs text-muted-foreground ml-auto">{format(new Date(log.created_at), 'HH:mm:ss')}</span>
         </div>
-
-        {thought && (
-          <div className="bg-muted/50 border-l-2 border-primary/50 pl-3 py-2 my-1 rounded-r-md">
-            <div className="flex items-center gap-1.5 mb-1 text-xs font-semibold text-primary/80">
-              <Info size={12} />
-              Internal Thought Process
-            </div>
-            <div className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
-              {thought}
-            </div>
-          </div>
-        )}
-        
-        <div className="text-sm text-foreground prose prose-sm dark:prose-invert max-w-full break-words overflow-hidden prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50 prose-pre:overflow-x-auto prose-pre:max-w-full">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {response}
-          </ReactMarkdown>
+        <div className="text-sm text-foreground/80 leading-relaxed prose prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{log.message}</ReactMarkdown>
         </div>
       </div>
     );
   };
 
+  if (!isExpanded) return null;
+
   return (
     <div 
+      style={{ width: isMaximized ? '100%' : `${chatWidth}px` }} 
       className={cn(
-        "h-full z-[1000] flex flex-col border-l border-border shadow-xl bg-background relative flex-shrink-0",
-        !isExpanded ? "w-0 opacity-0 overflow-hidden" : "opacity-100",
-        isMaximized && "fixed inset-0 w-full z-[2000]"
+        "bg-card border-l border-border flex flex-col shadow-2xl transition-all duration-300 z-50",
+        isMaximized ? "fixed inset-0 w-full h-full" : "h-full shrink-0"
       )}
-      style={{
-        width: !isExpanded ? 0 : (isMaximized ? '100%' : `${chatWidth}px`),
-        transition: isResizing ? 'none' : 'width 0.3s ease-out, opacity 0.3s ease-out'
-      }}
     >
-      {/* Resizer */}
-      {isExpanded && !isMaximized && (
+      {/* Resizer Handle */}
+      {!isMaximized && (
         <div 
-          onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
-          className="absolute left-0 top-0 w-1.5 h-full cursor-ew-resize z-10 hover:bg-primary/50 transition-colors -ml-[1px]"
+          className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-50"
+          onMouseDown={() => setIsResizing(true)}
         />
       )}
-      
+
       {/* Header */}
-      <div className="h-14 px-5 flex items-center justify-between border-b border-border bg-card shrink-0">
+      <div className="p-4 border-b border-border flex items-center justify-between bg-muted/20 shrink-0">
         <div className="flex items-center gap-2">
-          <Terminal size={18} className="text-primary" />
-          <span className="font-semibold text-foreground text-sm">System Logs</span>
+          <div className="p-1.5 bg-primary/20 rounded-md">
+            <Terminal size={16} className="text-primary" />
+          </div>
+          <span className="font-bold text-sm text-foreground tracking-wide">Relay Terminal</span>
           <span className="ml-2 px-2 py-0.5 bg-muted rounded-full text-xs text-muted-foreground font-medium">{logs.length}</span>
         </div>
         
@@ -217,8 +183,11 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
       {/* Logs Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-background scrollbar-thin flex flex-col">
         {/* Render Neural Link Feed telemetry logs here */}
-        <div className="border-b border-border bg-black/20 p-4 font-mono text-[10px] space-y-2 max-h-[250px] overflow-y-auto shrink-0">
-          <div className="flex items-center justify-between mb-1 pb-1 border-b border-border/30">
+        <div className={cn(
+          "border-b border-border bg-black/20 p-4 font-mono text-[10px] space-y-2 shrink-0 flex flex-col",
+          logs.length === 0 ? "flex-1" : "max-h-[250px]"
+        )}>
+          <div className="flex items-center justify-between mb-1 pb-1 border-b border-border/30 shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-primary animate-pulse" />
               <span className="text-foreground font-black uppercase tracking-widest text-[9px]">Scraper Log</span>
@@ -228,19 +197,14 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
           <TelemetryLogsContainer />
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {logs.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4 py-8">
-              <Terminal size={48} className="opacity-20" />
-              <p className="text-sm">No activity logged.</p>
-            </div>
-          ) : (
+        {logs.length > 0 && (
+          <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col">
               {logs.map(log => renderLogEntry(log))}
               <div ref={endOfLogRef} className="h-4" />
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       
       {/* Input Area */}
