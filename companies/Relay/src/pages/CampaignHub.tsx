@@ -88,36 +88,18 @@ export const CampaignHub = () => {
   return (
     <Layout>
       <div className="w-full flex flex-col h-full bg-background overflow-y-auto animate-in fade-in duration-200">
-        {/* Dynamic Header Section */}
-        <div className="p-8 pb-0">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-8">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
-                <h1 className="text-4xl font-black text-white tracking-tighter">Campaigns</h1>
-              </div>
-              <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] ml-5">
-                Overview of all email campaigns
-              </p>
-            </div>
-            
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-3 bg-white text-black px-6 py-3 hover:bg-gray-200 transition-all group rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:-translate-y-1"
-            >
-              <PlusCircle size={16} className="group-hover:rotate-90 transition-transform duration-300" />
-              <span className="font-black uppercase tracking-widest text-[10px]">New Campaign</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Summary - Simplified */}
-        <div className="px-8 mt-6">
-          <div className="flex items-center gap-6 text-sm">
-            <span className="text-white/40 font-bold uppercase tracking-widest text-[9px]">
-              Showing <span className="text-white mx-1">{filteredCampaigns.length}</span> Active Campaigns
-            </span>
-          </div>
+        {/* Compact Actions Bar */}
+        <div className="p-6 pb-2 flex items-center justify-between">
+          <span className="text-white/40 font-bold uppercase tracking-widest text-[10px]">
+            {filteredCampaigns.length} Active Campaigns
+          </span>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 bg-white text-black px-4 py-2.5 hover:bg-gray-200 transition-all group rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:-translate-y-0.5"
+          >
+            <PlusCircle size={14} className="group-hover:rotate-90 transition-transform duration-300" />
+            <span className="font-black uppercase tracking-widest text-[10px]">New Campaign</span>
+          </button>
         </div>
 
         {/* Unified Campaign Grid */}

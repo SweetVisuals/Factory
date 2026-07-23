@@ -401,43 +401,22 @@ const Discover: React.FC = () => {
     <Layout fullHeight>
       <div className="flex flex-col h-full bg-background text-foreground relative animate-in fade-in duration-200">
         
-        <div className="p-4 lg:p-8 lg:pb-4 shrink-0 flex flex-col md:flex-row md:items-end justify-between gap-6 w-full border-b border-white/5 bg-background z-10">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
-              <h1 className="text-4xl font-black text-white tracking-tighter">Lead Searcher</h1>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-            <button
-              onClick={() => setShowMobileFilters(true)}
-              className="lg:hidden p-3 bg-white/[0.03] border border-white/5 rounded-lg text-white/50 hover:text-white transition-colors"
-            >
-              <Filter size={20} />
-            </button>
-            <div className="flex items-center gap-4 lg:gap-5 bg-white/[0.03] border border-white/5 rounded-xl px-4 lg:px-5 py-2.5 min-w-max">
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Total</span>
-                <span className="text-lg font-black text-white tabular-nums">{metrics.totalLeads.toLocaleString()}</span>
-              </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest">Valid</span>
-                <span className="text-lg font-black text-emerald-400 tabular-nums">{metrics.verifiedEmails.toLocaleString()}</span>
-              </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] font-bold text-rose-500/60 uppercase tracking-widest">Invalid</span>
-                <span className="text-lg font-black text-rose-400 tabular-nums">{metrics.invalidEmails.toLocaleString()}</span>
-              </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest">Health</span>
-                <span className="text-lg font-black text-blue-400 tabular-nums">{metrics.verificationRate}%</span>
-              </div>
-            </div>
-          </div>
+        <div className="px-4 py-2 shrink-0 flex items-center justify-between w-full border-b border-white/5 bg-background z-10">
+          <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest hidden md:inline">
+            {metrics.totalLeads.toLocaleString()} Total <span className="mx-2 text-white/20">•</span> 
+            <span className="text-emerald-400">{metrics.verifiedEmails.toLocaleString()} Valid</span> <span className="mx-2 text-white/20">•</span> 
+            <span className="text-rose-400">{metrics.invalidEmails.toLocaleString()} Invalid</span> <span className="mx-2 text-white/20">•</span> 
+            <span className="text-blue-400">{metrics.verificationRate}% Health</span>
+          </span>
+          <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest md:hidden">
+            {metrics.totalLeads.toLocaleString()} Leads
+          </span>
+          <button
+            onClick={() => setShowMobileFilters(true)}
+            className="lg:hidden p-1.5 bg-white/[0.03] border border-white/5 rounded-lg text-white/50 hover:text-white transition-colors"
+          >
+            <Filter size={14} />
+          </button>
         </div>
 
         <div className="flex-1 overflow-hidden flex relative">

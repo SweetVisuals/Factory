@@ -421,41 +421,23 @@ const Inbox = () => {
 
   return (
     <Layout fullHeight>
-      <div className="flex flex-col h-full bg-background animate-in fade-in duration-200 p-4 md:p-6 gap-6">
+      <div className="flex flex-col h-full bg-background animate-in fade-in duration-200 p-0">
         
-        {/* Canonical Header */}
-        <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm shrink-0">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
-                <h1 className="text-3xl font-black text-foreground tracking-tighter">Global Inbox</h1>
-              </div>
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.2em] ml-5">
-                Unified conversation threads
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{threads.filter(t => t.folder !== 'archive' && t.folder !== 'trash').length} conversations</span>
-              <button onClick={handleRefresh} className={cn("p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all", refreshing && "animate-spin text-primary")}>
-                <RefreshCw size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Main Inbox Application Shell */}
-        <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1">
+        <div className="flex flex-col flex-1 overflow-hidden">
           <div className="flex flex-1 overflow-hidden">
 
           {/* Sidebar */}
           <div className="hidden lg:flex w-60 border-r border-border/50 flex-col bg-muted/20 shrink-0">
-            <div className="p-4 border-b border-white/5">
+            <div className="p-4 border-b border-white/5 flex gap-2">
               <button 
                 onClick={() => setIsComposeOpen(true)}
-                className="w-full py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
               >
                 Compose <Send size={14} />
+              </button>
+              <button onClick={handleRefresh} className={cn("w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all shrink-0", refreshing && "text-primary")}>
+                <RefreshCw size={14} className={cn(refreshing && "animate-spin")} />
               </button>
             </div>
             
