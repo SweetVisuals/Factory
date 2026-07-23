@@ -159,7 +159,7 @@ const CampaignCard = ({
             <span>{bizLabel}</span>
             {loc && <span>• {loc}</span>}
           </div>
-          <h3 className="font-bold text-xl tracking-tight text-foreground truncate">{cleanName}</h3>
+          <h3 className="font-bold text-xl tracking-tight text-foreground truncate uppercase">{cleanName}</h3>
         </div>
         
         {/* Agent Status Badge */}
