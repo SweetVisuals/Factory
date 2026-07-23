@@ -31,7 +31,7 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
         const defSig = sigs.find((s: any) => s.isDefault) || sigs[0];
         if (defSig) {
           const textHtml = defSig.content ? defSig.content.replace(/\n/g, '<br/>') : '';
-          const imgHtml = defSig.imageUrl ? `<br/><img src="${defSig.imageUrl}" alt="Signature Logo" style="display: block; margin-top: 6px; max-height: 200px; height: 200px;" />` : '';
+          const imgHtml = defSig.imageUrl ? `<br/><img src="${defSig.imageUrl}" alt="Signature Logo" style="max-width: 100%; height: auto; display: block; margin-top: 6px;" />` : '';
           return `<div class="composer-signature-block" style="margin-top: 24px; line-height: 1.5; color: inherit; font-family: sans-serif;">${textHtml}${imgHtml}</div>`;
         }
       }
@@ -45,7 +45,7 @@ export default function ReviewTab({ campaignId }: ReviewTabProps) {
         .replace(/width:\s*[^;\s"']+\s*;?/gi, '')
         .replace(/\bwidth\s*=\s*["']?\d+["']?/gi, '')
         .replace(/\bheight\s*=\s*["']?\d+["']?/gi, '')
-        .replace(/<img\s+/gi, '<img style="max-height: 200px; height: 200px; display: block; margin-top: 6px;" ');
+        .replace(/<img\s+/gi, '<img style="max-width: 100%; height: auto; display: block; margin-top: 6px;" ');
       return `<div class="composer-signature-block" style="margin-top: 24px; line-height: 1.5; color: inherit; font-family: sans-serif;">${legacySig}</div>`;
     }
     // Default fallback matching backend campaign_sender.mjs buildFullEmail
