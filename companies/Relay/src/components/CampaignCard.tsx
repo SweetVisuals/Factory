@@ -107,9 +107,9 @@ const CampaignCard = ({
   return (
     <div 
       onClick={onClick} 
-      className={`relative flex flex-col cursor-pointer transition-all duration-500 hover:-translate-y-1 bg-card border border-border shadow-sm hover:shadow-xl group ${isReview ? 'campaign-card-review-pulse' : ''}`}
+      className={`relative flex flex-col cursor-pointer transition-all duration-500 hover:-translate-y-1 bg-[#111]/80 backdrop-blur-xl border border-white/5 shadow-sm hover:shadow-xl hover:border-white/20 group ${isReview ? 'campaign-card-review-pulse' : ''}`}
       style={{ 
-        borderRadius: '24px',
+        borderRadius: '0px',
         minHeight: '360px',
         overflow: 'hidden'
       }}
@@ -164,7 +164,7 @@ const CampaignCard = ({
         
         {/* Agent Status Badge */}
         <span 
-          className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase rounded-full border shadow-sm transition-colors"
+          className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-none border shadow-sm transition-colors"
           style={{ 
             backgroundColor: `rgba(${badgeRgb}, 0.1)`, 
             borderColor: `rgba(${badgeRgb}, 0.2)`,
@@ -189,31 +189,31 @@ const CampaignCard = ({
       <div className="flex flex-col flex-1 p-6 pt-2">
         {/* Simplified Metrics Grid */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="flex flex-col bg-muted/30 rounded-xl p-4 border border-border transition-colors group-hover:bg-muted/50">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground mb-1">Leads</span>
-            <span className="font-bold text-2xl text-foreground">
+          <div className="flex flex-col bg-foreground/[0.02] rounded-none p-4 border border-white/5 transition-colors group-hover:bg-foreground/[0.04]">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Leads</span>
+            <span className="font-black text-2xl text-foreground">
               <AnimatedNumber value={prospectsVal} />
             </span>
           </div>
-          <div className="flex flex-col bg-muted/30 rounded-xl p-4 border border-border transition-colors group-hover:bg-muted/50">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground mb-1">Sent</span>
-            <span className="font-bold text-2xl text-foreground">
+          <div className="flex flex-col bg-foreground/[0.02] rounded-none p-4 border border-white/5 transition-colors group-hover:bg-foreground/[0.04]">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Sent</span>
+            <span className="font-black text-2xl text-foreground">
               <AnimatedNumber value={sentVal} />
             </span>
           </div>
-          <div className="flex flex-col bg-muted/30 rounded-xl p-4 border border-border transition-colors group-hover:bg-muted/50">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground mb-1">Replies</span>
+          <div className="flex flex-col bg-foreground/[0.02] rounded-none p-4 border border-white/5 transition-colors group-hover:bg-foreground/[0.04]">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Replies</span>
             <div className="flex items-baseline gap-2">
-              <span className="font-bold text-2xl text-foreground">
+              <span className="font-black text-2xl text-foreground">
                 <AnimatedNumber value={repliesVal} />
               </span>
-              <span className="text-[10px] font-semibold" style={{ color: activeColor }}>{replyRate || '0.0%'}</span>
+              <span className="text-[10px] font-black" style={{ color: activeColor }}>{replyRate || '0.0%'}</span>
             </div>
           </div>
         </div>
 
         {/* Agent Activity Log */}
-        <div className="flex flex-col gap-3 mt-auto mb-6 bg-muted/10 p-4 rounded-xl border border-border/50">
+        <div className="flex flex-col gap-3 mt-auto mb-6 bg-foreground/[0.02] p-4 rounded-none border border-white/5">
           <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: activeColor }} />
             Live Agent Log
@@ -239,13 +239,13 @@ const CampaignCard = ({
 
         {/* Autonomous Progress Bar */}
         <div className="flex flex-col gap-2 pt-2">
-          <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">
             <span>Routing Progress</span>
             <span style={{ color: activeColor }}>{progressPct}%</span>
           </div>
-          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-foreground/[0.05] rounded-none overflow-hidden">
             <div 
-              className="h-full rounded-full transition-all duration-700 ease-out" 
+              className="h-full rounded-none transition-all duration-700 ease-out" 
               style={{ width: `${progressPct}%`, backgroundColor: activeColor }} 
             />
           </div>

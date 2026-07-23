@@ -91,7 +91,7 @@ export const CampaignHub = () => {
         {/* Compact Actions Bar */}
         <div className="p-6 pb-2 flex items-center justify-between">
           <span className="text-white/40 font-bold uppercase tracking-widest text-[10px]">
-            {filteredCampaigns.length} Active Campaigns
+            {filteredCampaigns.length} {filteredCampaigns.length === 1 ? 'Active Campaign' : 'Active Campaigns'}
           </span>
           <button
             onClick={() => setShowCreateModal(true)}
