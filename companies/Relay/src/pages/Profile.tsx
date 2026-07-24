@@ -720,7 +720,7 @@ export default function ProfilePage() {
               </div>
 
               {selectedBiz ? (
-                <div className="bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
+                <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <button 
@@ -773,8 +773,8 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2 mb-8">
                         {[1, 2, 3].map(step => (
                           <div key={step} className="flex-1">
-                            <div className={`h-1.5 rounded-full transition-colors ${bizWizardStep >= step ? 'bg-primary' : 'bg-white/5'}`} />
-                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 ${bizWizardStep >= step ? 'text-primary' : 'text-muted-foreground'}`}>
+                            <div className={`h-1.5 rounded-full transition-all duration-300 ${bizWizardStep >= step ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-white/5'}`} />
+                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 transition-colors duration-300 ${bizWizardStep >= step ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                               {step === 1 ? 'Basics' : step === 2 ? 'Strategy' : 'Context'}
                             </p>
                           </div>
@@ -1048,7 +1048,7 @@ export default function ProfilePage() {
               </div>
 
               {selectedTone ? (
-                <div className="bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
+                <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <button 
@@ -1098,8 +1098,8 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2 mb-8">
                         {[1, 2].map(step => (
                           <div key={step} className="flex-1">
-                            <div className={`h-1.5 rounded-full transition-colors ${toneWizardStep >= step ? 'bg-primary' : 'bg-white/5'}`} />
-                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 ${toneWizardStep >= step ? 'text-primary' : 'text-muted-foreground'}`}>
+                            <div className={`h-1.5 rounded-full transition-all duration-300 ${toneWizardStep >= step ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-white/5'}`} />
+                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 transition-colors duration-300 ${toneWizardStep >= step ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                               {step === 1 ? 'Basics' : 'Guidelines'}
                             </p>
                           </div>
