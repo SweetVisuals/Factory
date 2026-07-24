@@ -401,22 +401,7 @@ export default function ProfilePage() {
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto p-8 lg:p-12">
           <div className="max-w-[1200px] mx-auto w-full">
-            {/* Dynamic Header */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-primary rounded-none" />
-                <h1 className="text-3xl font-black text-foreground tracking-tighter uppercase">
-                  {activeTab === 'profile' && 'Personal Profile'}
-                  {activeTab === 'business' && 'Business Profiles'}
-                  {activeTab === 'tone' && 'Email Tones'}
-                  {activeTab === 'usage' && 'Usage & Limits'}
-                  {activeTab === 'subscription' && 'Pricing'}
-                </h1>
-              </div>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-2 ml-5">
-                Manage your {activeTab} settings and preferences
-              </p>
-            </div>
+
           
           {/* TAB: PROFILE */}
           {activeTab === 'profile' && (
