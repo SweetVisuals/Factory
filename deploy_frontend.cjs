@@ -40,9 +40,9 @@ conn.on('ready', () => {
       console.log('Upload complete. Extracting files...');
       
       const extractScript = `
-        rm -rf /var/www/relay-frontend/*
-        tar -xzf /tmp/dist.tar.gz -C /var/www/relay-frontend/
-        chown -R www-data:www-data /var/www/relay-frontend/
+        rm -rf /var/www/relay/*
+        tar -xzf /tmp/dist.tar.gz -C /var/www/relay/
+        chown -R www-data:www-data /var/www/relay/
         rm /tmp/dist.tar.gz
         echo "Deployment complete!"
       `;
