@@ -31,7 +31,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 const originalChannel = supabase.channel.bind(supabase);
 supabase.channel = (...args: Parameters<typeof supabase.channel>) => {
   const channel = originalChannel(...args);
-  const originalSubscribe = channel.subscribe.bind(channel);
   channel.subscribe = (callback?: any) => {
     // Return the channel without actually connecting to prevent WebSocket errors
     if (callback) callback('CLOSED', new Error('Realtime disabled'));

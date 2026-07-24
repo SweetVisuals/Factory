@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/auth/LoadingSpinner';
 
 interface AuthContextType {
@@ -21,7 +21,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<AuthError | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const checkOnboardingStatus = async (userId: string) => {
     try {
@@ -37,90 +36,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const initAuth = async () => {
-      // Fallback timeout to ensure we never get stuck on the loading spinner
-      const safetyTimeout = setTimeout(() => {
-        setLoading(false);
-      }, 5000);
+    let mounted = true;
 
+    // Safety timeout — if nothing resolves auth within 5s, stop loading anyway
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 5000);
+
+    // 1. First, handle any URL-based session tokens (email confirm links, magic links)
+    const handleUrlSession = async () => {
       try {
-        // 1. Check hash parameters
         const hash = window.location.hash;
         if (hash && hash.includes('access_token=') && hash.includes('refresh_token=')) {
           const params = new URLSearchParams(hash.substring(1));
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
           if (accessToken && refreshToken) {
-            const { data } = await supabase.auth.setSession({
+            await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken
             });
-            if (data?.session) {
-              window.location.hash = '';
-              setUser(data.session.user);
-              await checkOnboardingStatus(data.session.user.id);
-              clearTimeout(safetyTimeout);
-              setLoading(false);
-              return;
-            }
+            window.location.hash = '';
+            return; // onAuthStateChange will handle the rest
           }
         }
 
-        // 2. Check query parameters
         const searchParams = new URLSearchParams(window.location.search);
         const accessTokenSearch = searchParams.get('access_token');
         const refreshTokenSearch = searchParams.get('refresh_token');
         if (accessTokenSearch && refreshTokenSearch) {
-          const { data } = await supabase.auth.setSession({
+          await supabase.auth.setSession({
             access_token: accessTokenSearch,
             refresh_token: refreshTokenSearch
           });
-          if (data?.session) {
-            const url = new URL(window.location.href);
-            url.searchParams.delete('access_token');
-            url.searchParams.delete('refresh_token');
-            window.history.replaceState({}, document.title, url.pathname + url.search);
-            setUser(data.session.user);
-            await checkOnboardingStatus(data.session.user.id);
-            clearTimeout(safetyTimeout);
-            setLoading(false);
-            return;
-          }
+          const url = new URL(window.location.href);
+          url.searchParams.delete('access_token');
+          url.searchParams.delete('refresh_token');
+          window.history.replaceState({}, document.title, url.pathname + url.search);
+          return; // onAuthStateChange will handle the rest
         }
       } catch (e) {
         console.error('Error handling URL session:', e);
       }
-
-      // Check active session
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await checkOnboardingStatus(session.user.id);
-        }
-      } catch (e) {
-        console.error('Error fetching session:', e);
-      } finally {
-        clearTimeout(safetyTimeout);
-        setLoading(false);
-      }
     };
 
-    initAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // 2. Listen for auth state changes — this is the SINGLE SOURCE OF TRUTH
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
+      console.log('[Auth] State change:', event, session?.user?.email || 'no user');
+      
       setUser(session?.user ?? null);
+      
       if (session?.user) {
         await checkOnboardingStatus(session.user.id);
       } else {
         setNeedsOnboarding(false);
       }
-      setLoading(false); // Ensure loading is disabled on any auth state change
+      
+      clearTimeout(safetyTimeout);
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // 3. Handle URL tokens first, then let onAuthStateChange resolve everything
+    handleUrlSession();
+
+    return () => {
+      mounted = false;
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const signOut = async () => {
     try {
