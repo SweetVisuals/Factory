@@ -56,10 +56,10 @@ export default function ThreadsSidebar() {
 
   if (!isOpen) {
     return (
-      <div className="w-12 border-l border-border bg-card flex flex-col items-center py-4 shrink-0 h-full transition-all">
+      <div className="w-12 border-l border-white/5 bg-[#0f172a] flex flex-col items-center py-4 shrink-0 h-full transition-all">
         <button 
           onClick={() => setIsOpen(true)}
-          className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-none transition-colors"
+          className="p-2 hover:bg-white/5 text-muted-foreground hover:text-foreground rounded-xl transition-colors"
           title="Open Threads"
         >
           <PanelRightOpen size={20} />
@@ -69,27 +69,27 @@ export default function ThreadsSidebar() {
   }
 
   return (
-    <div className="w-80 border-l border-border bg-card flex flex-col shrink-0 h-full transition-all animate-in slide-in-from-right-8 duration-200">
-      <div className="p-4 border-b border-border flex items-center justify-between">
+    <div className="w-80 border-l border-white/5 bg-[#0f172a] flex flex-col shrink-0 h-full transition-all animate-in slide-in-from-right-8 duration-200">
+      <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2 text-foreground">
           <MessageSquare size={16} className="text-primary" />
           <h2 className="text-[10px] font-black uppercase tracking-widest text-foreground">Recent Threads</h2>
         </div>
         <button 
           onClick={() => setIsOpen(false)}
-          className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-none transition-colors"
+          className="p-1.5 hover:bg-white/5 text-muted-foreground hover:text-foreground rounded-xl transition-colors"
         >
           <PanelRightClose size={16} />
         </button>
       </div>
 
-      <div className="p-3 border-b border-border bg-background/50">
+      <div className="p-3 border-b border-white/5 bg-[#0f172a]">
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input 
             type="text" 
             placeholder="Search threads..." 
-            className="w-full bg-background border border-border pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors rounded-none"
+            className="w-full bg-[#0f172a] border border-white/5 pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors rounded-xl"
           />
         </div>
       </div>
@@ -108,9 +108,9 @@ export default function ThreadsSidebar() {
         ) : (
           <div className="flex flex-col">
             {Object.entries(groupedEmails).map(([subject, msgs]) => (
-              <div key={subject} className="border-b border-border last:border-0 group">
-                <div className="px-3 py-2 bg-muted/20 border-b border-border/50 flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-none bg-primary/70" />
+              <div key={subject} className="border-b border-white/5 last:border-0 group">
+                <div className="px-3 py-2 bg-white/[0.02] border-b border-white/5 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-xl bg-primary/70" />
                   <span className="text-[10px] font-black uppercase tracking-tight text-muted-foreground truncate" title={subject}>
                     {subject}
                   </span>
@@ -120,7 +120,7 @@ export default function ThreadsSidebar() {
                   {msgs.map((msg, i) => (
                     <div 
                       key={msg.id || i} 
-                      className="px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer border-b border-border/50 last:border-0"
+                      className="px-4 py-3 hover:bg-white/[0.04] transition-colors cursor-pointer border-b border-white/5 last:border-0"
                     >
                       <div className="flex justify-between items-start mb-1 gap-2">
                         <span className="text-xs font-bold text-foreground truncate">
@@ -137,7 +137,7 @@ export default function ThreadsSidebar() {
                   ))}
                 </div>
                 
-                <div className="px-4 py-2 bg-background hover:bg-muted/50 cursor-pointer flex items-center gap-1.5 group/btn transition-colors">
+                <div className="px-4 py-2 bg-[#0f172a] hover:bg-white/[0.04] cursor-pointer flex items-center gap-1.5 group/btn transition-colors">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-primary">View Full Thread</span>
                   <ArrowRight size={10} className="text-primary group-hover/btn:translate-x-0.5 transition-transform" />
                 </div>

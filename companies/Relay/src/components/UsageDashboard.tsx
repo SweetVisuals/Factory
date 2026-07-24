@@ -38,7 +38,7 @@ const UsageItem = ({
         {showUpgrade ? (
           <button 
             onClick={() => window.location.href = '/pricing'}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded transition-colors"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-xl transition-colors"
           >
             Upgrade
           </button>
@@ -92,7 +92,7 @@ export default function UsageDashboard() {
 
   return (
     <div className="w-full">
-      <div className="bg-[#111111] border border-white/10 rounded-lg overflow-hidden">
+      <div className="bg-[#111111] border border-white/10 rounded-xl overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5">
           {/* Column 1 */}
           <div className="flex flex-col">

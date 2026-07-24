@@ -376,7 +376,8 @@ export default function ProfilePage() {
                 { id: 'business', label: 'Business', icon: Building2 },
                 { id: 'tone', label: 'Emails', icon: Mail },
                 { id: 'usage', label: 'Usage', icon: Activity },
-                { id: 'subscription', label: 'Plans', icon: CreditCard }
+                { id: 'subscription', label: 'Plans', icon: CreditCard },
+                { id: 'settings', label: 'Settings', icon: Settings }
               ].map(tab => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -506,7 +507,13 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="pt-8 mt-12 border-t border-white/5 space-y-6">
+            </div>
+          )}
+
+          {/* TAB: SETTINGS */}
+          {activeTab === 'settings' && (
+            <div className="space-y-12 animate-in fade-in duration-200">
+              <div className="pt-8 space-y-6">
                 <div className="flex items-center justify-between p-6 bg-[#0f172a] border border-white/5 rounded-xl">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-white/5 rounded-xl">
@@ -522,7 +529,6 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </div>
-
             </div>
           )}
 
@@ -703,12 +709,19 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-bold text-foreground mb-2">Industry</label>
-                          <input 
+                          <select 
                             value={editIndustry}
                             onChange={(e) => setEditIndustry(e.target.value)}
-                            placeholder="e.g. B2B SaaS"
-                            className="w-full bg-background border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
-                          />
+                            className="w-full bg-[#0f172a] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
+                          >
+                            <option value="">Select Industry...</option>
+                            <option value="B2B SaaS">B2B SaaS</option>
+                            <option value="Real Estate">Real Estate</option>
+                            <option value="E-commerce">E-commerce</option>
+                            <option value="Trades & Construction">Trades & Construction</option>
+                            <option value="Marketing Agency">Marketing Agency</option>
+                            <option value="Custom">Custom</option>
+                          </select>
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-foreground mb-2">Target Audience</label>
@@ -994,7 +1007,7 @@ export default function ProfilePage() {
                         <select 
                           value={editToneCategory}
                           onChange={(e) => setEditToneCategory(e.target.value)}
-                          className="w-full bg-background border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                          className="w-full bg-[#0f172a] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
                         >
                           <option value="FORMAL">Formal</option>
                           <option value="CASUAL">Casual</option>
