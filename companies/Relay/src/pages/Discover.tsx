@@ -833,8 +833,19 @@ const Discover: React.FC = () => {
                           </td>
                           <td className="px-3 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-[10px] font-black text-white/40 uppercase shrink-0">
-                                {(lead.name || '?')[0]}
+                              <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/5 flex items-center justify-center text-[10px] font-black text-white/40 uppercase shrink-0 overflow-hidden">
+                                {lead.website ? (
+                                  <img 
+                                    src={`https://www.google.com/s2/favicons?domain=${lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}&sz=64`} 
+                                    alt={lead.company} 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = `https://www.google.com/s2/favicons?domain=example.com&sz=64`; // default globe fallback
+                                    }}
+                                  />
+                                ) : (
+                                  (lead.name || lead.company || '?')[0]
+                                )}
                               </div>
                               <div className="min-w-0">
                                 <div className="font-semibold text-white truncate max-w-[180px]">{lead.name || 'Unknown'}</div>
