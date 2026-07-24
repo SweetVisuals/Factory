@@ -365,49 +365,47 @@ export default function ProfilePage() {
     <Layout>
       <div className="w-full flex h-full bg-background overflow-hidden text-foreground">
         
-        {/* Left-hand Sidebar Navigation */}
-        <div className="w-64 border-r border-border bg-card flex flex-col shrink-0 h-full">
-          <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-            {[
-              { id: 'profile', label: 'Personal Profile', icon: User },
-              { id: 'business', label: 'Business Profiles', icon: Building2 },
-              { id: 'tone', label: 'Email Tones', icon: Mail },
-              { id: 'usage', label: 'Usage & Limits', icon: Activity },
-              { id: 'subscription', label: 'Pricing', icon: CreditCard }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-none text-sm font-bold transition-all border border-transparent",
-                    isActive 
-                      ? "bg-primary/10 text-primary border-primary/20" 
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border"
-                  )}
-                >
-                  <Icon size={18} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto p-8 lg:p-12">
           <div className="max-w-[1200px] mx-auto w-full">
+          
+            {/* Top Navigation Tabs */}
+            <div className="flex items-center gap-2 mb-8 bg-black/40 p-2 rounded-xl backdrop-blur-sm border border-white/5 overflow-x-auto">
+              {[
+                { id: 'profile', label: 'Personal Profile', icon: User },
+                { id: 'business', label: 'Business Profiles', icon: Building2 },
+                { id: 'tone', label: 'Email Tones', icon: Mail },
+                { id: 'usage', label: 'Usage & Limits', icon: Activity },
+                { id: 'subscription', label: 'Pricing', icon: CreditCard }
+              ].map(tab => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
+                      isActive 
+                        ? "bg-primary/20 text-primary border border-primary/20" 
+                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                    )}
+                  >
+                    <Icon size={16} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
 
           
           {/* TAB: PROFILE */}
           {activeTab === 'profile' && (
             <div className="space-y-12 animate-in fade-in duration-200">
               
-              <div className="bg-card border border-border rounded-none p-8 space-y-8">
+              <div className="bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 space-y-8">
                 <div className="flex items-center gap-4">
-                  <div className="w-1.5 h-6 bg-primary rounded-none" />
+                  <div className="w-1.5 h-6 bg-primary rounded-xl" />
                   <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Personal Details</h3>
                 </div>
                 
@@ -437,7 +435,7 @@ export default function ProfilePage() {
                         <input
                           value={formData.full_name}
                           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                          className="w-full bg-background border border-input rounded-none px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+                          className="w-full bg-background border border-input rounded-xl px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                           placeholder="Your Name"
                         />
                       </div>
@@ -447,7 +445,7 @@ export default function ProfilePage() {
                           type="email"
                           value={formData.email}
                           disabled
-                          className="w-full bg-muted/50 border border-border rounded-none px-4 py-3 text-sm font-medium text-muted-foreground cursor-not-allowed"
+                          className="w-full bg-muted/50 border border-white/5 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground cursor-not-allowed"
                         />
                       </div>
                       <div className="space-y-2">
@@ -455,7 +453,7 @@ export default function ProfilePage() {
                         <input
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full bg-background border border-input rounded-none px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+                          className="w-full bg-background border border-input rounded-xl px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                           placeholder="Your Phone Number"
                         />
                       </div>
@@ -464,7 +462,7 @@ export default function ProfilePage() {
                         <input
                           value={formData.industry}
                           onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                          className="w-full bg-background border border-input rounded-none px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+                          className="w-full bg-background border border-input rounded-xl px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                           placeholder="e.g. Sales Director"
                         />
                       </div>
@@ -473,7 +471,7 @@ export default function ProfilePage() {
                         <textarea
                           value={formData.bio}
                           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                          className="w-full h-24 bg-background border border-input rounded-none px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground resize-none"
+                          className="w-full h-24 bg-background border border-input rounded-xl px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground resize-none"
                           placeholder="Tell us a little about yourself..."
                         />
                       </div>
@@ -482,7 +480,7 @@ export default function ProfilePage() {
                       <button 
                         type="submit" 
                         disabled={identityLoading}
-                        className="px-6 py-3 bg-primary text-primary-foreground rounded-none text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
+                        className="px-6 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
                       >
                         {identityLoading && <Activity size={16} className="animate-spin" />}
                         Save Profile
@@ -492,11 +490,11 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-border/50 space-y-6">
+              <div className="pt-8 border-t border-white/5 space-y-6">
                 <h3 className="text-lg font-bold text-foreground mb-6">Interface Preferences</h3>
-                <div className="flex items-center justify-between p-4 bg-background border border-border rounded-none">
+                <div className="flex items-center justify-between p-4 bg-background border border-white/5 rounded-xl">
                   <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-muted rounded-none">
+                    <div className="p-2.5 bg-muted rounded-xl">
                       <Zap size={18} className="text-foreground" />
                     </div>
                     <div className="flex flex-col gap-0.5">
@@ -508,19 +506,18 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-border/50 space-y-6">
-                <h3 className="text-lg font-bold text-red-500 mb-6">Danger Zone</h3>
-                <div className="flex items-center justify-between p-4 bg-background border border-red-500/20 rounded-none">
+              <div className="pt-8 mt-12 border-t border-red-500/10 space-y-6">
+                <div className="flex items-center justify-between p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
                   <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-red-500/10 rounded-none">
-                      <AlertTriangle size={18} className="text-red-500" />
+                    <div className="p-3 bg-red-500/10 rounded-xl">
+                      <AlertTriangle size={24} className="text-red-500" />
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-bold text-foreground">Delete Account</span>
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Permanently delete your account and all data.</span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-lg font-bold text-red-500">Danger Zone: Delete Account</span>
+                      <span className="text-xs font-medium text-red-500/70">Permanently delete your account and all data. This action cannot be undone.</span>
                     </div>
                   </div>
-                  <button className="px-4 py-2 bg-red-500/10 text-red-500 rounded-none text-sm font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-colors">
+                  <button className="px-6 py-3 bg-red-500/10 text-red-500 rounded-xl text-sm font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all shadow-sm">
                     Delete Account
                   </button>
                 </div>
@@ -534,43 +531,43 @@ export default function ProfilePage() {
             <div className="animate-in fade-in duration-200 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Limit Card 1 */}
-                <div className="p-6 bg-card border border-border rounded-none space-y-4">
+                <div className="p-6 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Emails Sent Today</h4>
                     <span className="text-sm font-black text-foreground">45 / 100</span>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-none overflow-hidden">
+                  <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
                     <div className="h-full bg-primary" style={{ width: '45%' }} />
                   </div>
                 </div>
 
                 {/* Limit Card 2 */}
-                <div className="p-6 bg-card border border-border rounded-none space-y-4">
+                <div className="p-6 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Campaigns</h4>
                     <span className="text-sm font-black text-foreground">2 / 5</span>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-none overflow-hidden">
+                  <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
                     <div className="h-full bg-primary" style={{ width: '40%' }} />
                   </div>
                 </div>
 
                 {/* Limit Card 3 */}
-                <div className="p-6 bg-card border border-border rounded-none space-y-4">
+                <div className="p-6 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Contacts</h4>
                     <span className="text-sm font-black text-foreground">850 / 1000</span>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-none overflow-hidden">
+                  <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
                     <div className="h-full bg-primary" style={{ width: '85%' }} />
                   </div>
                 </div>
               </div>
 
               {/* AI Credits Section */}
-              <div className="p-8 bg-card border border-border rounded-none space-y-6">
+              <div className="p-8 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-primary/10 rounded-none">
+                  <div className="p-2.5 bg-primary/10 rounded-xl">
                     <Zap size={20} className="text-primary" />
                   </div>
                   <div>
@@ -586,13 +583,13 @@ export default function ProfilePage() {
                     <span className="text-sm font-bold text-foreground">Available Credits</span>
                     <span className="text-sm font-black text-primary">850 / 1000</span>
                   </div>
-                  <div className="w-full h-3 bg-muted rounded-none overflow-hidden border border-border">
+                  <div className="w-full h-3 bg-muted rounded-xl overflow-hidden border border-white/5">
                     <div className="h-full bg-primary" style={{ width: '85%' }} />
                   </div>
                 </div>
                 
-                <div className="pt-4 border-t border-border flex justify-end">
-                  <button className="px-5 py-2.5 bg-primary text-primary-foreground rounded-none text-sm font-bold shadow-md hover:bg-primary/90 transition-all flex items-center gap-2">
+                <div className="pt-4 border-t border-white/5 flex justify-end">
+                  <button className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all flex items-center gap-2">
                     <Plus size={16} />
                     Top-up Credits
                   </button>
@@ -619,7 +616,7 @@ export default function ProfilePage() {
                 </p>
                 <button 
                   onClick={() => setShowUpload(!showUpload)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-none text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
                 >
                   <Plus size={18} />
                   New Profile
@@ -627,8 +624,8 @@ export default function ProfilePage() {
               </div>
 
               {showUpload && (
-                <div className="p-8 bg-card border border-border rounded-none animate-in slide-in-from-top-4 duration-300">
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-none p-12 text-center">
+                <div className="p-8 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl animate-in slide-in-from-top-4 duration-300">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-xl p-12 text-center">
                     <div className="p-4 bg-muted rounded-full mb-4">
                       <Upload size={24} className="text-muted-foreground" />
                     </div>
@@ -639,7 +636,7 @@ export default function ProfilePage() {
                     <input ref={fileRef} type="file" accept=".md" onChange={handleUpload} className="hidden" />
                     <button 
                       onClick={() => fileRef.current?.click()}
-                      className="px-6 py-3 bg-secondary text-foreground rounded-none text-sm font-bold hover:bg-secondary/80 transition-colors"
+                      className="px-6 py-3 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                     >
                       Select File
                     </button>
@@ -648,12 +645,12 @@ export default function ProfilePage() {
               )}
 
               {selectedBiz ? (
-                <div className="bg-card border border-border rounded-none p-8 shadow-sm">
+                <div className="bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <button 
                         onClick={() => { setSelectedBiz(null); setIsEditingBiz(false); }}
-                        className="p-2 bg-muted text-muted-foreground hover:text-foreground rounded-none transition-colors"
+                        className="p-2 bg-muted text-muted-foreground hover:text-foreground rounded-xl transition-colors"
                       >
                         <ArrowLeft size={18} />
                       </button>
@@ -664,21 +661,21 @@ export default function ProfilePage() {
                         <button 
                           onClick={handlePreview}
                           disabled={previewLoading}
-                          className="px-4 py-2 bg-background text-foreground border border-border rounded-none text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
+                          className="px-4 py-2 bg-background text-foreground border border-white/5 rounded-xl text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
                         >
                           {previewLoading ? <RefreshCw size={14} className="animate-spin" /> : <Eye size={14} />}
                           Preview AI Email
                         </button>
                         <button 
                           onClick={() => setIsEditingBiz(false)}
-                          className="px-4 py-2 bg-secondary text-foreground rounded-none text-sm font-bold hover:bg-secondary/80 transition-colors"
+                          className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                         >
                           Cancel
                         </button>
                         <button 
                           onClick={handleSaveBiz}
                           disabled={isSavingBiz}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-none text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
                         >
                           {isSavingBiz ? <RefreshCw size={14} className="animate-spin" /> : <Settings size={14} />}
                           Save Changes
@@ -694,7 +691,7 @@ export default function ProfilePage() {
                           setEditTargetAudience(selectedBiz.target_audience || '');
                           setIsEditingBiz(true); 
                         }}
-                        className="px-4 py-2 bg-secondary text-foreground rounded-none text-sm font-bold hover:bg-secondary/80 transition-colors"
+                        className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                       >
                         Edit Profile
                       </button>
@@ -710,7 +707,7 @@ export default function ProfilePage() {
                             value={editIndustry}
                             onChange={(e) => setEditIndustry(e.target.value)}
                             placeholder="e.g. B2B SaaS"
-                            className="w-full bg-background border border-border rounded-none p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                            className="w-full bg-background border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
                           />
                         </div>
                         <div>
@@ -719,7 +716,7 @@ export default function ProfilePage() {
                             value={editTargetAudience}
                             onChange={(e) => setEditTargetAudience(e.target.value)}
                             placeholder="e.g. CMOs and VPs of Marketing"
-                            className="w-full bg-background border border-border rounded-none p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                            className="w-full bg-background border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
                           />
                         </div>
                       </div>
@@ -729,7 +726,7 @@ export default function ProfilePage() {
                           value={editAims}
                           onChange={(e) => setEditAims(e.target.value)}
                           placeholder="e.g. Book 5 meetings this month for enterprise clients"
-                          className="w-full h-24 bg-background border border-border rounded-none p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
+                          className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -739,7 +736,7 @@ export default function ProfilePage() {
                             value={editPainPoints}
                             onChange={(e) => setEditPainPoints(e.target.value)}
                             placeholder="e.g. Budget constraints, Long onboarding"
-                            className="w-full h-24 bg-background border border-border rounded-none p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
+                            className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
                           />
                         </div>
                         <div>
@@ -748,7 +745,7 @@ export default function ProfilePage() {
                             value={editNegativeKeywords}
                             onChange={(e) => setEditNegativeKeywords(e.target.value)}
                             placeholder="e.g. Cheap, Free, Trial"
-                            className="w-full h-24 bg-background border border-border rounded-none p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
+                            className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
                           />
                         </div>
                       </div>
@@ -758,7 +755,7 @@ export default function ProfilePage() {
                           value={editObjectives}
                           onChange={(e) => setEditObjectives(e.target.value)}
                           placeholder="e.g. To educate prospects on our new AI features"
-                          className="w-full h-24 bg-background border border-border rounded-none p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
+                          className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
                         />
                       </div>
                       <div>
@@ -766,12 +763,12 @@ export default function ProfilePage() {
                         <textarea 
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full h-96 bg-background border border-border rounded-none p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                          className="w-full h-96 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
                         />
                       </div>
                       
                       {/* AI Assistant Section */}
-                      <div className="p-4 bg-muted/40 border border-border rounded-none space-y-3">
+                      <div className="p-4 bg-muted/40 border border-white/5 rounded-xl space-y-3">
                         <div className="flex justify-between items-center">
                           <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                             <Sparkles size={12} className="text-amber-400" /> Groq AI Refiner (Free Llama 3)
@@ -789,13 +786,13 @@ export default function ProfilePage() {
                             onChange={(e) => setAiPrompt(e.target.value)}
                             disabled={isAiLoading}
                             placeholder="e.g. 'Make the copy more casual' or 'Add Plastering segment...'"
-                            className="flex-1 rounded-none border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                            className="flex-1 rounded-xl border border-white/5 bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                           />
                           <button
                             type="button"
                             onClick={handleAiEdit}
                             disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-none text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
                           >
                             {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
                             Refine
@@ -805,8 +802,8 @@ export default function ProfilePage() {
 
                       {/* AI Preview Box */}
                       {(previewLoading || previewResult) && (
-                        <div className="mt-8 border border-border bg-card rounded-none overflow-hidden">
-                          <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                        <div className="mt-8 border border-white/5 bg-[#0f172a]/50 backdrop-blur-md rounded-xl overflow-hidden">
+                          <div className="px-4 py-3 border-b border-white/5 bg-muted/30 flex items-center justify-between">
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                               <Sparkles size={12} className="text-primary" /> AI Sandbox Preview
                             </span>
@@ -815,10 +812,10 @@ export default function ProfilePage() {
                           <div className="p-6">
                             {previewLoading ? (
                               <div className="space-y-4">
-                                <div className="h-4 bg-muted/50 w-3/4 rounded-none animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-full rounded-none animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-5/6 rounded-none animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-1/2 rounded-none animate-pulse"></div>
+                                <div className="h-4 bg-muted/50 w-3/4 rounded-xl animate-pulse"></div>
+                                <div className="h-4 bg-muted/50 w-full rounded-xl animate-pulse"></div>
+                                <div className="h-4 bg-muted/50 w-5/6 rounded-xl animate-pulse"></div>
+                                <div className="h-4 bg-muted/50 w-1/2 rounded-xl animate-pulse"></div>
                               </div>
                             ) : (
                               <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
@@ -832,7 +829,7 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-6">
                       {selectedBiz.aims_md && (
-                        <div className="p-6 bg-background border border-border rounded-none">
+                        <div className="p-6 bg-background border border-white/5 rounded-xl">
                           <h4 className="text-sm font-bold text-foreground mb-2">Campaign Aims</h4>
                           <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
                             {selectedBiz.aims_md}
@@ -840,14 +837,14 @@ export default function ProfilePage() {
                         </div>
                       )}
                       {selectedBiz.objectives_md && (
-                        <div className="p-6 bg-background border border-border rounded-none">
+                        <div className="p-6 bg-background border border-white/5 rounded-xl">
                           <h4 className="text-sm font-bold text-foreground mb-2">Business Objectives</h4>
                           <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
                             {selectedBiz.objectives_md}
                           </pre>
                         </div>
                       )}
-                      <div className="p-6 bg-background border border-border rounded-none">
+                      <div className="p-6 bg-background border border-white/5 rounded-xl">
                         <h4 className="text-sm font-bold text-foreground mb-2">General Overview</h4>
                         <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
                           {selectedBiz.overview_md || 'No content available.'}
@@ -862,9 +859,9 @@ export default function ProfilePage() {
                     <div 
                       key={b.id} 
                       onClick={() => setSelectedBiz(b)}
-                      className="flex flex-col md:flex-row items-start md:items-center gap-4 p-5 bg-card border border-border rounded-none shadow-sm hover:border-primary/50 transition-colors cursor-pointer"
+                      className="flex flex-col md:flex-row items-start md:items-center gap-4 p-5 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl shadow-sm hover:border-primary/50 transition-colors cursor-pointer"
                     >
-                      <div className="p-2.5 bg-primary/10 rounded-none shrink-0">
+                      <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
                         <Building2 size={20} className="text-primary" />
                       </div>
                       <div className="flex-1">
@@ -877,11 +874,11 @@ export default function ProfilePage() {
                         </p>
                       </div>
                       <div className="flex flex-col md:items-end gap-2 shrink-0">
-                        <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-semibold uppercase tracking-wider rounded-none">
+                        <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-semibold uppercase tracking-wider rounded-xl">
                           {b.status}
                         </span>
                         {b.industry && (
-                          <span className="px-2 py-1 bg-secondary text-secondary-foreground text-xs font-semibold uppercase tracking-wider rounded-none">
+                          <span className="px-2 py-1 bg-secondary text-secondary-foreground text-xs font-semibold uppercase tracking-wider rounded-xl">
                             {b.industry}
                           </span>
                         )}
@@ -902,7 +899,7 @@ export default function ProfilePage() {
                 </p>
                 <button 
                   onClick={() => setShowToneUpload(!showToneUpload)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-none text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
                 >
                   <Plus size={18} />
                   New Tone Guide
@@ -910,8 +907,8 @@ export default function ProfilePage() {
               </div>
 
               {showToneUpload && (
-                <div className="p-8 bg-card border border-border rounded-none animate-in slide-in-from-top-4 duration-300">
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-none p-12 text-center">
+                <div className="p-8 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl animate-in slide-in-from-top-4 duration-300">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-xl p-12 text-center">
                     <div className="p-4 bg-muted rounded-full mb-4">
                       <Upload size={24} className="text-muted-foreground" />
                     </div>
@@ -922,7 +919,7 @@ export default function ProfilePage() {
                     <input ref={toneFileRef} type="file" accept=".md" onChange={handleToneUpload} className="hidden" />
                     <button 
                       onClick={() => toneFileRef.current?.click()}
-                      className="px-6 py-3 bg-secondary text-foreground rounded-none text-sm font-bold hover:bg-secondary/80 transition-colors"
+                      className="px-6 py-3 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                     >
                       Select File
                     </button>
@@ -931,12 +928,12 @@ export default function ProfilePage() {
               )}
 
               {selectedTone ? (
-                <div className="bg-card border border-border rounded-none p-8 shadow-sm">
+                <div className="bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <button 
                         onClick={() => { setSelectedTone(null); setIsEditingTone(false); }}
-                        className="p-2 bg-muted text-muted-foreground hover:text-foreground rounded-none transition-colors"
+                        className="p-2 bg-muted text-muted-foreground hover:text-foreground rounded-xl transition-colors"
                       >
                         <ArrowLeft size={18} />
                       </button>
@@ -947,21 +944,21 @@ export default function ProfilePage() {
                         <button 
                           onClick={handlePreview}
                           disabled={previewLoading}
-                          className="px-4 py-2 bg-background text-foreground border border-border rounded-none text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
+                          className="px-4 py-2 bg-background text-foreground border border-white/5 rounded-xl text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
                         >
                           {previewLoading ? <RefreshCw size={14} className="animate-spin" /> : <Eye size={14} />}
                           Preview AI Email
                         </button>
                         <button 
                           onClick={() => setIsEditingTone(false)}
-                          className="px-4 py-2 bg-secondary text-foreground rounded-none text-sm font-bold hover:bg-secondary/80 transition-colors"
+                          className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                         >
                           Cancel
                         </button>
                         <button 
                           onClick={handleSaveTone}
                           disabled={isSavingTone}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-none text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
                         >
                           {isSavingTone ? <RefreshCw size={14} className="animate-spin" /> : <Settings size={14} />}
                           Save Changes
@@ -974,7 +971,7 @@ export default function ProfilePage() {
                           setEditToneCategory(selectedTone.category || 'FORMAL');
                           setIsEditingTone(true); 
                         }}
-                        className="px-4 py-2 bg-secondary text-foreground rounded-none text-sm font-bold hover:bg-secondary/80 transition-colors"
+                        className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                       >
                         Edit Tone
                       </button>
@@ -988,7 +985,7 @@ export default function ProfilePage() {
                         <select 
                           value={editToneCategory}
                           onChange={(e) => setEditToneCategory(e.target.value)}
-                          className="w-full bg-background border border-border rounded-none p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                          className="w-full bg-background border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
                         >
                           <option value="FORMAL">Formal</option>
                           <option value="CASUAL">Casual</option>
@@ -1002,12 +999,12 @@ export default function ProfilePage() {
                         <textarea 
                           value={editToneContent}
                           onChange={(e) => setEditToneContent(e.target.value)}
-                          className="w-full h-96 bg-background border border-border rounded-none p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                          className="w-full h-96 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
                         />
                       </div>
                       
                       {/* AI Assistant Section */}
-                      <div className="p-4 bg-muted/40 border border-border rounded-none space-y-3">
+                      <div className="p-4 bg-muted/40 border border-white/5 rounded-xl space-y-3">
                         <div className="flex justify-between items-center">
                           <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                             <Sparkles size={12} className="text-amber-400" /> Groq AI Refiner (Free Llama 3)
@@ -1025,13 +1022,13 @@ export default function ProfilePage() {
                             onChange={(e) => setAiPrompt(e.target.value)}
                             disabled={isAiLoading}
                             placeholder="e.g. 'Add follow-up subject lines' or 'Change tone to casual'..."
-                            className="flex-1 rounded-none border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                            className="flex-1 rounded-xl border border-white/5 bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                           />
                           <button
                             type="button"
                             onClick={handleAiToneEdit}
                             disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-none text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
                           >
                             {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
                             Refine
@@ -1041,8 +1038,8 @@ export default function ProfilePage() {
 
                       {/* AI Preview Box */}
                       {(previewLoading || previewResult) && (
-                        <div className="mt-8 border border-border bg-card rounded-none overflow-hidden">
-                          <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                        <div className="mt-8 border border-white/5 bg-[#0f172a]/50 backdrop-blur-md rounded-xl overflow-hidden">
+                          <div className="px-4 py-3 border-b border-white/5 bg-muted/30 flex items-center justify-between">
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                               <Sparkles size={12} className="text-primary" /> AI Sandbox Preview
                             </span>
@@ -1051,10 +1048,10 @@ export default function ProfilePage() {
                           <div className="p-6">
                             {previewLoading ? (
                               <div className="space-y-4">
-                                <div className="h-4 bg-muted/50 w-3/4 rounded-none animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-full rounded-none animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-5/6 rounded-none animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-1/2 rounded-none animate-pulse"></div>
+                                <div className="h-4 bg-muted/50 w-3/4 rounded-xl animate-pulse"></div>
+                                <div className="h-4 bg-muted/50 w-full rounded-xl animate-pulse"></div>
+                                <div className="h-4 bg-muted/50 w-5/6 rounded-xl animate-pulse"></div>
+                                <div className="h-4 bg-muted/50 w-1/2 rounded-xl animate-pulse"></div>
                               </div>
                             ) : (
                               <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
@@ -1068,11 +1065,11 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-6">
                       {selectedTone.category && (
-                        <div className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider rounded-none mb-4">
+                        <div className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider rounded-xl mb-4">
                           {selectedTone.category}
                         </div>
                       )}
-                      <div className="p-6 bg-background border border-border rounded-none">
+                      <div className="p-6 bg-background border border-white/5 rounded-xl">
                         <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
                           {selectedTone.content_md || 'No content available.'}
                         </pre>
@@ -1087,7 +1084,7 @@ export default function ProfilePage() {
                     if (categoryTones.length === 0) return null;
                     return (
                       <div key={category} className="space-y-4">
-                        <div className="flex items-center gap-2 border-b border-border pb-2">
+                        <div className="flex items-center gap-2 border-b border-white/5 pb-2">
                           <h3 className="text-base font-semibold text-foreground uppercase tracking-wider">{category.replace('_', '-')}</h3>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1095,13 +1092,13 @@ export default function ProfilePage() {
                             <div 
                               key={t.id} 
                               onClick={() => setSelectedTone(t)}
-                              className="flex flex-col p-5 bg-card border border-border rounded-none shadow-sm hover:border-primary/50 transition-colors cursor-pointer"
+                              className="flex flex-col p-5 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl shadow-sm hover:border-primary/50 transition-colors cursor-pointer"
                             >
                               <div className="flex justify-between items-start mb-4">
-                                <div className="p-2 bg-primary/10 rounded-none">
+                                <div className="p-2 bg-primary/10 rounded-xl">
                                   <Mail size={18} className="text-primary" />
                                 </div>
-                                <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-semibold uppercase tracking-wider rounded-none">
+                                <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-semibold uppercase tracking-wider rounded-xl">
                                   Active
                                 </span>
                               </div>
