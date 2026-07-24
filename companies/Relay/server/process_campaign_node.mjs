@@ -694,10 +694,13 @@ export async function runProcessCampaign() {
               .trim();
             // Include business overview context for AI
             const bizOverview = e.campaigns?.businesses?.overview_md || '';
+            const bizIndustry = e.campaigns?.businesses?.industry || '';
+            const bizTarget = e.campaigns?.businesses?.target_audience || '';
+            const toneCategory = emailToneData?.category || '';
             const toneGuide = emailToneData?.content_md || '';
             const k =
                 `You are a strict data-replacement engine. Your ONLY job is to take the provided Email Template and replace its placeholders with the correct data from the Lead Data and Business Context.
-${bizOverview ? 'BUSINESS CONTEXT:\n' + bizOverview.substring(0, 2000) + '\n\n' : ''}
+${bizIndustry ? 'BUSINESS INDUSTRY:\n' + bizIndustry + '\n\n' : ''}${bizTarget ? 'TARGET AUDIENCE:\n' + bizTarget + '\n\n' : ''}${toneCategory ? 'TONE CATEGORY: ' + toneCategory + '\n\n' : ''}${bizOverview ? 'BUSINESS CONTEXT:\n' + bizOverview.substring(0, 2000) + '\n\n' : ''}
 STRICT PLACEHOLDER DICTIONARY:
 - [LEAD COMPANY]: The exact name of the prospect company
 - [LEAD FIRST NAME]: The first name of the prospect

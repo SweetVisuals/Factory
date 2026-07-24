@@ -1,4 +1,31 @@
-export interface Business { id: string; name: string; slug: string; overview_md: string | null; status: string; signature_template?: string; }
+export interface Business { 
+  id: string; 
+  name: string; 
+  slug: string; 
+  overview_md: string | null; 
+  aims_md?: string | null; 
+  objectives_md?: string | null; 
+  status: string; 
+  signature_template?: string; 
+  industry?: string;
+  target_audience?: string;
+}
+
+export interface EmailTone {
+  id: string;
+  name: string;
+  slug: string;
+  content_md: string;
+  is_active: boolean;
+  category?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  full_name?: string;
+  avatar_url?: string;
+  bio?: string;
+}
 
 export interface Campaign {
   id: string;

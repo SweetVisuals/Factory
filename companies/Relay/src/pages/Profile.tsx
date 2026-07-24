@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Activity, Upload, Plus, AlertTriangle, Users, Mail, Target, Zap, ArrowUpRight, Shield, Cpu, Eye, Trash2, CreditCard, Check, Sparkles, Building2, User, Settings, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Activity, Upload, Plus, AlertTriangle, Users, Mail, Target, Zap, ArrowUpRight, Shield, Cpu, Eye, Trash2, CreditCard, Check, Sparkles, Building2, User, Settings, ArrowLeft, RefreshCw, Camera } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ import UsageDashboard from '../components/UsageDashboard';
 import PricingCards from '../components/PricingCards';
 
 import { Business } from '../types';
-interface EmailTone { id: string; name: string; slug: string; content_md: string | null; created_at: string; }
+interface EmailTone { id: string; name: string; slug: string; content_md: string | null; category?: string | null; created_at: string; }
 
 export default function ProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,15 +28,22 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     full_name: user?.user_metadata?.full_name || '',
     email: user?.email || '',
+    bio: '',
+    avatar_url: '',
     phone: user?.user_metadata?.phone || '',
     industry: user?.user_metadata?.industry || '',
   });
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Business States
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [isEditingBiz, setIsEditingBiz] = useState(false);
   const [editContent, setEditContent] = useState('');
+  const [editAims, setEditAims] = useState('');
+  const [editObjectives, setEditObjectives] = useState('');
+  const [editIndustry, setEditIndustry] = useState('');
+  const [editTargetAudience, setEditTargetAudience] = useState('');
   const [isSavingBiz, setIsSavingBiz] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -46,6 +53,7 @@ export default function ProfilePage() {
   const [selectedTone, setSelectedTone] = useState<EmailTone | null>(null);
   const [isEditingTone, setIsEditingTone] = useState(false);
   const [editToneContent, setEditToneContent] = useState('');
+  const [editToneCategory, setEditToneCategory] = useState('FORMAL');
   const [isSavingTone, setIsSavingTone] = useState(false);
   const [showToneUpload, setShowToneUpload] = useState(false);
   const toneFileRef = useRef<HTMLInputElement>(null);
@@ -80,6 +88,21 @@ export default function ProfilePage() {
       }
     };
     fetchPlan();
+
+    const fetchProfile = async () => {
+      if (user) {
+        const { data } = await supabase.from('profiles').select('full_name, avatar_url, bio').eq('id', user.id).maybeSingle();
+        if (data) {
+          setFormData(prev => ({
+            ...prev,
+            full_name: data.full_name || prev.full_name,
+            avatar_url: data.avatar_url || '',
+            bio: data.bio || ''
+          }));
+        }
+      }
+    };
+    fetchProfile();
   }, [user, isEditingBiz]);
 
   useEffect(() => {
@@ -108,11 +131,15 @@ export default function ProfilePage() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setIdentityLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { full_name: formData.full_name, phone: formData.phone, industry: formData.industry },
-        email: formData.email,
+      const { error } = await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name: formData.full_name,
+        bio: formData.bio,
+        avatar_url: formData.avatar_url,
+        updated_at: new Date().toISOString()
       });
       if (error) throw error;
       toast({ title: 'Profile Updated', description: 'Your personal information has been saved successfully.' });
@@ -120,6 +147,28 @@ export default function ProfilePage() {
       toast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
     } finally {
       setIdentityLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setAvatarUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}-${Math.random()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+      
+      await supabase.from('profiles').upsert({ id: user.id, avatar_url: publicUrl, updated_at: new Date().toISOString() });
+      toast({ title: 'Avatar Updated', description: 'Your profile picture has been updated.' });
+    } catch (error: any) {
+      toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -137,13 +186,19 @@ export default function ProfilePage() {
   const handleSaveBiz = async () => {
     if (!selectedBiz) return;
     setIsSavingBiz(true);
-    const { error } = await supabase.from('businesses').update({ overview_md: editContent }).eq('id', selectedBiz.id);
+    const { error } = await supabase.from('businesses').update({ 
+      overview_md: editContent,
+      aims_md: editAims,
+      objectives_md: editObjectives,
+      industry: editIndustry,
+      target_audience: editTargetAudience
+    }).eq('id', selectedBiz.id);
     setIsSavingBiz(false);
     if (error) {
       toast({ title: 'Error', description: 'Failed to save changes.', variant: 'destructive' });
     } else {
-      setBusinesses(prev => prev.map(b => b.id === selectedBiz.id ? { ...b, overview_md: editContent } : b));
-      setSelectedBiz(prev => prev ? { ...prev, overview_md: editContent } : null);
+      setBusinesses(prev => prev.map(b => b.id === selectedBiz.id ? { ...b, overview_md: editContent, aims_md: editAims, objectives_md: editObjectives, industry: editIndustry, target_audience: editTargetAudience } : b));
+      setSelectedBiz(prev => prev ? { ...prev, overview_md: editContent, aims_md: editAims, objectives_md: editObjectives, industry: editIndustry, target_audience: editTargetAudience } : null);
       toast({ title: 'Saved', description: 'Business profile updated successfully.' });
       setIsEditingBiz(false);
     }
@@ -208,13 +263,16 @@ export default function ProfilePage() {
   const handleSaveTone = async () => {
     if (!selectedTone) return;
     setIsSavingTone(true);
-    const { error } = await supabase.from('email_tones').update({ content_md: editToneContent }).eq('id', selectedTone.id);
+    const { error } = await supabase.from('email_tones').update({ 
+      content_md: editToneContent,
+      category: editToneCategory
+    }).eq('id', selectedTone.id);
     setIsSavingTone(false);
     if (error) {
       toast({ title: 'Error', description: 'Failed to save changes.', variant: 'destructive' });
     } else {
-      setTones(prev => prev.map(t => t.id === selectedTone.id ? { ...t, content_md: editToneContent } : t));
-      setSelectedTone(prev => prev ? { ...prev, content_md: editToneContent } : null);
+      setTones(prev => prev.map(t => t.id === selectedTone.id ? { ...t, content_md: editToneContent, category: editToneCategory } : t));
+      setSelectedTone(prev => prev ? { ...prev, content_md: editToneContent, category: editToneCategory } : null);
       toast({ title: 'Saved', description: 'Email tone guide updated successfully.' });
       setIsEditingTone(false);
     }
@@ -313,55 +371,91 @@ export default function ProfilePage() {
           {activeTab === 'profile' && (
             <div className="space-y-12 animate-in fade-in duration-200">
               
-              <div className="space-y-6">
-                <h3 className="text-lg font-bold text-foreground mb-6">Personal Information</h3>
-                <form onSubmit={handleUpdateProfile} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Full Name</label>
-                      <input
-                        value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Email Address</label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        disabled
-                        className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground cursor-not-allowed"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Phone Number</label>
-                      <input
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Department / Role</label>
-                      <input
-                        value={formData.industry}
-                        onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
-                      />
+              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm space-y-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+                  <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Personal Profile</h3>
+                </div>
+                
+                <div className="flex flex-col md:flex-row gap-12 items-start">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative group">
+                      <div className="w-32 h-32 rounded-full border-4 border-background overflow-hidden bg-muted flex items-center justify-center relative">
+                        {formData.avatar_url ? (
+                          <img src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={48} className="text-muted-foreground/50" />
+                        )}
+                        <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                          <Camera size={24} className="text-white mb-2" />
+                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">Change</span>
+                          <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" disabled={avatarUploading} />
+                        </label>
+                      </div>
+                      {avatarUploading && <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full"><Activity size={24} className="text-white animate-spin" /></div>}
                     </div>
                   </div>
-                  <div className="flex justify-end pt-4">
-                    <button 
-                      type="submit" 
-                      disabled={identityLoading}
-                      className="px-6 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all flex items-center gap-2"
-                    >
-                      {identityLoading && <Activity size={16} className="animate-spin" />}
-                      Save Changes
-                    </button>
-                  </div>
-                </form>
+
+                  <form onSubmit={handleUpdateProfile} className="flex-1 space-y-6 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Full Name</label>
+                        <input
+                          value={formData.full_name}
+                          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
+                          placeholder="Your Name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Email Address</label>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          disabled
+                          className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground cursor-not-allowed"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Phone Number</label>
+                        <input
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
+                          placeholder="Your Phone Number"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Role / Department</label>
+                        <input
+                          value={formData.industry}
+                          onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
+                          placeholder="e.g. Sales Director"
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Bio / Description</label>
+                        <textarea
+                          value={formData.bio}
+                          onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                          className="w-full h-24 bg-background border border-border rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all resize-none"
+                          placeholder="Tell us a little about yourself..."
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end pt-2">
+                      <button 
+                        type="submit" 
+                        disabled={identityLoading}
+                        className="px-6 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all flex items-center gap-2"
+                      >
+                        {identityLoading && <Activity size={16} className="animate-spin" />}
+                        Save Profile
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
 
               <div className="pt-8 border-t border-border/50 space-y-6">
@@ -385,7 +479,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between p-4 bg-background rounded-2xl border border-red-500/20">
                   <div className="flex items-center gap-4">
                     <div className="p-2.5 bg-red-500/10 rounded-xl">
-                      <ShieldAlert size={18} className="text-red-500" />
+                      <AlertTriangle size={18} className="text-red-500" />
                     </div>
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-bold text-foreground">Delete Account</span>
@@ -483,21 +577,69 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <button 
-                        onClick={() => { setEditContent(selectedBiz.overview_md || ''); setIsEditingBiz(true); }}
+                        onClick={() => { 
+                          setEditContent(selectedBiz.overview_md || ''); 
+                          setEditAims(selectedBiz.aims_md || '');
+                          setEditObjectives(selectedBiz.objectives_md || '');
+                          setEditIndustry(selectedBiz.industry || '');
+                          setEditTargetAudience(selectedBiz.target_audience || '');
+                          setIsEditingBiz(true); 
+                        }}
                         className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                       >
-                        Edit Markdown
+                        Edit Profile
                       </button>
                     )}
                   </div>
 
                   {isEditingBiz ? (
                     <div className="space-y-4">
-                      <textarea 
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full h-96 bg-background border border-border rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-bold text-foreground mb-2">Industry</label>
+                          <input 
+                            value={editIndustry}
+                            onChange={(e) => setEditIndustry(e.target.value)}
+                            placeholder="e.g. B2B SaaS"
+                            className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-foreground mb-2">Target Audience</label>
+                          <input 
+                            value={editTargetAudience}
+                            onChange={(e) => setEditTargetAudience(e.target.value)}
+                            placeholder="e.g. CMOs and VPs of Marketing"
+                            className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-foreground mb-2">Campaign Aims</label>
+                        <textarea 
+                          value={editAims}
+                          onChange={(e) => setEditAims(e.target.value)}
+                          placeholder="e.g. Book 5 meetings this month for enterprise clients"
+                          className="w-full h-24 bg-background border border-border rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-foreground mb-2">Business Objectives</label>
+                        <textarea 
+                          value={editObjectives}
+                          onChange={(e) => setEditObjectives(e.target.value)}
+                          placeholder="e.g. To educate prospects on our new AI features"
+                          className="w-full h-24 bg-background border border-border rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-foreground mb-2">General Overview</label>
+                        <textarea 
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="w-full h-96 bg-background border border-border rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                        />
+                      </div>
                       
                       {/* AI Assistant Section */}
                       <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-3">
@@ -533,10 +675,29 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-6 bg-background border border-border rounded-xl">
-                      <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
-                        {selectedBiz.overview_md || 'No content available.'}
-                      </pre>
+                    <div className="space-y-6">
+                      {selectedBiz.aims_md && (
+                        <div className="p-6 bg-background border border-border rounded-xl">
+                          <h4 className="text-sm font-bold text-foreground mb-2">Campaign Aims</h4>
+                          <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
+                            {selectedBiz.aims_md}
+                          </pre>
+                        </div>
+                      )}
+                      {selectedBiz.objectives_md && (
+                        <div className="p-6 bg-background border border-border rounded-xl">
+                          <h4 className="text-sm font-bold text-foreground mb-2">Business Objectives</h4>
+                          <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
+                            {selectedBiz.objectives_md}
+                          </pre>
+                        </div>
+                      )}
+                      <div className="p-6 bg-background border border-border rounded-xl">
+                        <h4 className="text-sm font-bold text-foreground mb-2">General Overview</h4>
+                        <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
+                          {selectedBiz.overview_md || 'No content available.'}
+                        </pre>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -552,11 +713,21 @@ export default function ProfilePage() {
                         <div className="p-3 bg-primary/10 rounded-xl">
                           <Building2 size={20} className="text-primary" />
                         </div>
-                        <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
-                          {b.status}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
+                            {b.status}
+                          </span>
+                          {b.industry && (
+                            <span className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest rounded-md">
+                              {b.industry}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <h3 className="text-lg font-bold text-foreground mb-2">{b.name}</h3>
+                      {b.target_audience && (
+                        <p className="text-xs font-medium text-primary mb-3 flex items-center gap-1.5"><Target size={12}/> {b.target_audience}</p>
+                      )}
                       <p className="text-sm text-muted-foreground line-clamp-3">
                         {b.overview_md ? b.overview_md.substring(0, 150) + '...' : 'No context provided.'}
                       </p>
@@ -635,21 +806,42 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <button 
-                        onClick={() => { setEditToneContent(selectedTone.content_md || ''); setIsEditingTone(true); }}
+                        onClick={() => { 
+                          setEditToneContent(selectedTone.content_md || ''); 
+                          setEditToneCategory(selectedTone.category || 'FORMAL');
+                          setIsEditingTone(true); 
+                        }}
                         className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                       >
-                        Edit Markdown
+                        Edit Tone
                       </button>
                     )}
                   </div>
 
                   {isEditingTone ? (
                     <div className="space-y-4">
-                      <textarea 
-                        value={editToneContent}
-                        onChange={(e) => setEditToneContent(e.target.value)}
-                        className="w-full h-96 bg-background border border-border rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
-                      />
+                      <div>
+                        <label className="block text-sm font-bold text-foreground mb-2">Category</label>
+                        <select 
+                          value={editToneCategory}
+                          onChange={(e) => setEditToneCategory(e.target.value)}
+                          className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                        >
+                          <option value="FORMAL">Formal</option>
+                          <option value="CASUAL">Casual</option>
+                          <option value="GREETING">Greeting</option>
+                          <option value="FOLLOW_UP">Follow-up</option>
+                          <option value="CUSTOM">Custom</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-foreground mb-2">Instructions</label>
+                        <textarea 
+                          value={editToneContent}
+                          onChange={(e) => setEditToneContent(e.target.value)}
+                          className="w-full h-96 bg-background border border-border rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                        />
+                      </div>
                       
                       {/* AI Assistant Section */}
                       <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-3">
@@ -685,35 +877,56 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-6 bg-background border border-border rounded-xl">
-                      <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
-                        {selectedTone.content_md || 'No content available.'}
-                      </pre>
+                    <div className="space-y-6">
+                      {selectedTone.category && (
+                        <div className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider rounded-lg mb-4">
+                          {selectedTone.category}
+                        </div>
+                      )}
+                      <div className="p-6 bg-background border border-border rounded-xl">
+                        <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
+                          {selectedTone.content_md || 'No content available.'}
+                        </pre>
+                      </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {tones.map(t => (
-                    <div 
-                      key={t.id} 
-                      onClick={() => setSelectedTone(t)}
-                      className="p-6 bg-card border border-border rounded-3xl shadow-sm group hover:border-primary/30 transition-colors cursor-pointer"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-primary/10 rounded-xl">
-                          <Mail size={20} className="text-primary" />
+                <div className="space-y-12">
+                  {['FORMAL', 'CASUAL', 'GREETING', 'FOLLOW_UP', 'CUSTOM'].map(category => {
+                    const categoryTones = tones.filter(t => (t.category || 'FORMAL') === category);
+                    if (categoryTones.length === 0) return null;
+                    return (
+                      <div key={category} className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-4 bg-primary/60 rounded-full" />
+                          <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{category.replace('_', '-')}</h3>
                         </div>
-                        <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
-                          Active
-                        </span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {categoryTones.map(t => (
+                            <div 
+                              key={t.id} 
+                              onClick={() => setSelectedTone(t)}
+                              className="p-6 bg-card border border-border rounded-2xl shadow-sm group hover:border-primary/30 transition-colors cursor-pointer"
+                            >
+                              <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-primary/10 rounded-xl">
+                                  <Mail size={16} className="text-primary" />
+                                </div>
+                                <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
+                                  Active
+                                </span>
+                              </div>
+                              <h3 className="text-md font-bold text-foreground mb-2">{t.name}</h3>
+                              <p className="text-xs text-muted-foreground line-clamp-3">
+                                {t.content_md ? t.content_md.substring(0, 100) + '...' : 'No guidelines provided.'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <h3 className="text-lg font-bold text-foreground mb-2">{t.name}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {t.content_md ? t.content_md.substring(0, 150) + '...' : 'No guidelines provided.'}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
