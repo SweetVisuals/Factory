@@ -70,12 +70,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       supabase.auth.getSession().then(({ data: { session } }) => {
         setUser(session?.user ?? null);
         setLoading(false);
-        const path = window.location.pathname;
-        if (!session?.user && 
-            !path.startsWith('/login') && 
-            !path.startsWith('/signup')) {
-          navigate('/login');
-        }
       });
     };
 
@@ -84,12 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      const path = window.location.pathname;
-      if (!session?.user && 
-          !path.startsWith('/login') && 
-          !path.startsWith('/signup')) {
-        navigate('/login');
-      }
     });
 
     return () => subscription.unsubscribe();
@@ -98,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      navigate('/login');
+      navigate('/');
     } catch (err) {
       setError(err as AuthError);
     }

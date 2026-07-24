@@ -147,12 +147,6 @@ const AuthLayout = () => {
             </button>
           </form>
 
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-lg mt-6 text-sm text-muted-foreground">
-            <span className="text-base">💡</span>
-            <span>
-              Admin login: <strong className="text-foreground">admin</strong> / <strong className="text-foreground">admin123</strong>
-            </span>
-          </div>
         </div>
 
         <div className="text-center text-sm text-muted-foreground">

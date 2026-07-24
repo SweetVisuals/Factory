@@ -129,6 +129,16 @@ export default function ProfilePage() {
     };
     fetchPlan();
 
+  const [usageStats, setUsageStats] = useState({
+    emailsSent: 0,
+    emailsLimit: 100,
+    activeCampaigns: 0,
+    campaignsLimit: 5,
+    activeContacts: 0,
+    contactsLimit: 1000,
+  });
+
+  useEffect(() => {
     const fetchProfile = async () => {
       if (user) {
         const { data } = await supabase.from('profiles').select('full_name, avatar_url, bio').eq('id', user.id).maybeSingle();
@@ -143,7 +153,24 @@ export default function ProfilePage() {
       }
     };
     fetchProfile();
-  }, [user, isEditingBiz]);
+
+    const fetchUsageData = async () => {
+      if (!user) return;
+      const [{ count: cCount }, { count: lCount }] = await Promise.all([
+        supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('leads').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+      ]);
+      setUsageStats({
+        emailsSent: 0, 
+        emailsLimit: planType === 'pro' ? 10000 : 100,
+        activeCampaigns: cCount || 0,
+        campaignsLimit: planType === 'pro' ? 50 : 5,
+        activeContacts: lCount || 0,
+        contactsLimit: planType === 'pro' ? 50000 : 1000
+      });
+    };
+    fetchUsageData();
+  }, [user, isEditingBiz, planType]);
 
   useEffect(() => {
     const initBusiness = async () => {
@@ -628,10 +655,10 @@ export default function ProfilePage() {
                 <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Emails Sent Today</h4>
-                    <span className="text-sm font-black text-foreground">45 / 100</span>
+                    <span className="text-sm font-black text-foreground">{usageStats.emailsSent} / {usageStats.emailsLimit}</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '45%' }} />
+                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.emailsSent / usageStats.emailsLimit) * 100)}%` }} />
                   </div>
                 </div>
 
@@ -639,10 +666,10 @@ export default function ProfilePage() {
                 <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Campaigns</h4>
-                    <span className="text-sm font-black text-foreground">2 / 5</span>
+                    <span className="text-sm font-black text-foreground">{usageStats.activeCampaigns} / {usageStats.campaignsLimit}</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '40%' }} />
+                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.activeCampaigns / usageStats.campaignsLimit) * 100)}%` }} />
                   </div>
                 </div>
 
@@ -650,10 +677,10 @@ export default function ProfilePage() {
                 <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Contacts</h4>
-                    <span className="text-sm font-black text-foreground">850 / 1000</span>
+                    <span className="text-sm font-black text-foreground">{usageStats.activeContacts} / {usageStats.contactsLimit}</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '85%' }} />
+                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.activeContacts / usageStats.contactsLimit) * 100)}%` }} />
                   </div>
                 </div>
               </div>
@@ -675,10 +702,10 @@ export default function ProfilePage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-foreground">Available Credits</span>
-                    <span className="text-xs font-black text-emerald-500">850 / 1000</span>
+                    <span className="text-xs font-black text-emerald-500">{Math.max(0, 5 - (groqUsageCount || 0))} / 5</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden border border-white/5">
-                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '85%' }} />
+                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, ((5 - (groqUsageCount || 0)) / 5) * 100)}%` }} />
                   </div>
                 </div>
                 
