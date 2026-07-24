@@ -404,7 +404,7 @@ export default function ProfilePage() {
           {activeTab === 'profile' && (
             <div className="space-y-12 animate-in fade-in duration-200">
               
-              <div className="bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 space-y-8">
+              <div className="bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 space-y-8">
                 <div className="flex items-center gap-4">
                   <div className="w-1.5 h-6 bg-primary rounded-xl" />
                   <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Personal Details</h3>
@@ -514,7 +514,7 @@ export default function ProfilePage() {
           {activeTab === 'settings' && (
             <div className="space-y-12 animate-in fade-in duration-200">
               <div className="pt-8 space-y-6">
-                <div className="flex items-center justify-between p-6 bg-[#0f172a] border border-white/5 rounded-xl">
+                <div className="flex items-center justify-between p-6 bg-[#111111] border border-white/5 rounded-xl">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-white/5 rounded-xl">
                       <AlertTriangle size={24} className="text-muted-foreground" />
@@ -537,7 +537,7 @@ export default function ProfilePage() {
             <div className="animate-in fade-in duration-200 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Limit Card 1 */}
-                <div className="p-6 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
+                <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Emails Sent Today</h4>
                     <span className="text-sm font-black text-foreground">45 / 100</span>
@@ -548,7 +548,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Limit Card 2 */}
-                <div className="p-6 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
+                <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Campaigns</h4>
                     <span className="text-sm font-black text-foreground">2 / 5</span>
@@ -559,7 +559,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Limit Card 3 */}
-                <div className="p-6 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
+                <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Contacts</h4>
                     <span className="text-sm font-black text-foreground">850 / 1000</span>
@@ -571,7 +571,7 @@ export default function ProfilePage() {
               </div>
 
               {/* AI Credits Section */}
-              <div className="p-8 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-6">
+              <div className="p-8 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-6">
                 <div className="flex items-center gap-4">
                   <div className="p-2.5 bg-primary/10 rounded-xl">
                     <Zap size={20} className="text-primary" />
@@ -630,7 +630,7 @@ export default function ProfilePage() {
               </div>
 
               {showUpload && (
-                <div className="p-8 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl animate-in slide-in-from-top-4 duration-300">
+                <div className="p-8 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl animate-in slide-in-from-top-4 duration-300">
                   <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-xl p-12 text-center">
                     <div className="p-4 bg-muted rounded-full mb-4">
                       <Upload size={24} className="text-muted-foreground" />
@@ -651,7 +651,7 @@ export default function ProfilePage() {
               )}
 
               {selectedBiz ? (
-                <div className="bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
+                <div className="bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <button 
@@ -712,7 +712,7 @@ export default function ProfilePage() {
                           <select 
                             value={editIndustry}
                             onChange={(e) => setEditIndustry(e.target.value)}
-                            className="w-full bg-[#0f172a] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
+                            className="w-full bg-[#111111] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
                           >
                             <option value="">Select Industry...</option>
                             <option value="B2B SaaS">B2B SaaS</option>
@@ -799,7 +799,7 @@ export default function ProfilePage() {
                             onChange={(e) => setAiPrompt(e.target.value)}
                             disabled={isAiLoading}
                             placeholder="e.g. 'Make the copy more casual' or 'Add Plastering segment...'"
-                            className="flex-1 rounded-xl border border-white/5 bg-[#0f172a] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                            className="flex-1 rounded-xl border border-white/5 bg-[#111111] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                           />
                           <button
                             type="button"
@@ -815,7 +815,7 @@ export default function ProfilePage() {
 
                       {/* AI Preview Box */}
                       {(previewLoading || previewResult) && (
-                        <div className="mt-8 border border-white/5 bg-[#0f172a]/50 backdrop-blur-md rounded-xl overflow-hidden">
+                        <div className="mt-8 border border-white/5 bg-[#111111]/50 backdrop-blur-md rounded-xl overflow-hidden">
                           <div className="px-4 py-3 border-b border-white/5 bg-muted/30 flex items-center justify-between">
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                               <Sparkles size={12} className="text-primary" /> AI Sandbox Preview
@@ -929,7 +929,7 @@ export default function ProfilePage() {
               </div>
 
               {showToneUpload && (
-                <div className="p-8 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl animate-in slide-in-from-top-4 duration-300">
+                <div className="p-8 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl animate-in slide-in-from-top-4 duration-300">
                   <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-xl p-12 text-center">
                     <div className="p-4 bg-muted rounded-full mb-4">
                       <Upload size={24} className="text-muted-foreground" />
@@ -950,7 +950,7 @@ export default function ProfilePage() {
               )}
 
               {selectedTone ? (
-                <div className="bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
+                <div className="bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <button 
@@ -1007,7 +1007,7 @@ export default function ProfilePage() {
                         <select 
                           value={editToneCategory}
                           onChange={(e) => setEditToneCategory(e.target.value)}
-                          className="w-full bg-[#0f172a] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
+                          className="w-full bg-[#111111] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
                         >
                           <option value="FORMAL">Formal</option>
                           <option value="CASUAL">Casual</option>
@@ -1044,7 +1044,7 @@ export default function ProfilePage() {
                             onChange={(e) => setAiPrompt(e.target.value)}
                             disabled={isAiLoading}
                             placeholder="e.g. 'Add follow-up subject lines' or 'Change tone to casual'..."
-                            className="flex-1 rounded-xl border border-white/5 bg-[#0f172a] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                            className="flex-1 rounded-xl border border-white/5 bg-[#111111] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                           />
                           <button
                             type="button"
@@ -1060,7 +1060,7 @@ export default function ProfilePage() {
 
                       {/* AI Preview Box */}
                       {(previewLoading || previewResult) && (
-                        <div className="mt-8 border border-white/5 bg-[#0f172a]/50 backdrop-blur-md rounded-xl overflow-hidden">
+                        <div className="mt-8 border border-white/5 bg-[#111111]/50 backdrop-blur-md rounded-xl overflow-hidden">
                           <div className="px-4 py-3 border-b border-white/5 bg-muted/30 flex items-center justify-between">
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                               <Sparkles size={12} className="text-primary" /> AI Sandbox Preview

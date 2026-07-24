@@ -161,8 +161,8 @@ export default function PricingCards({ hideHeader = false }: { hideHeader?: bool
               </div>
               <p className="mb-4">Full power with extended duration & resolution</p>
               <div className="flex flex-col gap-2">
-                <span className="bg-[#0f172a] px-2 py-1.5 rounded border border-sky-500/20 flex items-center gap-2"><InfinityIcon /> DeepSeek Pro</span>
-                <span className="bg-[#0f172a] px-2 py-1.5 rounded border border-sky-500/20 flex items-center gap-2"><InfinityIcon /> GPT-4o Mini</span>
+                <span className="bg-[#111111] px-2 py-1.5 rounded border border-sky-500/20 flex items-center gap-2"><InfinityIcon /> DeepSeek Pro</span>
+                <span className="bg-[#111111] px-2 py-1.5 rounded border border-sky-500/20 flex items-center gap-2"><InfinityIcon /> GPT-4o Mini</span>
               </div>
             </div>
           </div>

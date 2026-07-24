@@ -7,8 +7,8 @@ import { formatDistanceToNow } from 'date-fns';
 interface EmailMessage {
   id: string;
   accountId: string;
-  from_address: string;
-  to_address: string;
+  from: string;
+  to: string;
   subject: string;
   date: string;
   snippet: string;
@@ -56,7 +56,7 @@ export default function ThreadsSidebar() {
 
   if (!isOpen) {
     return (
-      <div className="w-12 border-l border-white/5 bg-[#0f172a] flex flex-col items-center py-4 shrink-0 h-full transition-all">
+      <div className="w-12 border-l border-white/5 bg-[#111111] flex flex-col items-center py-4 shrink-0 h-full transition-all">
         <button 
           onClick={() => setIsOpen(true)}
           className="p-2 hover:bg-white/5 text-muted-foreground hover:text-foreground rounded-xl transition-colors"
@@ -69,7 +69,7 @@ export default function ThreadsSidebar() {
   }
 
   return (
-    <div className="w-80 border-l border-white/5 bg-[#0f172a] flex flex-col shrink-0 h-full transition-all animate-in slide-in-from-right-8 duration-200">
+    <div className="w-80 border-l border-white/5 bg-[#111111] flex flex-col shrink-0 h-full transition-all animate-in slide-in-from-right-8 duration-200 shadow-2xl rounded-l-3xl overflow-hidden">
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2 text-foreground">
           <MessageSquare size={16} className="text-primary" />
@@ -83,13 +83,13 @@ export default function ThreadsSidebar() {
         </button>
       </div>
 
-      <div className="p-3 border-b border-white/5 bg-[#0f172a]">
+      <div className="p-3 border-b border-white/5 bg-[#111111]">
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input 
             type="text" 
             placeholder="Search threads..." 
-            className="w-full bg-[#0f172a] border border-white/5 pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors rounded-xl"
+            className="w-full bg-[#111111] border border-white/5 pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors rounded-xl"
           />
         </div>
       </div>
@@ -124,7 +124,7 @@ export default function ThreadsSidebar() {
                     >
                       <div className="flex justify-between items-start mb-1 gap-2">
                         <span className="text-xs font-bold text-foreground truncate">
-                          {msg.from_address?.split('<')[0] || msg.from_address || 'Unknown'}
+                          {msg.from?.split('<')[0] || msg.from || 'Unknown'}
                         </span>
                         <span className="text-[9px] text-muted-foreground whitespace-nowrap">
                           {msg.date ? formatDistanceToNow(new Date(msg.date), { addSuffix: true }) : ''}
@@ -137,7 +137,7 @@ export default function ThreadsSidebar() {
                   ))}
                 </div>
                 
-                <div className="px-4 py-2 bg-[#0f172a] hover:bg-white/[0.04] cursor-pointer flex items-center gap-1.5 group/btn transition-colors">
+                <div className="px-4 py-2 bg-[#111111] hover:bg-white/[0.04] cursor-pointer flex items-center gap-1.5 group/btn transition-colors">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-primary">View Full Thread</span>
                   <ArrowRight size={10} className="text-primary group-hover/btn:translate-x-0.5 transition-transform" />
                 </div>
