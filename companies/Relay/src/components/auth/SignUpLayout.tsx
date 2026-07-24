@@ -51,20 +51,13 @@ const SignUpLayout = () => {
     <div className="min-h-screen flex flex-col justify-center items-center bg-background text-foreground font-sans p-8 relative">
       <div className="w-full max-w-[420px] flex flex-col gap-8">
         <div className="text-center flex flex-col items-center gap-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Zap size={28} className="text-primary animate-pulse" />
-            </div>
-            <h2 className="text-3xl font-black tracking-tight text-foreground">
-              ColdSpark
-            </h2>
-          </div>
+          <Logo />
           <p className="text-muted-foreground text-sm mt-2">
             Get started with email outreach automation
           </p>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
+        <div className="w-full">
           
           <div className="flex gap-3 mb-6">
             <div className="relative group flex-1">

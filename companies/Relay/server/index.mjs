@@ -125,6 +125,101 @@ app.get('/api', (req, res) => {
   res.send('API Root Accessible');
 });
 
+// Secure Public Leads Endpoint
+app.get('/api/public-leads', async (req, res) => {
+  try {
+    const { 
+      page = 1, limit = 50, search = '', industry = '', location = '', 
+      title = '', company = '', companySize = 'all',
+      minRevenue = 0, yearFoundedMin = 1950, yearFoundedMax = 2026,
+      requireFullProfile = 'false', metricsOnly = 'false'
+    } = req.query;
+
+    if (metricsOnly === 'true') {
+      const { count } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+      return res.json({ total: count });
+    }
+
+    let query = supabase.from('leads').select('*', { count: 'exact' });
+    
+    // Apply filters matching Discover.tsx
+    if (search) query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%`);
+    if (industry) query = query.ilike('industry', `%${industry}%`);
+    if (location) query = query.ilike('location', `%${location}%`);
+    if (title) query = query.ilike('title', `%${title}%`);
+    if (company) query = query.ilike('company', `%${company}%`);
+    
+    if (requireFullProfile === 'true') {
+      query = query.not('name', 'is', null).neq('name', '')
+                   .not('company', 'is', null).neq('company', '')
+                   .not('email', 'is', null).neq('email', '')
+                   .not('location', 'is', null).neq('location', '');
+    }
+
+    if (companySize !== 'all') query = query.eq('company_size', companySize);
+    
+    if (parseInt(minRevenue) > 0) {
+      const revBrackets = ['Under £632,000', '£632,000 - £10.2 Million', '£10.2 Million - £36 Million', 'Over £36 Million'];
+      const allowedRevenues = revBrackets.slice(parseInt(minRevenue) - 1);
+      query = query.in('annual_revenue', allowedRevenues);
+    }
+    
+    if (parseInt(yearFoundedMin) > 1950) query = query.gte('year_founded', parseInt(yearFoundedMin));
+    if (parseInt(yearFoundedMax) < 2026) query = query.lte('year_founded', parseInt(yearFoundedMax));
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const from = (pageNum - 1) * limitNum;
+    const to = from + limitNum - 1;
+    query = query.range(from, to).order('created_at', { ascending: false });
+    
+    const { data, count, error } = await query;
+    if (error) throw error;
+    
+    // Masking logic: if searching, only top 5 of the ENTIRE query are visible.
+    // If NOT searching, user can browse 100 free leads. Limit the "no search" viewing to index < 100.
+    const isSearching = search || industry || location || title || company;
+    
+    const processedData = (data || []).map((lead, index) => {
+      const globalIndex = from + index;
+      
+      let shouldMask = false;
+      if (isSearching && globalIndex >= 5) {
+        shouldMask = true; // Searching: only first 5 are real
+      } else if (!isSearching && globalIndex >= 100) {
+        shouldMask = true; // Not searching: only first 100 are real
+      }
+
+      if (shouldMask) {
+        return {
+          ...lead,
+          name: lead.name ? lead.name.replace(/[a-zA-Z0-9]/g, '*') : null,
+          email: lead.email ? lead.email.split('@').map(p => p.replace(/[a-zA-Z0-9]/g, '*')).join('@') : null,
+          company: lead.company ? lead.company.replace(/[a-zA-Z0-9]/g, '*') : null,
+          location: lead.location ? lead.location.replace(/[a-zA-Z0-9]/g, '*') : null,
+          title: lead.title ? lead.title.replace(/[a-zA-Z0-9]/g, '*') : null,
+          industry: lead.industry ? lead.industry.replace(/[a-zA-Z0-9]/g, '*') : null,
+          description: 'Premium lead. Sign in to view full description and details.',
+          annual_revenue: '***',
+          company_size: '***',
+          phone: lead.phone ? '***-***-****' : null,
+          linkedin_url: lead.linkedin_url ? '#' : null,
+          company_linkedin_url: lead.company_linkedin_url ? '#' : null,
+          website: lead.website ? '#' : null,
+          isBlurred: true 
+        };
+      }
+      return lead;
+    });
+
+    res.json({ data: processedData, count });
+  } catch (err) {
+    console.error('Error in /api/public-leads:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Unsubscribe Endpoint
 app.get('/api/unsubscribe', async (req, res) => {
   const { leadId, campaignId } = req.query;

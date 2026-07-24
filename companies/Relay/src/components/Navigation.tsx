@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Compass, Target, Inbox, AtSign, UserCircle, MessageSquare, LogOut, Zap, Clock, Activity, Cpu, HardDrive, Bell, BellRing, Settings, Sparkles, Menu, X, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Compass, Target, Inbox, AtSign, UserCircle, MessageSquare, LogOut, LogIn, Zap, Clock, Activity, Cpu, HardDrive, Bell, BellRing, Settings, Sparkles, Menu, X, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
@@ -328,35 +328,28 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           )}
           
 
-          {!user && (
-            <button
-              onClick={() => navigate('/signup')}
-              className="bg-white text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors ml-2"
-            >
-              Sign Up Free
-            </button>
-          )}
-
           {/* Engine Controls */}
-          <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/5">
-            <button 
-              onClick={() => toggleEngine('active')}
-              className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5", !isPaused ? "bg-emerald-500/20 text-emerald-400" : "text-foreground/40 hover:text-white")}
-            >
-              <Zap size={12} className={cn(!isPaused && "fill-emerald-400")} /> Running
-            </button>
-            <button 
-              onClick={() => toggleEngine('paused')}
-              className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5", isPaused ? "bg-red-500/20 text-red-400" : "text-foreground/40 hover:text-white")}
-            >
-              <div className={cn("w-2 h-2 rounded-full", isPaused ? "bg-red-400" : "bg-foreground/40")} /> Paused
-            </button>
-          </div>
+          {user && (
+            <>
+              <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/5">
+                <button 
+                  onClick={() => toggleEngine('active')}
+                  className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5", !isPaused ? "bg-emerald-500/20 text-emerald-400" : "text-foreground/40 hover:text-white")}
+                >
+                  <Zap size={12} className={cn(!isPaused && "fill-emerald-400")} /> Running
+                </button>
+                <button 
+                  onClick={() => toggleEngine('paused')}
+                  className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5", isPaused ? "bg-red-500/20 text-red-400" : "text-foreground/40 hover:text-white")}
+                >
+                  <div className={cn("w-2 h-2 rounded-full", isPaused ? "bg-red-400" : "bg-foreground/40")} /> Paused
+                </button>
+              </div>
 
-          <div className="h-6 w-px bg-white/10" />
+              <div className="h-6 w-px bg-white/10" />
 
-          {/* Notifications Center */}
-          <div className="relative">
+              {/* Notifications Center */}
+              <div className="relative">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 text-foreground/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -415,23 +408,31 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
                 </div>
               </div>
             )}
-          </div>
+            </div>
 
-          <button 
-            onClick={onToggleChat}
-            className={cn(
-              "p-2 rounded-lg transition-all border",
-              isChatExpanded ? "bg-primary/20 text-primary border-primary/30 shadow-[0_0_15px_rgba(var(--tw-colors-primary),0.3)]" : "text-foreground/50 border-transparent hover:text-white hover:bg-white/10"
-            )}
-            title="Terminal"
-          >
-            <MessageSquare size={16} />
-          </button>
+            <button 
+              onClick={onToggleChat}
+              className={cn(
+                "p-2 rounded-lg transition-all border",
+                isChatExpanded ? "bg-primary/20 text-primary border-primary/30 shadow-[0_0_15px_rgba(var(--tw-colors-primary),0.3)]" : "text-foreground/50 border-transparent hover:text-white hover:bg-white/10"
+              )}
+              title="Terminal"
+            >
+              <MessageSquare size={16} />
+            </button>
+            </>
+          )}
 
           <div className="flex items-center gap-1">
-            <button onClick={signOut} className="p-2 text-foreground/50 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors" title="Sign Out">
-              <LogOut size={16} />
-            </button>
+            {user ? (
+              <button onClick={signOut} className="p-2 text-foreground/50 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors" title="Sign Out">
+                <LogOut size={16} />
+              </button>
+            ) : (
+              <button onClick={() => navigate('/profile')} className="p-2 text-foreground/50 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-md transition-colors" title="Sign In">
+                <LogIn size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>
