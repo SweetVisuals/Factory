@@ -14,11 +14,25 @@ import EmailAccounts from '../pages/EmailAccounts';
 import Pricing from '../pages/Pricing';
 import TestDeleteFunction from '../pages/TestDeleteFunction';
 
+import Layout from '../components/layout/Layout';
+
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/login" element={<AuthLayout />} />
-      <Route path="/signup" element={<SignUpLayout />} />
+      <Route path="/login" element={
+        <Layout>
+          <div className="w-full h-full flex items-center justify-center bg-background/50 backdrop-blur-sm p-4">
+            <AuthLayout />
+          </div>
+        </Layout>
+      } />
+      <Route path="/signup" element={
+        <Layout>
+          <div className="w-full h-full flex items-center justify-center bg-background/50 backdrop-blur-sm p-4">
+            <SignUpLayout />
+          </div>
+        </Layout>
+      } />
       <Route path="/" element={<Navigate to="/discover" replace />} />
 
       <Route path="/business-overview" element={

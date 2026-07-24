@@ -182,22 +182,6 @@ const Discover: React.FC = () => {
   };
 
   const fetchMetrics = async () => {
-    if (!user) {
-      try {
-        const res = await fetch('/api/public-leads?metricsOnly=true');
-        const data = await res.json();
-        setMetrics({
-          totalLeads: data.total || 0,
-          verifiedEmails: 0,
-          invalidEmails: 0,
-          verificationRate: 0,
-        });
-      } catch (err) {
-        console.error('Error fetching public metrics:', err);
-      }
-      return;
-    }
-
     const { count: total } = await supabase.from('leads').select('*', { count: 'exact', head: true });
     const { count: verified } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'valid');
     const { count: invalid } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'invalid');
@@ -214,30 +198,6 @@ const Discover: React.FC = () => {
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      if (!user) {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: limit.toString(),
-          search: debouncedSearch,
-          industry: debouncedIndustry,
-          location: debouncedLocation,
-          title: debouncedTitle,
-          company: debouncedCompany,
-          companySize: companySizeFilter,
-          minRevenue: minRevenue.toString(),
-          yearFoundedMin: yearFoundedMin.toString(),
-          yearFoundedMax: yearFoundedMax.toString(),
-          requireFullProfile: requireFullProfile.toString()
-        });
-        const res = await fetch(`/api/public-leads?${params.toString()}`);
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        setLeads(data.data || []);
-        setTotalCount(data.count || 0);
-        setLoading(false);
-        return;
-      }
-
       let query = supabase.from('leads').select('*', { count: 'exact' });
       if (debouncedSearch.trim()) query = query.or(`name.ilike.%${debouncedSearch}%,company.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%`);
       if (debouncedIndustry.trim()) query = query.ilike('industry', `%${debouncedIndustry}%`);
