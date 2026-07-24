@@ -38,6 +38,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
+    // Failsafe: No matter what happens with Supabase, force the app to load after 2 seconds
+    const safetyTimeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth check timed out, forcing load');
+        setLoading(false);
+      }
+    }, 2000);
+
     // 1. First, handle any URL-based session tokens (email confirm links, magic links)
     const handleUrlSession = async () => {
       try {
@@ -83,7 +91,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           if (session?.user) {
             setUser(session.user);
-            await checkOnboardingStatus(session.user.id);
+            // Do NOT await this so we don't block the UI if the DB is slow
+            checkOnboardingStatus(session.user.id).catch(console.error);
           } else {
             setUser(null);
           }
@@ -107,7 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNeedsOnboarding(false);
       } else if (session?.user) {
         setUser(session.user);
-        await checkOnboardingStatus(session.user.id);
+        // Do NOT await this so we don't block the UI
+        checkOnboardingStatus(session.user.id).catch(console.error);
       }
       
       setLoading(false);
@@ -117,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
