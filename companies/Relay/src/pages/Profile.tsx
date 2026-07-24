@@ -223,22 +223,44 @@ export default function ProfilePage() {
   const handleSaveBiz = async () => {
     if (!selectedBiz) return;
     setIsSavingBiz(true);
-    const { error } = await supabase.from('businesses').update({ 
+    let error, data;
+    
+    const payload = {
       overview_md: editContent,
       aims_md: editAims,
       objectives_md: editObjectives,
       industry: editIndustry,
-      target_audience: editTargetAudience,
-      // pain_points: editPainPoints,
-      // negative_keywords: editNegativeKeywords
-    }).eq('id', selectedBiz.id);
+      target_audience: editTargetAudience
+    };
+
+    if (selectedBiz.id === 'new') {
+      const name = editIndustry ? `${editIndustry} Profile` : 'New Business Profile';
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+      const res = await supabase.from('businesses').insert({ 
+        name,
+        slug,
+        ...payload,
+        status: 'active'
+      }).select().single();
+      error = res.error;
+      data = res.data;
+    } else {
+      const res = await supabase.from('businesses').update(payload).eq('id', selectedBiz.id).select().single();
+      error = res.error;
+      data = res.data;
+    }
+
     setIsSavingBiz(false);
     if (error) {
       toast({ title: 'Error', description: 'Failed to save changes.', variant: 'destructive' });
-    } else {
-      setBusinesses(prev => prev.map(b => b.id === selectedBiz.id ? { ...b, overview_md: editContent, aims_md: editAims, objectives_md: editObjectives, industry: editIndustry, target_audience: editTargetAudience } : b));
-      setSelectedBiz(prev => prev ? { ...prev, overview_md: editContent, aims_md: editAims, objectives_md: editObjectives, industry: editIndustry, target_audience: editTargetAudience } : null);
-      toast({ title: 'Saved', description: 'Business profile updated successfully.' });
+    } else if (data) {
+      if (selectedBiz.id === 'new') {
+        setBusinesses(prev => [...prev, data]);
+      } else {
+        setBusinesses(prev => prev.map(b => b.id === selectedBiz.id ? data : b));
+      }
+      setSelectedBiz(data);
+      toast({ title: 'Saved', description: 'Business profile saved successfully.' });
       setIsEditingBiz(false);
     }
   };
@@ -302,17 +324,39 @@ export default function ProfilePage() {
   const handleSaveTone = async () => {
     if (!selectedTone) return;
     setIsSavingTone(true);
-    const { error } = await supabase.from('email_tones').update({ 
-      content_md: editToneContent,
-      category: editToneCategory
-    }).eq('id', selectedTone.id);
+    let error, data;
+    
+    if (selectedTone.id === 'new') {
+      const name = editToneCategory ? `${editToneCategory.toLowerCase()} Tone` : 'New Tone Guide';
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+      const res = await supabase.from('email_tones').insert({
+        name,
+        slug,
+        content_md: editToneContent,
+        category: editToneCategory
+      }).select().single();
+      error = res.error;
+      data = res.data;
+    } else {
+      const res = await supabase.from('email_tones').update({ 
+        content_md: editToneContent,
+        category: editToneCategory
+      }).eq('id', selectedTone.id).select().single();
+      error = res.error;
+      data = res.data;
+    }
+
     setIsSavingTone(false);
     if (error) {
       toast({ title: 'Error', description: 'Failed to save changes.', variant: 'destructive' });
-    } else {
-      setTones(prev => prev.map(t => t.id === selectedTone.id ? { ...t, content_md: editToneContent, category: editToneCategory } : t));
-      setSelectedTone(prev => prev ? { ...prev, content_md: editToneContent, category: editToneCategory } : null);
-      toast({ title: 'Saved', description: 'Email tone guide updated successfully.' });
+    } else if (data) {
+      if (selectedTone.id === 'new') {
+        setTones(prev => [...prev, data]);
+      } else {
+        setTones(prev => prev.map(t => t.id === selectedTone.id ? data : t));
+      }
+      setSelectedTone(data);
+      toast({ title: 'Saved', description: 'Email tone guide saved successfully.' });
       setIsEditingTone(false);
     }
   };
@@ -404,7 +448,7 @@ export default function ProfilePage() {
           {activeTab === 'profile' && (
             <div className="space-y-12 animate-in fade-in duration-200">
               
-              <div className="bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 space-y-8">
+              <div className="space-y-8 mt-6">
                 <div className="flex items-center gap-4">
                   <div className="w-1.5 h-6 bg-primary rounded-xl" />
                   <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Personal Details</h3>
@@ -621,34 +665,21 @@ export default function ProfilePage() {
                   Business profiles act as the core intelligence source for the AI. Upload markdown documents describing products, tone of voice, and value propositions.
                 </p>
                 <button 
-                  onClick={() => setShowUpload(!showUpload)}
+                  onClick={() => {
+                    setSelectedBiz({ id: 'new', name: 'New Business Profile' } as any);
+                    setEditContent('');
+                    setEditAims('');
+                    setEditObjectives('');
+                    setEditIndustry('');
+                    setEditTargetAudience('');
+                    setIsEditingBiz(true);
+                  }}
                   className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
                 >
                   <Plus size={18} />
                   New Profile
                 </button>
               </div>
-
-              {showUpload && (
-                <div className="p-8 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl animate-in slide-in-from-top-4 duration-300">
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-xl p-12 text-center">
-                    <div className="p-4 bg-muted rounded-full mb-4">
-                      <Upload size={24} className="text-muted-foreground" />
-                    </div>
-                    <h4 className="text-lg font-bold text-foreground mb-2">Upload Profile Document</h4>
-                    <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-                      Upload a Markdown (.md) file containing your business context to train the agent.
-                    </p>
-                    <input ref={fileRef} type="file" accept=".md" onChange={handleUpload} className="hidden" />
-                    <button 
-                      onClick={() => fileRef.current?.click()}
-                      className="px-6 py-3 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
-                    >
-                      Select File
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {selectedBiz ? (
                 <div className="bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
@@ -781,7 +812,7 @@ export default function ProfilePage() {
                       </div>
                       
                       {/* AI Assistant Section */}
-                      <div className="p-4 bg-black/40 border border-white/5 rounded-xl space-y-3">
+                      <div className="space-y-3 pt-4 border-t border-white/5 mt-6">
                         <div className="flex justify-between items-center">
                           <label className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
                             <Sparkles size={12} className="text-primary" /> Groq AI Refiner (Free Llama 3)
@@ -920,34 +951,18 @@ export default function ProfilePage() {
                   Configure tone profiles to teach the AI how to write natural, conversational cold outreach emails. Highlight example templates, DO's, and NOT-to-DO's to hide the "AI look".
                 </p>
                 <button 
-                  onClick={() => setShowToneUpload(!showToneUpload)}
+                  onClick={() => {
+                    setSelectedTone({ id: 'new', name: 'New Tone Guide' } as any);
+                    setEditToneContent('');
+                    setEditToneCategory('CUSTOM');
+                    setIsEditingTone(true);
+                  }}
                   className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all"
                 >
                   <Plus size={18} />
                   New Tone Guide
                 </button>
               </div>
-
-              {showToneUpload && (
-                <div className="p-8 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl animate-in slide-in-from-top-4 duration-300">
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-xl p-12 text-center">
-                    <div className="p-4 bg-muted rounded-full mb-4">
-                      <Upload size={24} className="text-muted-foreground" />
-                    </div>
-                    <h4 className="text-lg font-bold text-foreground mb-2">Upload Tone Document</h4>
-                    <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-                      Upload a Markdown (.md) file containing email rules, guidelines, or templates.
-                    </p>
-                    <input ref={toneFileRef} type="file" accept=".md" onChange={handleToneUpload} className="hidden" />
-                    <button 
-                      onClick={() => toneFileRef.current?.click()}
-                      className="px-6 py-3 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
-                    >
-                      Select File
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {selectedTone ? (
                 <div className="bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl p-8 shadow-sm">
