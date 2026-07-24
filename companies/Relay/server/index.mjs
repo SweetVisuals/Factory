@@ -35,6 +35,7 @@ import { researchAndSummarizeLead, AIRateLimitError } from './research_helper.mj
 import { startEmailerCron } from './emailer_cron.mjs';
 import { startBounceProcessorCron } from './bounce_processor_cron.mjs';
 import { startSyncEmailsCron } from './sync_emails_cron.mjs';
+import previewEngine from './preview_engine.mjs';
 
 // Prevent Puppeteer temp profile deletion errors (EBUSY unlink) from crashing the server
 process.on('unhandledRejection', (reason, promise) => {
@@ -113,6 +114,7 @@ if (supabase) {
 }
 
 const app = express();
+app.use('/api/ai', previewEngine);
 app.use(express.json());
 
 // Add a root route for health check
