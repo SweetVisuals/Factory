@@ -13,9 +13,9 @@ import Inbox from '../pages/Inbox';
 import EmailAccounts from '../pages/EmailAccounts';
 import Pricing from '../pages/Pricing';
 import TestDeleteFunction from '../pages/TestDeleteFunction';
-
 import Layout from '../components/layout/Layout';
-
+import OnboardingWizard from '../components/onboarding/OnboardingWizard';
+import AuthVerify from '../pages/AuthVerify';
 const AppRoutes = () => {
   return (
     <Routes>
@@ -32,6 +32,12 @@ const AppRoutes = () => {
             <SignUpLayout />
           </div>
         </Layout>
+      } />
+      <Route path="/auth/verify" element={<AuthVerify />} />
+      <Route path="/onboarding" element={
+        <ProtectedRoute>
+          <OnboardingWizard />
+        </ProtectedRoute>
       } />
       <Route path="/" element={<Navigate to="/discover" replace />} />
 

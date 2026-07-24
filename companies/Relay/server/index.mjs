@@ -412,6 +412,103 @@ CRITICAL RULES:
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post('/api/generate-business', async (req, res) => {
+  try {
+    const { businessName, businessUrl, blurb, userId } = req.body;
+    if (!businessName || !userId) {
+      return res.status(400).json({ error: 'Missing required parameters: businessName, userId' });
+    }
+
+    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const limitKey = `deepseek_business_gen_${userId}_${dateStr}`;
+
+    // Get current usage count
+    let currentCount = 0;
+    const { data: memoryRecord } = await supabase
+      .from('agent_memory')
+      .select('value')
+      .eq('key_name', limitKey)
+      .maybeSingle();
+
+    if (memoryRecord && memoryRecord.value) {
+      currentCount = memoryRecord.value.count || 0;
+    }
+
+    if (currentCount >= 3) {
+      return res.status(429).json({ error: 'Free generations limit reached. You can only use the AI business generator 3 times per day.' });
+    }
+
+    // Increment count
+    await supabase.from('agent_memory').upsert({
+      key_name: limitKey,
+      value: { count: currentCount + 1 }
+    }, { onConflict: 'key_name' });
+
+    // Scrape URL if provided
+    let scrapedText = '';
+    if (businessUrl) {
+      try {
+        const puppeteer = require('puppeteer');
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.goto(businessUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        scrapedText = await page.evaluate(() => document.body.innerText.substring(0, 5000));
+        await browser.close();
+      } catch (err) {
+        console.warn('Failed to scrape URL:', err.message);
+      }
+    }
+
+    const prompt = `You are an expert business analyst and copywriter.
+Please generate a structured Business Profile based on the following input. 
+Your output must EXACTLY follow this JSON structure, wrapped in a single JSON object.
+{
+  "aims": "A short paragraph describing the primary aims and mission.",
+  "objectives": "A short paragraph or bullet points detailing the tactical objectives.",
+  "industry": "The specific industry or niche (e.g., B2B SaaS, Real Estate).",
+  "target_audience": "A description of the ideal customer profile.",
+  "overview_md": "A comprehensive markdown overview of the business, its unique value proposition, and offerings."
+}
+
+Business Name: ${businessName}
+User's Description: ${blurb || 'N/A'}
+Scraped Website Content: ${scrapedText || 'N/A'}
+`;
+
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`DeepSeek API returned status ${response.status}: ${errText}`);
+    }
+
+    const result = await response.json();
+    let parsed;
+    try {
+      parsed = JSON.parse(result.choices[0].message.content);
+    } catch (e) {
+      // fallback if JSON parsing fails for some reason
+      throw new Error("Failed to parse AI output as JSON.");
+    }
+
+    res.json({ success: true, data: parsed, usageCount: currentCount + 1 });
+  } catch (err) {
+    console.error('Generate business failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 const TEMPLATE_PLACEHOLDERS = [
   { placeholder: '[LEAD COMPANY]', description: 'The exact name of the prospect company' },
   { placeholder: '[LEAD FIRST NAME]', description: 'The first name of the prospect' },

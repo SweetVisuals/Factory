@@ -8,7 +8,9 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: AuthError | null;
+  needsOnboarding: boolean;
   signOut: () => Promise<void>;
+  checkOnboardingStatus: (userId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,8 +19,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const checkOnboardingStatus = async (userId: string) => {
+    try {
+      const { count } = await supabase
+        .from('businesses')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      setNeedsOnboarding(count === 0);
+    } catch (e) {
+      console.error('Error checking onboarding status:', e);
+    }
+  };
 
   useEffect(() => {
     const initAuth = async () => {
@@ -37,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (data?.session) {
               window.location.hash = '';
               setUser(data.session.user);
+              await checkOnboardingStatus(data.session.user.id);
               setLoading(false);
               return;
             }
@@ -58,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             url.searchParams.delete('refresh_token');
             window.history.replaceState({}, document.title, url.pathname + url.search);
             setUser(data.session.user);
+            await checkOnboardingStatus(data.session.user.id);
             setLoading(false);
             return;
           }
@@ -67,8 +85,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Check active session
-      supabase.auth.getSession().then(({ data: { session } }) => {
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
         setUser(session?.user ?? null);
+        if (session?.user) {
+          await checkOnboardingStatus(session.user.id);
+        }
         setLoading(false);
       });
     };
@@ -76,8 +97,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        await checkOnboardingStatus(session.user.id);
+      } else {
+        setNeedsOnboarding(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -97,10 +123,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, signOut }}>
+    <AuthContext.Provider value={{ user, loading, error, needsOnboarding, signOut, checkOnboardingStatus }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
 export const useAuth = () => {
