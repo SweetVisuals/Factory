@@ -69,7 +69,7 @@ export default function ThreadsSidebar() {
   }
 
   return (
-    <div className="w-80 border-l border-white/5 bg-[#111111] flex flex-col shrink-0 h-full transition-all animate-in slide-in-from-right-8 duration-200 shadow-2xl rounded-l-3xl overflow-hidden">
+    <div className="w-80 border-l border-white/5 bg-[#111111] flex flex-col shrink-0 h-full transition-all animate-in slide-in-from-right-8 duration-200">
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2 text-foreground">
           <MessageSquare size={16} className="text-primary" />
