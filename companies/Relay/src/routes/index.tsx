@@ -11,6 +11,7 @@ import Discover from '../pages/Discover';
 import ProfilePage from '../pages/Profile';
 import Inbox from '../pages/Inbox';
 import EmailAccounts from '../pages/EmailAccounts';
+import Pricing from '../pages/Pricing';
 import TestDeleteFunction from '../pages/TestDeleteFunction';
 
 const AppRoutes = () => {
@@ -62,11 +63,7 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
 
-      <Route path="/discover" element={
-        <ProtectedRoute>
-          <Discover />
-        </ProtectedRoute>
-      } />
+      <Route path="/discover" element={<Discover />} />
 
       <Route path="/inbox" element={
         <ProtectedRoute>
@@ -95,6 +92,12 @@ const AppRoutes = () => {
       <Route path="/test-delete-function" element={
         <ProtectedRoute>
           <TestDeleteFunction />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/pricing" element={
+        <ProtectedRoute>
+          <Pricing />
         </ProtectedRoute>
       } />
     </Routes>

@@ -17,6 +17,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   const [dbSpace, setDbSpace] = useState<number>(0);
   const [leadsCount, setLeadsCount] = useState<number>(0);
   const [isLimited, setIsLimited] = useState(false);
+  const [planType, setPlanType] = useState('free');
 
   useEffect(() => {
     const checkRateLimit = () => {
@@ -59,6 +60,14 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
       if (currentLeadsCount !== null) {
         setDbSpace(currentLeadsCount / 1024); // Convert KB to MB
         setLeadsCount(currentLeadsCount);
+      }
+
+      // Fetch user plan type
+      if (user) {
+        const { data: accData } = await supabase.from('account_settings').select('plan_type').eq('user_id', user.id).maybeSingle();
+        if (accData) {
+          setPlanType(accData.plan_type || 'free');
+        }
       }
 
       // Fetch campaigns needing review or paused
@@ -163,7 +172,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const navItems = [
+  let navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Discover', path: '/discover', icon: Compass },
     { name: 'Campaigns', path: '/campaigns', icon: Target },
@@ -171,6 +180,12 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
     { name: 'Accounts', path: '/email-accounts', icon: AtSign },
     { name: 'Profile', path: '/profile', icon: Settings },
   ];
+
+  if (!user) {
+    navItems = [
+      { name: 'Discover', path: '/discover', icon: Compass },
+    ];
+  }
 
   return (
     <>
@@ -220,27 +235,39 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           </div>
 
           {/* Tray Item: Usage */}
-          <div 
-            onClick={() => navigate('/profile?tab=usage')}
-            className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/5 transition-all text-xs"
-            title="View System Usage"
-          >
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Usage</span>
-            {(() => {
-              const quotaLimit = isAdmin ? 10000 : 100;
-              const usagePct = Math.min(100, Math.round((leadsCount / quotaLimit) * 100));
-              return (
-                <>
-                  <div className="h-1.5 w-12 bg-white/10 rounded-full overflow-hidden shrink-0">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${usagePct}%` }} />
-                  </div>
-                  <span className="font-mono text-[9px] font-bold text-white shrink-0">
-                    {usagePct}%
-                  </span>
-                </>
-              );
-            })()}
-          </div>
+          {user && (
+            <div 
+              onClick={() => navigate('/profile?tab=usage')}
+              className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/5 transition-all text-xs"
+              title="View System Usage"
+            >
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Usage</span>
+              {(() => {
+                const quotaLimit = isAdmin ? 10000 : (planType === 'free' ? 2500 : 10000);
+                const usagePct = Math.min(100, Math.round((leadsCount / quotaLimit) * 100));
+                return (
+                  <>
+                    <div className="h-1.5 w-12 bg-white/10 rounded-full overflow-hidden shrink-0">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${usagePct}%` }} />
+                    </div>
+                    <span className="font-mono text-[9px] font-bold text-white shrink-0">
+                      {usagePct}%
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+          
+
+          {!user && (
+            <button
+              onClick={() => navigate('/signup')}
+              className="bg-white text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors ml-2"
+            >
+              Sign Up Free
+            </button>
+          )}
 
           {/* Engine Controls */}
           <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/5">

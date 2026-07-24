@@ -9,6 +9,7 @@ import { useToast } from '../components/ui/use-toast';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 import UsageDashboard from '../components/UsageDashboard';
+import PricingCards from '../components/PricingCards';
 
 import { Business } from '../types';
 interface EmailTone { id: string; name: string; slug: string; content_md: string | null; created_at: string; }
@@ -22,12 +23,13 @@ export default function ProfilePage() {
   const { simpleMode, setSimpleMode } = useTheme();
 
   // Profile States
+  const [planType, setPlanType] = useState<string | null>(null);
   const [identityLoading, setIdentityLoading] = useState(false);
   const [formData, setFormData] = useState({
-    full_name: user?.user_metadata?.full_name || 'Ethan',
-    email: user?.email === 'ptnmgmt@gmail.com' ? 'nicolas@relaysolutions.net' : (user?.email || 'nicolas@relaysolutions.net'),
-    phone: user?.user_metadata?.phone || '+44 7864851184',
-    industry: user?.user_metadata?.industry || 'Automation & Systems',
+    full_name: user?.user_metadata?.full_name || '',
+    email: user?.email || '',
+    phone: user?.user_metadata?.phone || '',
+    industry: user?.user_metadata?.industry || '',
   });
 
   // Business States
@@ -70,6 +72,14 @@ export default function ProfilePage() {
       }
     };
     fetchGroqUsage();
+    
+    const fetchPlan = async () => {
+      if (user) {
+        const { data } = await supabase.from('account_settings').select('plan_type').eq('user_id', user.id).maybeSingle();
+        if (data) setPlanType(data.plan_type);
+      }
+    };
+    fetchPlan();
   }, [user, isEditingBiz]);
 
   useEffect(() => {
@@ -272,7 +282,7 @@ export default function ProfilePage() {
             </div>
             
             {/* Elegant Tabs */}
-            <div className="flex gap-2 p-1.5 bg-black/20 border border-white/5 rounded-2xl w-full md:w-fit overflow-x-auto custom-scrollbar">
+            <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/5 w-full md:w-fit overflow-x-auto custom-scrollbar">
               {[
                 { id: 'profile', label: 'Profile' },
                 { id: 'usage', label: 'Usage' },
@@ -284,10 +294,10 @@ export default function ProfilePage() {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap",
+                    "px-4 py-2 rounded-md text-xs font-bold uppercase transition-all whitespace-nowrap",
                     activeTab === tab.id 
-                      ? "bg-white/10 text-white shadow-sm" 
-                      : "text-white/40 hover:text-white hover:bg-white/5"
+                      ? "bg-white/10 text-white" 
+                      : "text-white/40 hover:text-white"
                   )}
                 >
                   {tab.label}
@@ -301,8 +311,9 @@ export default function ProfilePage() {
           
           {/* TAB: PROFILE */}
           {activeTab === 'profile' && (
-            <div className="space-y-8 animate-in fade-in duration-200">
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+            <div className="space-y-12 animate-in fade-in duration-200">
+              
+              <div className="space-y-6">
                 <h3 className="text-lg font-bold text-foreground mb-6">Personal Information</h3>
                 <form onSubmit={handleUpdateProfile} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -340,7 +351,7 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-                  <div className="flex justify-end pt-4 border-t border-border/50">
+                  <div className="flex justify-end pt-4">
                     <button 
                       type="submit" 
                       disabled={identityLoading}
@@ -353,7 +364,7 @@ export default function ProfilePage() {
                 </form>
               </div>
 
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+              <div className="pt-8 border-t border-border/50 space-y-6">
                 <h3 className="text-lg font-bold text-foreground mb-6">Interface Preferences</h3>
                 <div className="flex items-center justify-between p-4 bg-background rounded-2xl border border-border">
                   <div className="flex items-center gap-4">
@@ -368,113 +379,39 @@ export default function ProfilePage() {
                   <ThemeToggle />
                 </div>
               </div>
+
+              <div className="pt-8 border-t border-border/50 space-y-6">
+                <h3 className="text-lg font-bold text-red-500 mb-6">Danger Zone</h3>
+                <div className="flex items-center justify-between p-4 bg-background rounded-2xl border border-red-500/20">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-red-500/10 rounded-xl">
+                      <ShieldAlert size={18} className="text-red-500" />
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-bold text-foreground">Delete Account</span>
+                      <span className="text-xs font-medium text-muted-foreground">Permanently delete your account and all data.</span>
+                    </div>
+                  </div>
+                  <button className="px-4 py-2 bg-red-500/10 text-red-500 rounded-lg text-sm font-bold hover:bg-red-500 hover:text-white transition-colors">
+                    Delete Account
+                  </button>
+                </div>
+              </div>
+
             </div>
           )}
 
           {/* TAB: USAGE */}
           {activeTab === 'usage' && (
-            <div className="space-y-8 animate-in fade-in duration-200">
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <Activity className="w-5 h-5 text-emerald-400" />
-                  <h3 className="text-lg font-bold text-foreground">Usage Metrics</h3>
-                </div>
-                <UsageDashboard />
-              </div>
+            <div className="animate-in fade-in duration-200">
+              <UsageDashboard />
             </div>
           )}
 
           {/* TAB: SUBSCRIPTION */}
           {activeTab === 'subscription' && (
-            <div className="space-y-8 animate-in fade-in duration-200">
-              
-              {/* Current Plan Card */}
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                  <Sparkles size={120} className="text-primary" />
-                </div>
-                <div className="relative z-10 flex flex-col gap-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                        <Sparkles size={12} /> Current Plan
-                      </span>
-                      <h2 className="text-4xl font-black text-foreground">Enterprise Elite</h2>
-                    </div>
-                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 text-xs font-bold uppercase tracking-widest rounded-full border border-emerald-500/20">
-                      Active
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4 pt-6 border-t border-border/50 max-w-2xl">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Next Billing</span>
-                      <span className="text-lg font-bold text-foreground">Oct 24, 2026</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Amount</span>
-                      <span className="text-lg font-bold text-foreground">$1,499.00 / mo</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">AI Credits Reset</span>
-                      <span className="text-lg font-bold text-foreground">In 12 Days</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Usage & Limits */}
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-                <h3 className="text-lg font-bold text-foreground mb-6">Monthly Usage & Limits</h3>
-                <div className="space-y-8">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-sm font-bold">
-                      <span className="text-foreground">AI Intelligence Credits</span>
-                      <span className="text-muted-foreground">14,250 / 25,000</span>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-purple-500 w-[57%]" />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-sm font-bold">
-                      <span className="text-foreground">Email Deliverability Volume</span>
-                      <span className="text-muted-foreground">84,300 / 100,000</span>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 w-[84%]" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-sm font-bold">
-                      <span className="text-foreground">Active Campaigns</span>
-                      <span className="text-muted-foreground">12 / Unlimited</span>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 w-[15%]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-foreground">Payment Method</h3>
-                  <button className="text-sm font-bold text-primary hover:text-primary/80 transition-colors">Update</button>
-                </div>
-                <div className="flex items-center gap-4 p-4 bg-background rounded-2xl border border-border">
-                  <div className="p-3 bg-muted rounded-xl">
-                    <CreditCard size={24} className="text-foreground" />
-                  </div>
-                  <div className="flex flex-col gap-0.5 flex-1">
-                    <span className="text-sm font-bold text-foreground">Mastercard ending in 4242</span>
-                    <span className="text-xs font-medium text-muted-foreground">Expires 12/2028</span>
-                  </div>
-                </div>
-              </div>
+            <div className="animate-in fade-in duration-200">
+              <PricingCards hideHeader={true} />
             </div>
           )}
 
