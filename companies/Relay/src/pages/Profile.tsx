@@ -11,6 +11,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import UsageDashboard from '../components/UsageDashboard';
 import PricingCards from '../components/PricingCards';
 import ThreadsSidebar from '../components/layout/ThreadsSidebar';
+import AuthLayout from '../components/auth/AuthLayout';
 
 import { Business } from '../types';
 interface EmailTone { id: string; name: string; slug: string; content_md: string | null; category?: string | null; created_at: string; }
@@ -146,16 +147,18 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const initBusiness = async () => {
+      if (!user) return;
       const { data } = await supabase.from('businesses').select('*').eq('status', 'active').order('created_at');
       if (data && data.length > 0) { 
         setBusinesses(data); 
       }
     };
     initBusiness();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const initTones = async () => {
+      if (!user) return;
       const { data } = await supabase.from('email_tones').select('*').order('created_at');
       if (data) {
         setTones(data);
@@ -165,7 +168,7 @@ export default function ProfilePage() {
       }
     };
     initTones();
-  }, [activeTab]);
+  }, [activeTab, user]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -441,6 +444,10 @@ export default function ProfilePage() {
   const handleTabChange = (tabName: string) => {
     setSearchParams({ tab: tabName });
   };
+
+  if (!user) {
+    return <AuthLayout />;
+  }
 
   return (
     <Layout>

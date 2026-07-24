@@ -19,7 +19,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<AuthLayout />} />
       <Route path="/signup" element={<SignUpLayout />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/discover" replace />} />
 
       <Route path="/business-overview" element={
         <ProtectedRoute>
@@ -83,11 +83,7 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
 
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <ProfilePage />
-        </ProtectedRoute>
-      } />
+      <Route path="/profile" element={<ProfilePage />} />
 
       <Route path="/test-delete-function" element={
         <ProtectedRoute>
