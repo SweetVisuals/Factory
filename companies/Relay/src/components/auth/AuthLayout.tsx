@@ -50,7 +50,7 @@ const AuthLayout = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-background text-foreground font-sans p-8 relative">
+    <div className="w-full h-full flex-1 flex flex-col justify-center items-center bg-background text-foreground font-sans p-8 relative min-h-[calc(100vh-100px)]">
       <div className="w-full max-w-[420px] flex flex-col gap-8">
         <div className="text-center flex flex-col items-center gap-2">
           <Logo />

@@ -476,7 +476,17 @@ export default function ProfilePage() {
   };
 
   if (!user) {
-    return <AuthLayout />;
+    return (
+      <Layout>
+        <div className="w-full flex h-full bg-background overflow-hidden text-foreground">
+          <div className="flex-1 overflow-y-auto p-8 lg:p-12">
+            <div className="max-w-[1200px] mx-auto w-full h-full flex items-center justify-center">
+              <AuthLayout />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
