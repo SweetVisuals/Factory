@@ -107,7 +107,7 @@ const CampaignCard = ({
   return (
     <div 
       onClick={onClick} 
-      className={`relative flex flex-col cursor-pointer transition-all duration-500 hover:-translate-y-2 bg-[#111111]/80 backdrop-blur-2xl border border-white/10 hover:border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgba(255,255,255,0.05)] group rounded-3xl overflow-hidden ${isReview ? 'campaign-card-review-pulse' : ''}`}
+      className={`relative flex flex-col cursor-pointer transition-all duration-300 hover:-translate-y-1 bg-card border border-border hover:border-border/80 shadow-sm group rounded-none overflow-hidden ${isReview ? 'campaign-card-review-pulse' : ''}`}
       style={{ 
         minHeight: '380px'
       }}
@@ -135,40 +135,23 @@ const CampaignCard = ({
       )}
       {/* Dynamic Top Glow */}
       <div 
-        className="absolute top-0 left-0 right-0 h-1.5 transition-all duration-500 group-hover:h-2 opacity-80 group-hover:opacity-100"
-        style={{ 
-          background: isReview
-            ? 'linear-gradient(90deg, rgba(139,92,246,1) 0%, rgba(139,92,246,0.3) 100%)'
-            : isPaused 
-            ? 'linear-gradient(90deg, rgba(245,158,11,1) 0%, rgba(245,158,11,0.3) 100%)' 
-            : `linear-gradient(90deg, rgba(${rgbColor},1) 0%, rgba(${rgbColor},0.3) 100%)`,
-          boxShadow: isReview
-            ? '0 4px 20px rgba(139, 92, 246, 0.6)'
-            : isPaused 
-            ? '0 4px 15px rgba(245, 158, 11, 0.5)' 
-            : `0 4px 15px rgba(${rgbColor}, 0.5)`
-        }}
-      />
-      
-      {/* Background Ambient Glow */}
-      <div 
-        className="absolute -top-24 -right-24 w-48 h-48 rounded-full blur-[80px] opacity-20 pointer-events-none transition-all duration-700 group-hover:opacity-40 group-hover:scale-110"
-        style={{ backgroundColor: activeColor }}
+        className="absolute top-0 left-0 right-0 h-1 transition-all duration-500 opacity-100"
+        style={{ backgroundColor: isReview ? '#8b5cf6' : isPaused ? '#f59e0b' : activeColor }}
       />
       
       {/* Header */}
       <div className="p-6 pb-4 flex justify-between items-start relative z-10">
         <div className="flex flex-col gap-1.5 min-w-0 pr-4">
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: isPaused ? '#f59e0b' : activeColor }}>
-            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10">{bizLabel}</span>
+            <span className="px-2 py-0.5 rounded-none bg-primary/10 border border-primary/20">{bizLabel}</span>
             {loc && <span className="text-muted-foreground">{loc}</span>}
           </div>
-          <h3 className="font-black text-2xl tracking-tight text-white truncate drop-shadow-sm transition-colors group-hover:text-white">{cleanName}</h3>
+          <h3 className="font-black text-2xl tracking-tight text-foreground truncate">{cleanName}</h3>
         </div>
         
         {/* Agent Status Badge */}
         <span 
-          className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full border shadow-[0_0_15px_rgba(0,0,0,0.2)] transition-all duration-300 group-hover:shadow-md"
+          className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-none border transition-all duration-300"
           style={{ 
             backgroundColor: `rgba(${badgeRgb}, 0.1)`, 
             borderColor: `rgba(${badgeRgb}, 0.3)`,
@@ -193,47 +176,47 @@ const CampaignCard = ({
       <div className="flex flex-col flex-1 p-6 pt-2 relative z-10">
         {/* Premium Metrics Grid */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="flex flex-col bg-white/5 rounded-2xl p-4 border border-white/5 transition-all duration-300 hover:bg-white/10 hover:border-white/10 hover:shadow-lg hover:-translate-y-0.5 group/metric">
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1 group-hover/metric:text-white/70 transition-colors">Leads</span>
-            <span className="font-black text-2xl text-white drop-shadow-sm">
+          <div className="flex flex-col bg-background rounded-none p-4 border border-border transition-all duration-300 group/metric">
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Leads</span>
+            <span className="font-black text-2xl text-foreground">
               <AnimatedNumber value={prospectsVal} />
             </span>
           </div>
-          <div className="flex flex-col bg-white/5 rounded-2xl p-4 border border-white/5 transition-all duration-300 hover:bg-white/10 hover:border-white/10 hover:shadow-lg hover:-translate-y-0.5 group/metric">
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1 group-hover/metric:text-white/70 transition-colors">Sent</span>
-            <span className="font-black text-2xl text-white drop-shadow-sm">
+          <div className="flex flex-col bg-background rounded-none p-4 border border-border transition-all duration-300 group/metric">
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Sent</span>
+            <span className="font-black text-2xl text-foreground">
               <AnimatedNumber value={sentVal} />
             </span>
           </div>
-          <div className="flex flex-col bg-white/5 rounded-2xl p-4 border border-white/5 transition-all duration-300 hover:bg-white/10 hover:border-white/10 hover:shadow-lg hover:-translate-y-0.5 group/metric">
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1 group-hover/metric:text-white/70 transition-colors">Replies</span>
+          <div className="flex flex-col bg-background rounded-none p-4 border border-border transition-all duration-300 group/metric">
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Replies</span>
             <div className="flex items-baseline gap-2">
-              <span className="font-black text-2xl text-white drop-shadow-sm">
+              <span className="font-black text-2xl text-foreground">
                 <AnimatedNumber value={repliesVal} />
               </span>
-              <span className="text-[10px] font-black drop-shadow-md" style={{ color: activeColor }}>{replyRate || '0.0%'}</span>
+              <span className="text-[10px] font-black" style={{ color: activeColor }}>{replyRate || '0.0%'}</span>
             </div>
           </div>
         </div>
 
         {/* Agent Activity Log */}
-        <div className="flex flex-col gap-3 mt-auto mb-6 bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/5 shadow-inner transition-all group-hover:border-white/10">
-          <span className="text-[9px] font-black tracking-[0.2em] text-white/50 uppercase flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeColor, color: activeColor }} />
+        <div className="flex flex-col gap-3 mt-auto mb-6 bg-background p-4 rounded-none border border-border transition-all">
+          <span className="text-[9px] font-black tracking-[0.2em] text-muted-foreground uppercase flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-none animate-pulse shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeColor, color: activeColor }} />
             Live Agent Log
           </span>
           {recentSent.length === 0 ? (
-            <span className="text-xs font-medium text-white/30 italic">Awaiting routing instructions...</span>
+            <span className="text-xs font-medium text-muted-foreground italic">Awaiting routing instructions...</span>
           ) : (
             recentSent.map((item, idx) => (
-              <div key={item.id} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors">
+              <div key={item.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0 hover:bg-muted/50 -mx-2 px-2 transition-colors">
                 <div className="flex items-center gap-2 min-w-0">
-                  <ArrowUpRight size={12} className="text-white/40 shrink-0" />
-                  <span className="text-xs font-medium text-white/80 truncate">
+                  <ArrowUpRight size={12} className="text-muted-foreground shrink-0" />
+                  <span className="text-xs font-medium text-foreground truncate">
                     {item.lead?.name || item.lead?.email || 'Unknown Contact'}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold text-white/40 shrink-0">
+                <span className="text-[10px] font-bold text-muted-foreground shrink-0">
                   {format(new Date(item.sent_at || new Date()), 'h:mm a')}
                 </span>
               </div>
@@ -243,13 +226,13 @@ const CampaignCard = ({
 
         {/* Autonomous Progress Bar */}
         <div className="flex flex-col gap-2 pt-2">
-          <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/50">
+          <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-muted-foreground">
             <span>Routing Progress</span>
-            <span style={{ color: activeColor }} className="drop-shadow-sm">{progressPct}%</span>
+            <span style={{ color: activeColor }}>{progressPct}%</span>
           </div>
-          <div className="h-2 w-full bg-black/50 rounded-full overflow-hidden border border-white/5 shadow-inner">
+          <div className="h-2 w-full bg-secondary rounded-none overflow-hidden border border-border">
             <div 
-              className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden" 
+              className="h-full rounded-none transition-all duration-1000 ease-out relative overflow-hidden" 
               style={{ width: `${progressPct}%`, backgroundColor: activeColor }} 
             >
               <div className="absolute top-0 bottom-0 left-0 right-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full animate-[shimmer_2s_infinite]" />
