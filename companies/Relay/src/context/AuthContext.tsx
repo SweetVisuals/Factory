@@ -96,9 +96,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        if (mounted && user) {
-          setUser(user);
-          await checkOnboardingStatus(user.id);
+        if (mounted) {
+          if (user) {
+            setUser(user);
+            await checkOnboardingStatus(user.id);
+          } else {
+            setUser(null);
+          }
           clearTimeout(safetyTimeout);
           setLoading(false);
         }
