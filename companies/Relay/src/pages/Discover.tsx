@@ -16,6 +16,7 @@ import { Button } from '../components/ui/button';
 import { LeadIntelligenceDrawer } from '../components/lead-scraper/LeadIntelligenceDrawer';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { useAuth } from '../context/AuthContext';
 
 interface Campaign {
   id: string;
@@ -27,6 +28,7 @@ type SortDir = 'asc' | 'desc';
 
 const Discover: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -1076,14 +1078,14 @@ const Discover: React.FC = () => {
           </DialogDescription>
           <div className="flex gap-3 w-full">
             <button
-              onClick={() => {
-                setShowSignUpDialog(false);
-                navigate('/signup');
-              }}
-              className="flex-1 bg-white text-black py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
-            >
-              Sign Up Free
-            </button>
+            onClick={() => {
+              setShowSignUpDialog(false);
+              navigate('/profile');
+            }}
+            className="w-full bg-white text-black py-2.5 rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors"
+          >
+            Sign In to Continue
+          </button>
             <button
               onClick={() => setShowSignUpDialog(false)}
               className="flex-1 bg-white/5 border border-white/10 text-white hover:bg-white/10 py-2 rounded-lg text-xs font-bold transition-colors"

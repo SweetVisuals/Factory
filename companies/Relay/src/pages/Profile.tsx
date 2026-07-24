@@ -157,12 +157,14 @@ export default function ProfilePage() {
 
     const fetchUsageData = async () => {
       if (!user) return;
-      const [{ count: cCount }, { count: lCount }] = await Promise.all([
+      const [{ count: cCount }, { count: lCount }, { data: accounts }] = await Promise.all([
         supabase.from('campaigns').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('leads').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+        supabase.from('leads').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('email_accounts').select('total_sent').eq('user_id', user.id)
       ]);
+      const totalEmailsSent = (accounts || []).reduce((acc, curr) => acc + (curr.total_sent || 0), 0);
       setUsageStats({
-        emailsSent: 0, 
+        emailsSent: totalEmailsSent, 
         emailsLimit: planType === 'pro' ? 10000 : 100,
         activeCampaigns: cCount || 0,
         campaignsLimit: planType === 'pro' ? 50 : 5,
@@ -659,7 +661,7 @@ export default function ProfilePage() {
                     <span className="text-sm font-black text-foreground">{usageStats.emailsSent} / {usageStats.emailsLimit}</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.emailsSent / usageStats.emailsLimit) * 100)}%` }} />
+                    <div className="h-full bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.emailsSent / usageStats.emailsLimit) * 100)}%` }} />
                   </div>
                 </div>
 
@@ -670,7 +672,7 @@ export default function ProfilePage() {
                     <span className="text-sm font-black text-foreground">{usageStats.activeCampaigns} / {usageStats.campaignsLimit}</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.activeCampaigns / usageStats.campaignsLimit) * 100)}%` }} />
+                    <div className="h-full bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.activeCampaigns / usageStats.campaignsLimit) * 100)}%` }} />
                   </div>
                 </div>
 
@@ -681,7 +683,7 @@ export default function ProfilePage() {
                     <span className="text-sm font-black text-foreground">{usageStats.activeContacts} / {usageStats.contactsLimit}</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.activeContacts / usageStats.contactsLimit) * 100)}%` }} />
+                    <div className="h-full bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.activeContacts / usageStats.contactsLimit) * 100)}%` }} />
                   </div>
                 </div>
               </div>
@@ -706,7 +708,7 @@ export default function ProfilePage() {
                     <span className="text-xs font-black text-emerald-500">{Math.max(0, 5 - (groqUsageCount || 0))} / 5</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden border border-white/5">
-                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, ((5 - (groqUsageCount || 0)) / 5) * 100)}%` }} />
+                    <div className="h-full bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, ((5 - (groqUsageCount || 0)) / 5) * 100)}%` }} />
                   </div>
                 </div>
                 
@@ -807,7 +809,7 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2 mb-8">
                         {[1, 2, 3].map(step => (
                           <div key={step} className="flex-1">
-                            <div className={`h-1.5 rounded-full transition-all duration-300 ${bizWizardStep >= step ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-white/5'}`} />
+                            <div className={`h-1.5 rounded-full transition-all duration-300 ${bizWizardStep >= step ? 'bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)]' : 'bg-white/5'}`} />
                             <p className={`text-[10px] font-black uppercase tracking-widest mt-2 transition-colors duration-300 ${bizWizardStep >= step ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                               {step === 1 ? 'Basics' : step === 2 ? 'Strategy' : 'Context'}
                             </p>
@@ -1132,7 +1134,7 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2 mb-8">
                         {[1, 2].map(step => (
                           <div key={step} className="flex-1">
-                            <div className={`h-1.5 rounded-full transition-all duration-300 ${toneWizardStep >= step ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-white/5'}`} />
+                            <div className={`h-1.5 rounded-full transition-all duration-300 ${toneWizardStep >= step ? 'bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)]' : 'bg-white/5'}`} />
                             <p className={`text-[10px] font-black uppercase tracking-widest mt-2 transition-colors duration-300 ${toneWizardStep >= step ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                               {step === 1 ? 'Basics' : 'Guidelines'}
                             </p>

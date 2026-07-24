@@ -252,6 +252,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   if (!user) {
     navItems = [
       { name: 'Discover', path: '/discover', icon: Compass },
+      { name: 'Profile', path: '/profile', icon: Settings },
     ];
   }
 
@@ -502,20 +503,20 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           <Sparkles className="w-6 h-6 text-primary" />
         </div>
         <DialogTitle className="text-xl font-black text-foreground uppercase tracking-tighter mb-2">
-          Sign Up Required
+          Sign In Required
         </DialogTitle>
         <DialogDescription className="text-sm text-muted-foreground mb-6">
-          Please sign up to activate the lead collection engine and start automated scraping.
+          Please sign in to activate the lead collection engine and start automated scraping.
         </DialogDescription>
         <div className="flex gap-3 w-full">
           <button
             onClick={() => {
               setShowGuestDialog(false);
-              navigate('/signup');
+              navigate('/profile');
             }}
             className="flex-1 bg-white text-black py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
           >
-            Sign Up Free
+            Sign In
           </button>
           <button
             onClick={() => setShowGuestDialog(false)}

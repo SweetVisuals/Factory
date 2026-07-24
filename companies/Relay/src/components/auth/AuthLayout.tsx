@@ -28,10 +28,7 @@ const AuthLayout = () => {
     }
 
     setIsLoading(true);
-    const normalizedUsername = username.toLowerCase().trim();
-    const email = (normalizedUsername === 'admin' || normalizedUsername === 'admin@factory.com')
-      ? 'ptnmgmt@gmail.com'
-      : username;
+    const email = username.toLowerCase().trim();
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -110,7 +107,7 @@ const AuthLayout = () => {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. admin"
+                placeholder="you@company.com"
                 disabled={isLoading}
                 className="bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
               />
