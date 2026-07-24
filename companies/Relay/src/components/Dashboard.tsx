@@ -481,19 +481,19 @@ export const Dashboard = () => {
                       <Tooltip content={<CustomTooltip />} />
                       
                       {/* Active Campaigns */}
-                      <Line type="monotone" dataKey="Active Campaigns" stroke="#60A5FA" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#60A5FA', stroke: '#000', strokeWidth: 2 }} />
+                      <Line type="monotone" dataKey="Active Campaigns" stroke="#60A5FA" strokeWidth={1.5} dot={false} activeDot={{ r: 4, fill: '#60A5FA', stroke: '#000', strokeWidth: 0 }} />
                       
                       {/* Prospects Scraped */}
-                      <Line type="monotone" dataKey="Prospects Scraped" stroke="#FBBF24" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#FBBF24', stroke: '#000', strokeWidth: 2 }} />
+                      <Line type="monotone" dataKey="Prospects Scraped" stroke="#FBBF24" strokeWidth={1.5} dot={false} activeDot={{ r: 4, fill: '#FBBF24', stroke: '#000', strokeWidth: 0 }} />
                       
                       {/* Emails Sent */}
-                      <Line type="monotone" dataKey="Emails Sent" stroke="#34D399" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#34D399', stroke: '#000', strokeWidth: 2 }} />
+                      <Line type="monotone" dataKey="Emails Sent" stroke="#34D399" strokeWidth={1.5} dot={false} activeDot={{ r: 4, fill: '#34D399', stroke: '#000', strokeWidth: 0 }} />
                       
                       {/* Estimated Pipeline */}
-                      <Line type="monotone" dataKey="Estimated Pipeline" stroke="#A78BFA" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#A78BFA', stroke: '#000', strokeWidth: 2 }} />
+                      <Line type="monotone" dataKey="Estimated Pipeline" stroke="#A78BFA" strokeWidth={1.5} dot={false} activeDot={{ r: 4, fill: '#A78BFA', stroke: '#000', strokeWidth: 0 }} />
                       
                       {/* Bounce Rate */}
-                      <Line type="monotone" dataKey="Bounce Rate" stroke="#F87171" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#F87171', stroke: '#000', strokeWidth: 2 }} />
+                      <Line type="monotone" dataKey="Bounce Rate" stroke="#F87171" strokeWidth={1.5} dot={false} activeDot={{ r: 4, fill: '#F87171', stroke: '#000', strokeWidth: 0 }} />
                       
                     </LineChart>
                   </ResponsiveContainer>

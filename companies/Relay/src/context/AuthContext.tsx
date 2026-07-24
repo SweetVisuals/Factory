@@ -80,7 +80,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // 2. Listen for auth state changes — this is the SINGLE SOURCE OF TRUTH
+    // 2. Fast initial load from local storage
+    const fetchInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted && session) {
+          setUser(session.user);
+          await checkOnboardingStatus(session.user.id);
+          clearTimeout(safetyTimeout);
+          setLoading(false);
+        }
+      } catch (e) {
+        console.error('Error fetching initial session:', e);
+      }
+    };
+
+    // 3. Listen for auth state changes — this handles server validation and token refreshes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
@@ -98,8 +113,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
-    // 3. Handle URL tokens first, then let onAuthStateChange resolve everything
-    handleUrlSession();
+    // Run initialization
+    handleUrlSession().then(() => fetchInitialSession());
 
     return () => {
       mounted = false;
