@@ -149,7 +149,6 @@ export default function ProfilePage() {
       const { data } = await supabase.from('businesses').select('*').eq('status', 'active').order('created_at');
       if (data && data.length > 0) { 
         setBusinesses(data); 
-        setSelectedBiz(data[0]); 
       }
     };
     initBusiness();
@@ -161,7 +160,7 @@ export default function ProfilePage() {
       if (data) {
         setTones(data);
         if (data.length > 0 && !selectedTone) {
-          setSelectedTone(data[0]);
+          // Do not auto-select, allow the list view to show by default
         }
       }
     };
@@ -625,7 +624,7 @@ export default function ProfilePage() {
                     <span className="text-sm font-black text-foreground">45 / 100</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: '45%' }} />
+                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '45%' }} />
                   </div>
                 </div>
 
@@ -636,7 +635,7 @@ export default function ProfilePage() {
                     <span className="text-sm font-black text-foreground">2 / 5</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: '40%' }} />
+                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '40%' }} />
                   </div>
                 </div>
 
@@ -647,7 +646,7 @@ export default function ProfilePage() {
                     <span className="text-sm font-black text-foreground">850 / 1000</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: '85%' }} />
+                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '85%' }} />
                   </div>
                 </div>
               </div>
@@ -655,12 +654,12 @@ export default function ProfilePage() {
               {/* AI Credits Section */}
               <div className="p-8 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-primary/10 rounded-xl">
-                    <Zap size={20} className="text-primary" />
+                  <div className="p-2.5 bg-emerald-500/10 rounded-xl">
+                    <Zap size={20} className="text-emerald-500" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-foreground uppercase tracking-tight">AI Credits</h3>
-                    <p className="text-xs text-muted-foreground">
+                    <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Balance</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Paid plans receive a free quota that refreshes automatically. Free tier accounts must top-up manually.
                     </p>
                   </div>
@@ -668,11 +667,11 @@ export default function ProfilePage() {
                 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold text-foreground">Available Credits</span>
-                    <span className="text-sm font-black text-primary">850 / 1000</span>
+                    <span className="text-xs font-bold text-foreground">Available Credits</span>
+                    <span className="text-xs font-black text-emerald-500">850 / 1000</span>
                   </div>
-                  <div className="w-full h-3 bg-muted rounded-xl overflow-hidden border border-white/5">
-                    <div className="h-full bg-primary" style={{ width: '85%' }} />
+                  <div className="w-full h-2 bg-muted rounded-xl overflow-hidden border border-white/5">
+                    <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: '85%' }} />
                   </div>
                 </div>
                 
