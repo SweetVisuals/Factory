@@ -142,7 +142,7 @@ export default function PricingCards({ hideHeader = false }: { hideHeader?: bool
             <button className="w-full bg-sky-500 text-white font-bold py-3 rounded-xl mb-4 hover:bg-sky-400 transition-colors" style={{boxShadow: '0 0 20px rgba(14, 165, 233, 0.4)'}}>
               Get Plus
             </button>
-            <p className="text-center text-xs text-sky-400 mb-8 pb-4 border-b border-white/10">Save $144 compared to monthly</p>
+            <p className={`text-center text-xs ${billingCycle === 'annual' ? 'text-sky-400' : 'text-gray-500'} mb-8 pb-4 border-b border-white/10`}>{billingCycle === 'annual' ? 'Save $144 compared to monthly' : 'No difference compared to monthly'}</p>
 
             <div className="space-y-3 flex-grow">
               <Feature check color="#38bdf8">8 Concurrent Scrapers</Feature>
@@ -203,7 +203,7 @@ export default function PricingCards({ hideHeader = false }: { hideHeader?: bool
             <button className="w-full bg-[#e11d48] text-white font-bold py-3 rounded-xl mb-4 hover:bg-red-500 transition-colors z-10 relative" style={{boxShadow: '0 0 20px rgba(225, 29, 72, 0.4)'}}>
               Get Ultra
             </button>
-            <p className="text-center text-xs text-[#fda4af] mb-8 pb-4 border-b border-white/10 z-10">Save $360 compared to monthly</p>
+            <p className={`text-center text-xs ${billingCycle === 'annual' ? 'text-[#fda4af]' : 'text-gray-500'} mb-8 pb-4 border-b border-white/10 z-10`}>{billingCycle === 'annual' ? 'Save $360 compared to monthly' : 'No difference compared to monthly'}</p>
 
             <div className="space-y-3 flex-grow z-10">
               <Feature check color="white">20 Concurrent Scrapers</Feature>
