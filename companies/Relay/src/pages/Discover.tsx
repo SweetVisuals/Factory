@@ -153,18 +153,12 @@ const Discover: React.FC = () => {
   useEffect(() => {
     fetchCampaigns();
     fetchMetrics();
-    const sub = supabase
-      .channel('public:leads_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
-        fetchLeads();
-        fetchMetrics();
-      })
-      .on('broadcast', { event: 'leads_updated' }, () => {
-        fetchLeads();
-        fetchMetrics();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(sub); };
+    // Replaced realtime subscription with 15s polling to prevent WebSocket connection spam
+    const pollInterval = setInterval(() => {
+      fetchLeads();
+      fetchMetrics();
+    }, 15000);
+    return () => clearInterval(pollInterval);
   }, []);
 
   useEffect(() => {

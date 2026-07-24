@@ -40,6 +40,7 @@ export const Dashboard = () => {
   
   const [globalStats, setGlobalStats] = useState({ totalSent: 0, bounceRate: 0, opportunities: 0, conversions: 0, totalScraped: 0 });
   const [inboxEmails, setInboxEmails] = useState<InboxEmail[]>([]);
+  const [historicalData, setHistoricalData] = useState<{progress: any[], leads: any[]}>({ progress: [], leads: [] });
   
   const [showBounces, setShowBounces] = useState(false);
   const [showOptOuts, setShowOptOuts] = useState(false);
@@ -97,6 +98,29 @@ export const Dashboard = () => {
       const { data: campaignEmailLinks } = await supabase.from('campaign_email_accounts').select('email_account_id').in('campaign_id', campIds);
       const accountIds = Array.from(new Set((campaignEmailLinks || []).map(link => link.email_account_id)));
       const safeAccountIds = accountIds.length > 0 ? accountIds : ['00000000-0000-0000-0000-000000000000'];
+
+      // Fetch historical data for charts
+      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+      
+      const { data: progressData } = await supabase
+        .from('campaign_progress')
+        .select('created_at, status')
+        .gte('created_at', thirtyDaysAgo)
+        .in('campaign_id', campIds)
+        .limit(5000);
+
+      const { data: leadsData } = await supabase
+        .from('leads')
+        .select('created_at, status')
+        .gte('created_at', thirtyDaysAgo)
+        .limit(5000);
+
+      if (progressData || leadsData) {
+        setHistoricalData({ 
+          progress: progressData || [], 
+          leads: leadsData || [] 
+        });
+      }
 
       // Fetch Inbox (include emails matched by campaign OR sent to the business's accounts)
       const { data: iEmails } = await supabase
@@ -217,35 +241,65 @@ export const Dashboard = () => {
 
   const activeCampaignsCount = campaigns.length;
 
-  // Chart Data Generation (Mocked for visual, based on global stats for scale)
+  // Chart Data Generation using Real Historical Data
   const generateChartData = () => {
     const data = [];
     const points = timeRange === 'day' ? 24 : timeRange === 'week' ? 7 : timeRange === 'month' ? 30 : 15;
     const now = new Date();
     
-    const scale = {
-      campaigns: activeCampaignsCount > 0 ? activeCampaignsCount : 5,
-      scraped: globalStats.totalScraped > 0 ? globalStats.totalScraped / points : 100,
-      sent: globalStats.totalSent > 0 ? globalStats.totalSent / points : 50,
-      pipeline: (globalStats.opportunities * 1500 + globalStats.conversions * 5000) > 0 ? ((globalStats.opportunities * 1500 + globalStats.conversions * 5000) / points) : 1000,
-      bounce: globalStats.bounceRate > 0 ? globalStats.bounceRate : 2
+    // Grouping helper
+    const groupByDate = (items: any[], dateAccessor: (item: any) => string) => {
+      const grouped: Record<string, any[]> = {};
+      items.forEach(item => {
+        const d = dateAccessor(item);
+        if (!grouped[d]) grouped[d] = [];
+        grouped[d].push(item);
+      });
+      return grouped;
     };
+
+    const getFormatDate = (d: Date) => timeRange === 'day' ? format(d, 'yyyy-MM-dd HH') : format(d, 'yyyy-MM-dd');
+    
+    const progByDate = groupByDate(historicalData.progress, p => getFormatDate(new Date(p.created_at)));
+    const leadsByDate = groupByDate(historicalData.leads, l => getFormatDate(new Date(l.created_at)));
+
+    let cumulativeSent = 0;
+    let cumulativeBounced = 0;
+    let cumulativeScraped = 0;
+    let cumulativePipelineVal = 0;
 
     for (let i = points; i >= 0; i--) {
       const d = timeRange === 'day' 
         ? new Date(now.getTime() - i * 60 * 60 * 1000) 
         : subDays(now, i);
-
-      const progress = (points - i) / points; // 0 to 1
-      const variation = () => 0.8 + Math.random() * 0.4; // 0.8 to 1.2
       
+      const key = getFormatDate(d);
+      
+      const dayProgress = progByDate[key] || [];
+      const dayLeads = leadsByDate[key] || [];
+
+      const sentToday = dayProgress.filter(p => p.status === 'sent').length;
+      const bouncedToday = dayProgress.filter(p => p.status === 'bounced').length;
+      const scrapedToday = dayLeads.length;
+      
+      const oppsToday = dayLeads.filter(l => ['Opportunity', 'Active', 'Interested', 'Meeting Booked'].includes(l.status)).length;
+      const convsToday = dayLeads.filter(l => ['Converted', 'Closed', 'Client', 'Deal Won'].includes(l.status)).length;
+      const pipelineToday = (oppsToday * 1500) + (convsToday * 5000);
+
+      cumulativeSent += sentToday;
+      cumulativeBounced += bouncedToday;
+      cumulativeScraped += scrapedToday;
+      cumulativePipelineVal += pipelineToday;
+      
+      const bounceRate = cumulativeSent > 0 ? Math.round((cumulativeBounced / (cumulativeSent + cumulativeBounced)) * 100) : 0;
+
       data.push({
         name: timeRange === 'day' ? format(d, 'HH:00') : format(d, 'MMM d'),
-        'Active Campaigns': Math.max(1, Math.floor(scale.campaigns * (0.5 + progress * 0.5) * (0.9 + Math.random() * 0.2))),
-        'Prospects Scraped': Math.floor(scale.scraped * progress * variation() * 10),
-        'Emails Sent': Math.floor(scale.sent * progress * variation() * 5),
-        'Estimated Pipeline': Math.floor(scale.pipeline * progress * variation() * 2),
-        'Bounce Rate': Math.min(100, Math.max(0, scale.bounce * variation() + (Math.random() > 0.8 ? 5 : 0)))
+        'Active Campaigns': activeCampaignsCount, // Campaigns don't have historical creation tracking in this dataset, so we show current
+        'Prospects Scraped': cumulativeScraped,
+        'Emails Sent': cumulativeSent,
+        'Estimated Pipeline': cumulativePipelineVal,
+        'Bounce Rate': bounceRate
       });
     }
     return data;
