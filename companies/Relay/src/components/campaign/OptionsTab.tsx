@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { useToast } from '../ui/use-toast';
-import { Trash2, ShieldAlert, Settings, RefreshCw, Power, Play, Check, AlertTriangle, Fingerprint } from 'lucide-react';
+import { Trash2, Settings, RefreshCw, Power, Play, Check, AlertTriangle, Fingerprint, ShieldAlert } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
@@ -12,17 +12,21 @@ interface OptionsTabProps {
   campaignName: string;
   campaignStatus?: string;
   campaignBusinessId?: string;
+  campaignToneId?: string;
   onNameChange: (newName: string) => void;
   onBusinessChange?: (bizId: string) => void;
+  onToneChange?: (toneId: string) => void;
   onDelete: () => void;
   onResume?: () => void;
 }
 
-const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', campaignBusinessId, onNameChange, onBusinessChange, onDelete, onResume }: OptionsTabProps) => {
+const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', campaignBusinessId, campaignToneId, onNameChange, onBusinessChange, onToneChange, onDelete, onResume }: OptionsTabProps) => {
   const { updateCampaign } = useApp();
   const [name, setName] = useState(campaignName);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [tones, setTones] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState(campaignBusinessId || '');
+  const [toneId, setToneId] = useState(campaignToneId || '');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
@@ -33,13 +37,13 @@ const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', campai
   const currentStatus = (campaignStatus || 'draft').toLowerCase();
 
   useEffect(() => {
-    const fetchBusinesses = async () => {
-      const { data } = await supabase.from('businesses').select('*').eq('status', 'active');
-      if (data) {
-        setBusinesses(data);
-      }
+    const fetchData = async () => {
+      const { data: bData } = await supabase.from('businesses').select('*').eq('status', 'active');
+      if (bData) setBusinesses(bData);
+      const { data: tData } = await supabase.from('email_tones').select('*').eq('status', 'active');
+      if (tData) setTones(tData);
     };
-    fetchBusinesses();
+    fetchData();
   }, []);
 
   const handleUpdateName = async () => {
@@ -209,6 +213,36 @@ const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', campai
               </option>
             ))}
           </select>
+          
+          <div className="mt-4">
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Campaign Tone</h4>
+            <select
+              value={toneId}
+              onChange={async (e) => {
+                const newId = e.target.value;
+                setToneId(newId);
+                if (onToneChange) {
+                  try {
+                    setIsSaving(true);
+                    await onToneChange(newId);
+                    toast({ title: 'Tone Updated', description: 'Campaign Tone updated successfully.' });
+                  } catch (error: any) {
+                    toast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }
+              }}
+              className="w-full bg-foreground/[0.03] border border-border/50 rounded-xl px-4 py-3.5 text-sm font-semibold text-foreground focus:bg-foreground/[0.05] focus:border-primary/50 outline-none transition-all"
+            >
+              <option value="" className="bg-[#111]">No Specific Tone</option>
+              {tones.map((t) => (
+                <option key={t.id} value={t.id} className="bg-[#111]">
+                  {t.name} {t.category ? `(${t.category})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -217,7 +251,7 @@ const OptionsTab = ({ campaignId, campaignName, campaignStatus = 'draft', campai
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex gap-4 items-start">
             <div className="p-3 bg-red-500/10 rounded-xl text-red-500 shrink-0">
-              <ShieldAlert className="h-5 w-5" />
+              <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-sm font-black text-red-500 uppercase tracking-wider mb-0.5">Danger Zone</h3>
