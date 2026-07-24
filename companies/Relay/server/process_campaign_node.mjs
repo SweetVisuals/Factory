@@ -696,11 +696,13 @@ export async function runProcessCampaign() {
             const bizOverview = e.campaigns?.businesses?.overview_md || '';
             const bizIndustry = e.campaigns?.businesses?.industry || '';
             const bizTarget = e.campaigns?.businesses?.target_audience || '';
+            const bizAims = e.campaigns?.businesses?.aims_md || '';
+            const bizObjectives = e.campaigns?.businesses?.objectives_md || '';
             const toneCategory = emailToneData?.category || '';
             const toneGuide = emailToneData?.content_md || '';
             const k =
                 `You are a strict data-replacement engine. Your ONLY job is to take the provided Email Template and replace its placeholders with the correct data from the Lead Data and Business Context.
-${bizIndustry ? 'BUSINESS INDUSTRY:\n' + bizIndustry + '\n\n' : ''}${bizTarget ? 'TARGET AUDIENCE:\n' + bizTarget + '\n\n' : ''}${toneCategory ? 'TONE CATEGORY: ' + toneCategory + '\n\n' : ''}${bizOverview ? 'BUSINESS CONTEXT:\n' + bizOverview.substring(0, 2000) + '\n\n' : ''}
+${bizIndustry ? 'BUSINESS INDUSTRY:\n' + bizIndustry + '\n\n' : ''}${bizTarget ? 'TARGET AUDIENCE:\n' + bizTarget + '\n\n' : ''}${bizAims ? 'CAMPAIGN AIMS:\n' + bizAims + '\n\n' : ''}${bizObjectives ? 'BUSINESS OBJECTIVES:\n' + bizObjectives + '\n\n' : ''}${toneCategory ? 'TONE CATEGORY: ' + toneCategory + '\n\n' : ''}${bizOverview ? 'BUSINESS CONTEXT:\n' + bizOverview.substring(0, 2000) + '\n\n' : ''}
 STRICT PLACEHOLDER DICTIONARY:
 - [LEAD COMPANY]: The exact name of the prospect company
 - [LEAD FIRST NAME]: The first name of the prospect

@@ -46,6 +46,7 @@ export default function ProfilePage() {
   const [editIndustry, setEditIndustry] = useState('');
   const [editTargetAudience, setEditTargetAudience] = useState('');
   const [isSavingBiz, setIsSavingBiz] = useState(false);
+  const [bizWizardStep, setBizWizardStep] = useState(1);
   const [showUpload, setShowUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -54,8 +55,9 @@ export default function ProfilePage() {
   const [selectedTone, setSelectedTone] = useState<EmailTone | null>(null);
   const [isEditingTone, setIsEditingTone] = useState(false);
   const [editToneContent, setEditToneContent] = useState('');
-  const [editToneCategory, setEditToneCategory] = useState('FORMAL');
+  const [editToneCategory, setEditToneCategory] = useState('CUSTOM');
   const [isSavingTone, setIsSavingTone] = useState(false);
+  const [toneWizardStep, setToneWizardStep] = useState(1);
   const [showToneUpload, setShowToneUpload] = useState(false);
   const toneFileRef = useRef<HTMLInputElement>(null);
 
@@ -265,6 +267,24 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteBiz = async () => {
+    if (!selectedBiz || selectedBiz.id === 'new') return;
+    if (!confirm('Are you sure you want to permanently delete this Business Profile? The AI will no longer use it.')) return;
+    
+    setIsSavingBiz(true);
+    const { error } = await supabase.from('businesses').delete().eq('id', selectedBiz.id);
+    setIsSavingBiz(false);
+    
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to delete business profile.', variant: 'destructive' });
+    } else {
+      setBusinesses(prev => prev.filter(b => b.id !== selectedBiz.id));
+      setSelectedBiz(null);
+      setIsEditingBiz(false);
+      toast({ title: 'Deleted', description: 'Business profile has been removed.' });
+    }
+  };
+
   const handleAiEdit = async () => {
     if (!aiPrompt.trim()) {
       toast({ title: 'Error', description: 'Please enter a prompt for the AI' });
@@ -358,6 +378,24 @@ export default function ProfilePage() {
       setSelectedTone(data);
       toast({ title: 'Saved', description: 'Email tone guide saved successfully.' });
       setIsEditingTone(false);
+    }
+  };
+
+  const handleDeleteTone = async () => {
+    if (!selectedTone || selectedTone.id === 'new') return;
+    if (!confirm('Are you sure you want to permanently delete this Tone Guide?')) return;
+    
+    setIsSavingTone(true);
+    const { error } = await supabase.from('email_tones').delete().eq('id', selectedTone.id);
+    setIsSavingTone(false);
+    
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to delete tone guide.', variant: 'destructive' });
+    } else {
+      setTones(prev => prev.filter(t => t.id !== selectedTone.id));
+      setSelectedTone(null);
+      setIsEditingTone(false);
+      toast({ title: 'Deleted', description: 'Tone guide has been removed.' });
     }
   };
 
@@ -695,27 +733,20 @@ export default function ProfilePage() {
                     </div>
                     {isEditingBiz ? (
                       <div className="flex gap-2">
-                        <button 
-                          onClick={handlePreview}
-                          disabled={previewLoading}
-                          className="px-4 py-2 bg-background text-foreground border border-white/5 rounded-xl text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
-                        >
-                          {previewLoading ? <RefreshCw size={14} className="animate-spin" /> : <Eye size={14} />}
-                          Preview AI Email
-                        </button>
+                        {selectedBiz.id !== 'new' && (
+                          <button 
+                            onClick={handleDeleteBiz}
+                            className="px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold hover:bg-red-500/20 transition-colors mr-2 flex items-center gap-2"
+                          >
+                            <Trash2 size={14} />
+                            Delete Profile
+                          </button>
+                        )}
                         <button 
                           onClick={() => setIsEditingBiz(false)}
                           className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                         >
                           Cancel
-                        </button>
-                        <button 
-                          onClick={handleSaveBiz}
-                          disabled={isSavingBiz}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
-                        >
-                          {isSavingBiz ? <RefreshCw size={14} className="animate-spin" /> : <Settings size={14} />}
-                          Save Changes
                         </button>
                       </div>
                     ) : (
@@ -727,6 +758,7 @@ export default function ProfilePage() {
                           setEditIndustry(selectedBiz.industry || '');
                           setEditTargetAudience(selectedBiz.target_audience || '');
                           setIsEditingBiz(true); 
+                          setBizWizardStep(1);
                         }}
                         className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                       >
@@ -736,139 +768,190 @@ export default function ProfilePage() {
                   </div>
 
                   {isEditingBiz ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-bold text-foreground mb-2">Industry</label>
-                          <select 
-                            value={editIndustry}
-                            onChange={(e) => setEditIndustry(e.target.value)}
-                            className="w-full bg-[#111111] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
-                          >
-                            <option value="">Select Industry...</option>
-                            <option value="B2B SaaS">B2B SaaS</option>
-                            <option value="Real Estate">Real Estate</option>
-                            <option value="E-commerce">E-commerce</option>
-                            <option value="Trades & Construction">Trades & Construction</option>
-                            <option value="Marketing Agency">Marketing Agency</option>
-                            <option value="Custom">Custom</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-bold text-foreground mb-2">Target Audience</label>
-                          <input 
-                            value={editTargetAudience}
-                            onChange={(e) => setEditTargetAudience(e.target.value)}
-                            placeholder="e.g. CMOs and VPs of Marketing"
-                            className="w-full bg-background border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-foreground mb-2">Campaign Aims</label>
-                        <textarea 
-                          value={editAims}
-                          onChange={(e) => setEditAims(e.target.value)}
-                          placeholder="e.g. Book 5 meetings this month for enterprise clients"
-                          className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Pain Points to Avoid</label>
-                          <textarea 
-                            value={editPainPoints}
-                            onChange={(e) => setEditPainPoints(e.target.value)}
-                            placeholder="e.g. Budget constraints, Long onboarding"
-                            className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Negative Keywords</label>
-                          <textarea 
-                            value={editNegativeKeywords}
-                            onChange={(e) => setEditNegativeKeywords(e.target.value)}
-                            placeholder="e.g. Cheap, Free, Trial"
-                            className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-foreground mb-2">Business Objectives</label>
-                        <textarea 
-                          value={editObjectives}
-                          onChange={(e) => setEditObjectives(e.target.value)}
-                          placeholder="e.g. To educate prospects on our new AI features"
-                          className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-foreground mb-2">General Overview</label>
-                        <textarea 
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full h-96 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
-                        />
-                      </div>
-                      
-                      {/* AI Assistant Section */}
-                      <div className="space-y-3 pt-4 border-t border-white/5 mt-6">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
-                            <Sparkles size={12} className="text-primary" /> Groq AI Refiner (Free Llama 3)
-                          </label>
-                          {groqUsageCount !== null && (
-                            <span className="text-[10px] font-black text-muted-foreground px-2 py-0.5 bg-white/5 rounded-xl uppercase tracking-widest border border-white/5">
-                              Daily Used: {groqUsageCount}/5 edits
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={aiPrompt}
-                            onChange={(e) => setAiPrompt(e.target.value)}
-                            disabled={isAiLoading}
-                            placeholder="e.g. 'Make the copy more casual' or 'Add Plastering segment...'"
-                            className="flex-1 rounded-xl border border-white/5 bg-[#111111] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAiEdit}
-                            disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
-                            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20 shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
-                          >
-                            {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                            Refine
-                          </button>
-                        </div>
+                    <div className="space-y-6 mt-4">
+                      {/* Wizard Progress */}
+                      <div className="flex items-center gap-2 mb-8">
+                        {[1, 2, 3].map(step => (
+                          <div key={step} className="flex-1">
+                            <div className={`h-1.5 rounded-full transition-colors ${bizWizardStep >= step ? 'bg-primary' : 'bg-white/5'}`} />
+                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 ${bizWizardStep >= step ? 'text-primary' : 'text-muted-foreground'}`}>
+                              {step === 1 ? 'Basics' : step === 2 ? 'Strategy' : 'Context'}
+                            </p>
+                          </div>
+                        ))}
                       </div>
 
-                      {/* AI Preview Box */}
-                      {(previewLoading || previewResult) && (
-                        <div className="mt-8 border border-white/5 bg-[#111111]/50 backdrop-blur-md rounded-xl overflow-hidden">
-                          <div className="px-4 py-3 border-b border-white/5 bg-muted/30 flex items-center justify-between">
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                              <Sparkles size={12} className="text-primary" /> AI Sandbox Preview
-                            </span>
-                            {previewLoading && <RefreshCw size={12} className="animate-spin text-muted-foreground" />}
-                          </div>
-                          <div className="p-6">
-                            {previewLoading ? (
-                              <div className="space-y-4">
-                                <div className="h-4 bg-muted/50 w-3/4 rounded-xl animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-full rounded-xl animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-5/6 rounded-xl animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-1/2 rounded-xl animate-pulse"></div>
+                      <div className="min-h-[300px]">
+                        {bizWizardStep === 1 && (
+                          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div>
+                                <label className="block text-sm font-bold text-foreground mb-1">Industry</label>
+                                <p className="text-[10px] text-muted-foreground mb-3">The AI uses this to tailor the terminology in the email.</p>
+                                <select 
+                                  value={editIndustry}
+                                  onChange={(e) => setEditIndustry(e.target.value)}
+                                  className="w-full bg-[#111111] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
+                                >
+                                  <option value="">Select Industry...</option>
+                                  <option value="B2B SaaS">B2B SaaS</option>
+                                  <option value="Real Estate">Real Estate</option>
+                                  <option value="E-commerce">E-commerce</option>
+                                  <option value="Trades & Construction">Trades & Construction</option>
+                                  <option value="Marketing Agency">Marketing Agency</option>
+                                  <option value="Custom">Custom</option>
+                                </select>
                               </div>
-                            ) : (
-                              <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
-                                {previewResult}
-                              </pre>
+                              <div>
+                                <label className="block text-sm font-bold text-foreground mb-1">Target Audience</label>
+                                <p className="text-[10px] text-muted-foreground mb-3">Who you are speaking to (e.g. CMOs, Founders).</p>
+                                <input 
+                                  value={editTargetAudience}
+                                  onChange={(e) => setEditTargetAudience(e.target.value)}
+                                  placeholder="e.g. CMOs and VPs of Marketing"
+                                  className="w-full bg-background border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {bizWizardStep === 2 && (
+                          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div>
+                              <label className="block text-sm font-bold text-foreground mb-1">Campaign Aims</label>
+                              <p className="text-[10px] text-muted-foreground mb-3">The AI uses this to craft the Call To Action (e.g. book a call).</p>
+                              <textarea 
+                                value={editAims}
+                                onChange={(e) => setEditAims(e.target.value)}
+                                placeholder="e.g. Book 5 meetings this month for enterprise clients"
+                                className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-bold text-foreground mb-1">Business Objectives</label>
+                              <p className="text-[10px] text-muted-foreground mb-3">The underlying reason for reaching out. What is your goal?</p>
+                              <textarea 
+                                value={editObjectives}
+                                onChange={(e) => setEditObjectives(e.target.value)}
+                                placeholder="e.g. To educate prospects on our new AI features"
+                                className="w-full h-24 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:border-primary/50 resize-y"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {bizWizardStep === 3 && (
+                          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div>
+                              <label className="block text-sm font-bold text-foreground mb-1">General Overview (Core Context)</label>
+                              <p className="text-[10px] text-muted-foreground mb-3">The raw, detailed knowledge base the AI will pull facts from.</p>
+                              <textarea 
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                className="w-full h-64 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                              />
+                            </div>
+                            
+                            {/* AI Assistant Section */}
+                            <div className="space-y-3 pt-4 border-t border-white/5 mt-6">
+                              <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
+                                  <Sparkles size={12} className="text-primary" /> Groq AI Refiner (Free Llama 3)
+                                </label>
+                                {groqUsageCount !== null && (
+                                  <span className="text-[10px] font-black text-muted-foreground px-2 py-0.5 bg-white/5 rounded-xl uppercase tracking-widest border border-white/5">
+                                    Daily Used: {groqUsageCount}/5 edits
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={aiPrompt}
+                                  onChange={(e) => setAiPrompt(e.target.value)}
+                                  disabled={isAiLoading}
+                                  placeholder="e.g. 'Make the copy more casual' or 'Add Plastering segment...'"
+                                  className="flex-1 rounded-xl border border-white/5 bg-[#111111] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleAiEdit}
+                                  disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
+                                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20 shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                  {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                  Refine
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-end pt-2">
+                              <button 
+                                onClick={handlePreview}
+                                disabled={previewLoading}
+                                className="px-4 py-2 bg-background text-foreground border border-white/5 rounded-xl text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
+                              >
+                                {previewLoading ? <RefreshCw size={14} className="animate-spin" /> : <Eye size={14} />}
+                                Preview AI Email Template
+                              </button>
+                            </div>
+
+                            {/* AI Preview Box */}
+                            {(previewLoading || previewResult) && (
+                              <div className="border border-white/5 bg-[#111111]/50 backdrop-blur-md rounded-xl overflow-hidden">
+                                <div className="px-4 py-3 border-b border-white/5 bg-muted/30 flex items-center justify-between">
+                                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                    <Sparkles size={12} className="text-primary" /> AI Sandbox Preview
+                                  </span>
+                                </div>
+                                <div className="p-6">
+                                  {previewLoading ? (
+                                    <div className="space-y-4">
+                                      <div className="h-4 bg-muted/50 w-3/4 rounded-xl animate-pulse"></div>
+                                      <div className="h-4 bg-muted/50 w-full rounded-xl animate-pulse"></div>
+                                      <div className="h-4 bg-muted/50 w-5/6 rounded-xl animate-pulse"></div>
+                                      <div className="h-4 bg-muted/50 w-1/2 rounded-xl animate-pulse"></div>
+                                    </div>
+                                  ) : (
+                                    <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
+                                      {previewResult}
+                                    </pre>
+                                  )}
+                                </div>
+                              </div>
                             )}
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                      
+                      {/* Wizard Navigation */}
+                      <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                        <button
+                          onClick={() => setBizWizardStep(Math.max(1, bizWizardStep - 1))}
+                          disabled={bizWizardStep === 1}
+                          className="px-5 py-2.5 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                        >
+                          Back
+                        </button>
+                        {bizWizardStep < 3 ? (
+                          <button
+                            onClick={() => setBizWizardStep(bizWizardStep + 1)}
+                            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
+                          >
+                            Next Step
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleSaveBiz}
+                            disabled={isSavingBiz}
+                            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
+                          >
+                            {isSavingBiz ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                            Complete Profile
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-6">
@@ -978,27 +1061,20 @@ export default function ProfilePage() {
                     </div>
                     {isEditingTone ? (
                       <div className="flex gap-2">
-                        <button 
-                          onClick={handlePreview}
-                          disabled={previewLoading}
-                          className="px-4 py-2 bg-background text-foreground border border-white/5 rounded-xl text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
-                        >
-                          {previewLoading ? <RefreshCw size={14} className="animate-spin" /> : <Eye size={14} />}
-                          Preview AI Email
-                        </button>
+                        {selectedTone.id !== 'new' && (
+                          <button 
+                            onClick={handleDeleteTone}
+                            className="px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold hover:bg-red-500/20 transition-colors mr-2 flex items-center gap-2"
+                          >
+                            <Trash2 size={14} />
+                            Delete Tone
+                          </button>
+                        )}
                         <button 
                           onClick={() => setIsEditingTone(false)}
                           className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                         >
                           Cancel
-                        </button>
-                        <button 
-                          onClick={handleSaveTone}
-                          disabled={isSavingTone}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
-                        >
-                          {isSavingTone ? <RefreshCw size={14} className="animate-spin" /> : <Settings size={14} />}
-                          Save Changes
                         </button>
                       </div>
                     ) : (
@@ -1007,6 +1083,7 @@ export default function ProfilePage() {
                           setEditToneContent(selectedTone.content_md || ''); 
                           setEditToneCategory(selectedTone.category || 'FORMAL');
                           setIsEditingTone(true); 
+                          setToneWizardStep(1);
                         }}
                         className="px-4 py-2 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors"
                       >
@@ -1016,88 +1093,115 @@ export default function ProfilePage() {
                   </div>
 
                   {isEditingTone ? (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-bold text-foreground mb-2">Category</label>
-                        <select 
-                          value={editToneCategory}
-                          onChange={(e) => setEditToneCategory(e.target.value)}
-                          className="w-full bg-[#111111] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
-                        >
-                          <option value="FORMAL">Formal</option>
-                          <option value="CASUAL">Casual</option>
-                          <option value="GREETING">Greeting</option>
-                          <option value="FOLLOW_UP">Follow-up</option>
-                          <option value="CUSTOM">Custom</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-foreground mb-2">Instructions</label>
-                        <textarea 
-                          value={editToneContent}
-                          onChange={(e) => setEditToneContent(e.target.value)}
-                          className="w-full h-96 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
-                        />
-                      </div>
-                      
-                      {/* AI Assistant Section */}
-                      <div className="p-4 bg-black/40 border border-white/5 rounded-xl space-y-3">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
-                            <Sparkles size={12} className="text-primary" /> Groq AI Refiner (Free Llama 3)
-                          </label>
-                          {groqUsageCount !== null && (
-                            <span className="text-[10px] font-black text-muted-foreground px-2 py-0.5 bg-white/5 rounded-xl uppercase tracking-widest border border-white/5">
-                              Daily Used: {groqUsageCount}/5 edits
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={aiPrompt}
-                            onChange={(e) => setAiPrompt(e.target.value)}
-                            disabled={isAiLoading}
-                            placeholder="e.g. 'Add follow-up subject lines' or 'Change tone to casual'..."
-                            className="flex-1 rounded-xl border border-white/5 bg-[#111111] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAiToneEdit}
-                            disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
-                            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20 shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
-                          >
-                            {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                            Refine
-                          </button>
-                        </div>
+                    <div className="space-y-6 mt-4">
+                      {/* Wizard Progress */}
+                      <div className="flex items-center gap-2 mb-8">
+                        {[1, 2].map(step => (
+                          <div key={step} className="flex-1">
+                            <div className={`h-1.5 rounded-full transition-colors ${toneWizardStep >= step ? 'bg-primary' : 'bg-white/5'}`} />
+                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 ${toneWizardStep >= step ? 'text-primary' : 'text-muted-foreground'}`}>
+                              {step === 1 ? 'Basics' : 'Guidelines'}
+                            </p>
+                          </div>
+                        ))}
                       </div>
 
-                      {/* AI Preview Box */}
-                      {(previewLoading || previewResult) && (
-                        <div className="mt-8 border border-white/5 bg-[#111111]/50 backdrop-blur-md rounded-xl overflow-hidden">
-                          <div className="px-4 py-3 border-b border-white/5 bg-muted/30 flex items-center justify-between">
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                              <Sparkles size={12} className="text-primary" /> AI Sandbox Preview
-                            </span>
-                            {previewLoading && <RefreshCw size={12} className="animate-spin text-muted-foreground" />}
+                      <div className="min-h-[300px]">
+                        {toneWizardStep === 1 && (
+                          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div>
+                              <label className="block text-sm font-bold text-foreground mb-1">Category</label>
+                              <p className="text-[10px] text-muted-foreground mb-3">Group this tone guide to keep your workspace organized.</p>
+                              <select 
+                                value={editToneCategory}
+                                onChange={(e) => setEditToneCategory(e.target.value)}
+                                className="w-full bg-[#111111] border border-white/5 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-primary/50 appearance-none"
+                              >
+                                <option value="FORMAL">Formal</option>
+                                <option value="CASUAL">Casual</option>
+                                <option value="GREETING">Greeting</option>
+                                <option value="FOLLOW_UP">Follow-up</option>
+                                <option value="CUSTOM">Custom</option>
+                              </select>
+                            </div>
                           </div>
-                          <div className="p-6">
-                            {previewLoading ? (
-                              <div className="space-y-4">
-                                <div className="h-4 bg-muted/50 w-3/4 rounded-xl animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-full rounded-xl animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-5/6 rounded-xl animate-pulse"></div>
-                                <div className="h-4 bg-muted/50 w-1/2 rounded-xl animate-pulse"></div>
+                        )}
+
+                        {toneWizardStep === 2 && (
+                          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div>
+                              <label className="block text-sm font-bold text-foreground mb-1">Instructions & Guidelines</label>
+                              <p className="text-[10px] text-muted-foreground mb-3">The rules the AI will follow when writing. Add examples of good and bad emails here.</p>
+                              <textarea 
+                                value={editToneContent}
+                                onChange={(e) => setEditToneContent(e.target.value)}
+                                className="w-full h-96 bg-background border border-white/5 rounded-xl p-4 text-sm text-foreground font-mono focus:outline-none focus:border-primary/50 resize-y"
+                              />
+                            </div>
+                            
+                            {/* AI Assistant Section */}
+                            <div className="space-y-3 pt-4 border-t border-white/5 mt-6">
+                              <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
+                                  <Sparkles size={12} className="text-primary" /> Groq AI Refiner (Free Llama 3)
+                                </label>
+                                {groqUsageCount !== null && (
+                                  <span className="text-[10px] font-black text-muted-foreground px-2 py-0.5 bg-white/5 rounded-xl uppercase tracking-widest border border-white/5">
+                                    Daily Used: {groqUsageCount}/5 edits
+                                  </span>
+                                )}
                               </div>
-                            ) : (
-                              <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
-                                {previewResult}
-                              </pre>
-                            )}
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={aiPrompt}
+                                  onChange={(e) => setAiPrompt(e.target.value)}
+                                  disabled={isAiLoading}
+                                  placeholder="e.g. 'Add follow-up subject lines' or 'Change tone to casual'..."
+                                  className="flex-1 rounded-xl border border-white/5 bg-[#111111] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleAiToneEdit}
+                                  disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
+                                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20 shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                  {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                  Refine
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+
+                      {/* Wizard Navigation */}
+                      <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                        <button
+                          onClick={() => setToneWizardStep(Math.max(1, toneWizardStep - 1))}
+                          disabled={toneWizardStep === 1}
+                          className="px-5 py-2.5 bg-secondary text-foreground rounded-xl text-sm font-bold hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                        >
+                          Back
+                        </button>
+                        {toneWizardStep < 2 ? (
+                          <button
+                            onClick={() => setToneWizardStep(toneWizardStep + 1)}
+                            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
+                          >
+                            Next Step
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleSaveTone}
+                            disabled={isSavingTone}
+                            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2"
+                          >
+                            {isSavingTone ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                            Complete Profile
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-6">
