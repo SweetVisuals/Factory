@@ -370,13 +370,13 @@ export default function ProfilePage() {
           <div className="max-w-[1200px] mx-auto w-full">
           
             {/* Top Navigation Tabs */}
-            <div className="flex items-center gap-2 mb-8 bg-black/40 p-2 rounded-xl backdrop-blur-sm border border-white/5 overflow-x-auto">
+            <div className="flex items-center gap-1 mb-8 bg-black/40 p-1 rounded-lg backdrop-blur-sm border border-white/5 overflow-x-auto">
               {[
-                { id: 'profile', label: 'Personal Profile', icon: User },
-                { id: 'business', label: 'Business Profiles', icon: Building2 },
-                { id: 'tone', label: 'Email Tones', icon: Mail },
-                { id: 'usage', label: 'Usage & Limits', icon: Activity },
-                { id: 'subscription', label: 'Pricing', icon: CreditCard }
+                { id: 'profile', label: 'Profile', icon: User },
+                { id: 'business', label: 'Business', icon: Building2 },
+                { id: 'tone', label: 'Emails', icon: Mail },
+                { id: 'usage', label: 'Usage', icon: Activity },
+                { id: 'subscription', label: 'Plans', icon: CreditCard }
               ].map(tab => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -385,13 +385,13 @@ export default function ProfilePage() {
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
+                      "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap",
                       isActive 
                         ? "bg-primary/20 text-primary border border-primary/20" 
                         : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                     )}
                   >
-                    <Icon size={16} />
+                    <Icon size={14} />
                     {tab.label}
                   </button>
                 );
@@ -506,18 +506,18 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="pt-8 mt-12 border-t border-red-500/10 space-y-6">
-                <div className="flex items-center justify-between p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
+              <div className="pt-8 mt-12 border-t border-white/5 space-y-6">
+                <div className="flex items-center justify-between p-6 bg-[#0f172a] border border-white/5 rounded-xl">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-red-500/10 rounded-xl">
-                      <AlertTriangle size={24} className="text-red-500" />
+                    <div className="p-3 bg-white/5 rounded-xl">
+                      <AlertTriangle size={24} className="text-muted-foreground" />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="text-lg font-bold text-red-500">Danger Zone: Delete Account</span>
-                      <span className="text-xs font-medium text-red-500/70">Permanently delete your account and all data. This action cannot be undone.</span>
+                      <span className="text-lg font-black text-foreground uppercase tracking-tight">Danger Zone: Delete Account</span>
+                      <span className="text-xs font-medium text-muted-foreground">Permanently delete your account and all data. This action cannot be undone.</span>
                     </div>
                   </div>
-                  <button className="px-6 py-3 bg-red-500/10 text-red-500 rounded-xl text-sm font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                  <button className="px-6 py-3 bg-black/40 text-foreground rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/5 hover:bg-white/5 transition-all shadow-sm">
                     Delete Account
                   </button>
                 </div>
@@ -768,13 +768,13 @@ export default function ProfilePage() {
                       </div>
                       
                       {/* AI Assistant Section */}
-                      <div className="p-4 bg-muted/40 border border-white/5 rounded-xl space-y-3">
+                      <div className="p-4 bg-black/40 border border-white/5 rounded-xl space-y-3">
                         <div className="flex justify-between items-center">
-                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                            <Sparkles size={12} className="text-amber-400" /> Groq AI Refiner (Free Llama 3)
+                          <label className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-primary" /> Groq AI Refiner (Free Llama 3)
                           </label>
                           {groqUsageCount !== null && (
-                            <span className="text-[10px] font-bold text-muted-foreground px-2 py-0.5 bg-muted rounded-full uppercase tracking-wider">
+                            <span className="text-[10px] font-black text-muted-foreground px-2 py-0.5 bg-white/5 rounded-xl uppercase tracking-widest border border-white/5">
                               Daily Used: {groqUsageCount}/5 edits
                             </span>
                           )}
@@ -786,13 +786,13 @@ export default function ProfilePage() {
                             onChange={(e) => setAiPrompt(e.target.value)}
                             disabled={isAiLoading}
                             placeholder="e.g. 'Make the copy more casual' or 'Add Plastering segment...'"
-                            className="flex-1 rounded-xl border border-white/5 bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                            className="flex-1 rounded-xl border border-white/5 bg-[#0f172a] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                           />
                           <button
                             type="button"
                             onClick={handleAiEdit}
                             disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20 shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
                           >
                             {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
                             Refine
@@ -854,34 +854,43 @@ export default function ProfilePage() {
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col gap-4">
-                  {businesses.map(b => (
-                    <div 
-                      key={b.id} 
-                      onClick={() => setSelectedBiz(b)}
-                      className="flex flex-col md:flex-row items-start md:items-center gap-4 p-5 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl shadow-sm hover:border-primary/50 transition-colors cursor-pointer"
-                    >
-                      <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
-                        <Building2 size={20} className="text-primary" />
+                <div className="flex flex-col gap-8">
+                  {Object.entries(businesses.reduce((acc, biz) => {
+                    const ind = biz.industry || 'Uncategorized';
+                    if (!acc[ind]) acc[ind] = [];
+                    acc[ind].push(biz);
+                    return acc;
+                  }, {} as Record<string, typeof businesses>)).map(([industry, group]) => (
+                    <div key={industry} className="space-y-4">
+                      <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                        <h3 className="text-base font-black text-foreground uppercase tracking-tight">{industry}</h3>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-base font-semibold text-foreground">{b.name}</h3>
-                        {b.target_audience && (
-                          <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1.5"><Target size={14}/> {b.target_audience}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                          {b.overview_md ? b.overview_md : 'No context provided.'}
-                        </p>
-                      </div>
-                      <div className="flex flex-col md:items-end gap-2 shrink-0">
-                        <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-semibold uppercase tracking-wider rounded-xl">
-                          {b.status}
-                        </span>
-                        {b.industry && (
-                          <span className="px-2 py-1 bg-secondary text-secondary-foreground text-xs font-semibold uppercase tracking-wider rounded-xl">
-                            {b.industry}
-                          </span>
-                        )}
+                      <div className="flex flex-col gap-4">
+                        {group.map(b => (
+                          <div 
+                            key={b.id} 
+                            onClick={() => setSelectedBiz(b)}
+                            className="flex flex-col md:flex-row items-start md:items-center gap-4 p-5 bg-white/[0.03] border border-white/5 rounded-xl shadow-sm hover:bg-white/[0.06] transition-colors cursor-pointer group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                              <Building2 size={16} className="text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-[13px] font-bold text-white/90">{b.name}</h3>
+                              {b.target_audience && (
+                                <p className="text-[10px] font-bold text-muted-foreground/60 mt-0.5 flex items-center gap-1.5"><Target size={12}/> {b.target_audience}</p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                                {b.overview_md ? b.overview_md : 'No context provided.'}
+                              </p>
+                            </div>
+                            <div className="flex flex-col md:items-end gap-2 shrink-0">
+                              <span className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold uppercase tracking-widest rounded-xl">
+                                {b.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
@@ -1004,13 +1013,13 @@ export default function ProfilePage() {
                       </div>
                       
                       {/* AI Assistant Section */}
-                      <div className="p-4 bg-muted/40 border border-white/5 rounded-xl space-y-3">
+                      <div className="p-4 bg-black/40 border border-white/5 rounded-xl space-y-3">
                         <div className="flex justify-between items-center">
-                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                            <Sparkles size={12} className="text-amber-400" /> Groq AI Refiner (Free Llama 3)
+                          <label className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-primary" /> Groq AI Refiner (Free Llama 3)
                           </label>
                           {groqUsageCount !== null && (
-                            <span className="text-[10px] font-bold text-muted-foreground px-2 py-0.5 bg-muted rounded-full uppercase tracking-wider">
+                            <span className="text-[10px] font-black text-muted-foreground px-2 py-0.5 bg-white/5 rounded-xl uppercase tracking-widest border border-white/5">
                               Daily Used: {groqUsageCount}/5 edits
                             </span>
                           )}
@@ -1022,13 +1031,13 @@ export default function ProfilePage() {
                             onChange={(e) => setAiPrompt(e.target.value)}
                             disabled={isAiLoading}
                             placeholder="e.g. 'Add follow-up subject lines' or 'Change tone to casual'..."
-                            className="flex-1 rounded-xl border border-white/5 bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                            className="flex-1 rounded-xl border border-white/5 bg-[#0f172a] px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                           />
                           <button
                             type="button"
                             onClick={handleAiToneEdit}
                             disabled={isAiLoading || (groqUsageCount !== null && groqUsageCount >= 5)}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20 shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 disabled:opacity-50"
                           >
                             {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
                             Refine
@@ -1079,39 +1088,40 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="space-y-10">
-                  {['FORMAL', 'CASUAL', 'GREETING', 'FOLLOW_UP', 'CUSTOM'].map(category => {
-                    const categoryTones = tones.filter(t => (t.category || 'FORMAL') === category);
-                    if (categoryTones.length === 0) return null;
-                    return (
-                      <div key={category} className="space-y-4">
-                        <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                          <h3 className="text-base font-semibold text-foreground uppercase tracking-wider">{category.replace('_', '-')}</h3>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {categoryTones.map(t => (
-                            <div 
-                              key={t.id} 
-                              onClick={() => setSelectedTone(t)}
-                              className="flex flex-col p-5 bg-[#0f172a]/50 backdrop-blur-md border border-white/5 rounded-xl shadow-sm hover:border-primary/50 transition-colors cursor-pointer"
-                            >
-                              <div className="flex justify-between items-start mb-4">
-                                <div className="p-2 bg-primary/10 rounded-xl">
-                                  <Mail size={18} className="text-primary" />
-                                </div>
-                                <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-semibold uppercase tracking-wider rounded-xl">
-                                  Active
-                                </span>
-                              </div>
-                              <h3 className="text-base font-semibold text-foreground mb-1">{t.name}</h3>
-                              <p className="text-sm text-muted-foreground line-clamp-3">
-                                {t.content_md ? t.content_md : 'No guidelines provided.'}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
+                  {Object.entries(tones.reduce((acc, t) => {
+                    const cat = t.category || 'Uncategorized';
+                    if (!acc[cat]) acc[cat] = [];
+                    acc[cat].push(t);
+                    return acc;
+                  }, {} as Record<string, typeof tones>)).map(([category, group]) => (
+                    <div key={category} className="space-y-4">
+                      <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                        <h3 className="text-base font-black text-foreground uppercase tracking-tight">{category.replace('_', '-')}</h3>
                       </div>
-                    );
-                  })}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {group.map(t => (
+                          <div 
+                            key={t.id} 
+                            onClick={() => setSelectedTone(t)}
+                            className="flex flex-col p-5 bg-white/[0.03] border border-white/5 rounded-xl shadow-sm hover:bg-white/[0.06] transition-colors cursor-pointer group"
+                          >
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                                <Mail size={14} className="text-primary" />
+                              </div>
+                              <span className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold uppercase tracking-widest rounded-xl">
+                                Active
+                              </span>
+                            </div>
+                            <h3 className="text-[13px] font-bold text-white/90 mb-1">{t.name}</h3>
+                            <p className="text-[10px] font-bold text-muted-foreground/60 line-clamp-3">
+                              {t.content_md ? t.content_md : 'No guidelines provided.'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
