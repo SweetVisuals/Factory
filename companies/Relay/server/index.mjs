@@ -340,12 +340,16 @@ async function generateAndSaveSequencesForCampaign(campaignId, autoPause = true)
     const pitch = campaign.pitch || campaign.objective || '';
 
     let businessOverview = campaign.businesses?.overview_md || '';
+    let businessAims = campaign.businesses?.aims_md || '';
+    let businessObjectives = campaign.businesses?.objectives_md || '';
     let emailToneContent = '';
+    let emailToneCategory = '';
     
     if (campaign.email_tone_id) {
-      const { data: tone } = await client.from('email_tones').select('content_md').eq('id', campaign.email_tone_id).single();
+      const { data: tone } = await client.from('email_tones').select('content_md, category').eq('id', campaign.email_tone_id).single();
       if (tone) {
         emailToneContent = tone.content_md || '';
+        emailToneCategory = tone.category || '';
       }
     }
 
@@ -353,8 +357,13 @@ async function generateAndSaveSequencesForCampaign(campaignId, autoPause = true)
 Your Pitch / Service Offering: "${pitch}"
 This is the specific product or service being offered. Every email must feel like it was written specifically around this offering — the value, the angle, the curiosity — all tied to what you do. Do NOT be generic.` : '';
 
-    const businessPrompt = businessOverview ? `\n\nOUR BUSINESS OVERVIEW:\n${businessOverview}\n` : '';
-    const tonePrompt = emailToneContent ? `\n\nWRITING TONE AND STYLE RULES:\n${emailToneContent}\n` : '';
+    const businessPrompt = [
+      businessOverview ? `\n\nOUR BUSINESS OVERVIEW:\n${businessOverview}` : '',
+      businessAims ? `\n\nCAMPAIGN AIMS:\n${businessAims}` : '',
+      businessObjectives ? `\n\nBUSINESS OBJECTIVES:\n${businessObjectives}` : ''
+    ].filter(Boolean).join('\n') + '\n';
+    
+    const tonePrompt = emailToneContent ? `\n\nWRITING TONE AND STYLE RULES${emailToneCategory ? ` (Category: ${emailToneCategory})` : ''}:\n${emailToneContent}\n` : '';
 
     const placeholderListStr = TEMPLATE_PLACEHOLDERS.map(p => `- ${p.placeholder}: ${p.description}`).join('\n');
 

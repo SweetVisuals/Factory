@@ -371,7 +371,7 @@ export default function ProfilePage() {
           {activeTab === 'profile' && (
             <div className="space-y-12 animate-in fade-in duration-200">
               
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm space-y-8">
+              <div className="bg-card border border-border rounded-xl p-8 shadow-sm space-y-8">
                 <div className="flex items-center gap-4">
                   <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
                   <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Personal Profile</h3>
@@ -403,7 +403,7 @@ export default function ProfilePage() {
                         <input
                           value={formData.full_name}
                           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
+                          className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                           placeholder="Your Name"
                         />
                       </div>
@@ -421,7 +421,7 @@ export default function ProfilePage() {
                         <input
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
+                          className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                           placeholder="Your Phone Number"
                         />
                       </div>
@@ -430,7 +430,7 @@ export default function ProfilePage() {
                         <input
                           value={formData.industry}
                           onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all"
+                          className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                           placeholder="e.g. Sales Director"
                         />
                       </div>
@@ -439,7 +439,7 @@ export default function ProfilePage() {
                         <textarea
                           value={formData.bio}
                           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                          className="w-full h-24 bg-background border border-border rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all resize-none"
+                          className="w-full h-24 bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground transition-all outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground resize-none"
                           placeholder="Tell us a little about yourself..."
                         />
                       </div>
@@ -702,35 +702,35 @@ export default function ProfilePage() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-4">
                   {businesses.map(b => (
                     <div 
                       key={b.id} 
                       onClick={() => setSelectedBiz(b)}
-                      className="p-6 bg-card border border-border rounded-3xl shadow-sm group hover:border-primary/30 transition-colors cursor-pointer"
+                      className="flex flex-col md:flex-row items-start md:items-center gap-4 p-5 bg-card border border-border rounded-xl shadow-sm hover:border-primary/50 transition-colors cursor-pointer"
                     >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-primary/10 rounded-xl">
-                          <Building2 size={20} className="text-primary" />
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
-                            {b.status}
-                          </span>
-                          {b.industry && (
-                            <span className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest rounded-md">
-                              {b.industry}
-                            </span>
-                          )}
-                        </div>
+                      <div className="p-2.5 bg-primary/10 rounded-lg shrink-0">
+                        <Building2 size={20} className="text-primary" />
                       </div>
-                      <h3 className="text-lg font-bold text-foreground mb-2">{b.name}</h3>
-                      {b.target_audience && (
-                        <p className="text-xs font-medium text-primary mb-3 flex items-center gap-1.5"><Target size={12}/> {b.target_audience}</p>
-                      )}
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {b.overview_md ? b.overview_md.substring(0, 150) + '...' : 'No context provided.'}
-                      </p>
+                      <div className="flex-1">
+                        <h3 className="text-base font-semibold text-foreground">{b.name}</h3>
+                        {b.target_audience && (
+                          <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1.5"><Target size={14}/> {b.target_audience}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                          {b.overview_md ? b.overview_md : 'No context provided.'}
+                        </p>
+                      </div>
+                      <div className="flex flex-col md:items-end gap-2 shrink-0">
+                        <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-semibold uppercase tracking-wider rounded-md">
+                          {b.status}
+                        </span>
+                        {b.industry && (
+                          <span className="px-2 py-1 bg-secondary text-secondary-foreground text-xs font-semibold uppercase tracking-wider rounded-md">
+                            {b.industry}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -892,34 +892,33 @@ export default function ProfilePage() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-12">
+                <div className="space-y-10">
                   {['FORMAL', 'CASUAL', 'GREETING', 'FOLLOW_UP', 'CUSTOM'].map(category => {
                     const categoryTones = tones.filter(t => (t.category || 'FORMAL') === category);
                     if (categoryTones.length === 0) return null;
                     return (
                       <div key={category} className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1.5 h-4 bg-primary/60 rounded-full" />
-                          <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{category.replace('_', '-')}</h3>
+                        <div className="flex items-center gap-2 border-b border-border pb-2">
+                          <h3 className="text-base font-semibold text-foreground uppercase tracking-wider">{category.replace('_', '-')}</h3>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {categoryTones.map(t => (
                             <div 
                               key={t.id} 
                               onClick={() => setSelectedTone(t)}
-                              className="p-6 bg-card border border-border rounded-2xl shadow-sm group hover:border-primary/30 transition-colors cursor-pointer"
+                              className="flex flex-col p-5 bg-card border border-border rounded-xl shadow-sm hover:border-primary/50 transition-colors cursor-pointer"
                             >
                               <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 bg-primary/10 rounded-xl">
-                                  <Mail size={16} className="text-primary" />
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                  <Mail size={18} className="text-primary" />
                                 </div>
-                                <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
+                                <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-xs font-semibold uppercase tracking-wider rounded-md">
                                   Active
                                 </span>
                               </div>
-                              <h3 className="text-md font-bold text-foreground mb-2">{t.name}</h3>
-                              <p className="text-xs text-muted-foreground line-clamp-3">
-                                {t.content_md ? t.content_md.substring(0, 100) + '...' : 'No guidelines provided.'}
+                              <h3 className="text-base font-semibold text-foreground mb-1">{t.name}</h3>
+                              <p className="text-sm text-muted-foreground line-clamp-3">
+                                {t.content_md ? t.content_md : 'No guidelines provided.'}
                               </p>
                             </div>
                           ))}

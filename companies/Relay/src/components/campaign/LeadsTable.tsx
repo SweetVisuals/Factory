@@ -4,7 +4,7 @@ import {
   Linkedin, Loader2, Eye, Download, XCircle, Ban,
   ExternalLink, Facebook, Instagram, Twitter, FileText,
   CheckCircle2, AlertTriangle, BrainCircuit, ChevronDown, ChevronUp,
-  Database, Activity, Target, ShieldAlert, RefreshCw, MoreVertical, Layers,
+  Database, Activity, Target, RefreshCw, MoreVertical, Layers,
   Copy, Globe
 } from 'lucide-react';
 import { Lead } from '@/types';

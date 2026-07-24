@@ -1,23 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Compass, Target, Inbox, AtSign, UserCircle, MessageSquare, LogOut, Zap, Clock, Activity, Cpu, HardDrive, Bell, BellRing, Settings, Sparkles, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Compass, Target, Inbox, AtSign, UserCircle, MessageSquare, LogOut, Zap, Clock, Activity, Cpu, HardDrive, Bell, BellRing, Settings, Sparkles, Menu, X, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
 import Logo from './Logo';
+import { useToast } from './ui/use-toast';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
 
 const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => void, isChatExpanded?: boolean }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const [isPaused, setIsPaused] = useState(false);
+  const { toast } = useToast();
+  const [isPaused, setIsPaused] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [dbSpace, setDbSpace] = useState<number>(0);
   const [leadsCount, setLeadsCount] = useState<number>(0);
   const [isLimited, setIsLimited] = useState(false);
   const [planType, setPlanType] = useState('free');
+  
+  const [showNoCampaignDialog, setShowNoCampaignDialog] = useState(false);
+  const [showGuestDialog, setShowGuestDialog] = useState(false);
 
   useEffect(() => {
     const checkRateLimit = () => {
@@ -62,12 +68,16 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
         setLeadsCount(currentLeadsCount);
       }
 
-      // Fetch user plan type
+      // Fetch user plan type & scraper status
       if (user) {
-        const { data: accData } = await supabase.from('account_settings').select('plan_type').eq('user_id', user.id).maybeSingle();
+        const { data: accData } = await supabase.from('account_settings').select('plan_type, is_scraping_active').eq('user_id', user.id).maybeSingle();
         if (accData) {
           setPlanType(accData.plan_type || 'free');
+          setIsPaused(!accData.is_scraping_active);
         }
+      } else {
+        setPlanType('guest');
+        setIsPaused(true);
       }
 
       // Fetch campaigns needing review or paused
@@ -148,10 +158,23 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
             read: false
           }, ...prev].slice(0, 10));
         }
-      })
-      .subscribe();
+      });
+
+    if (user) {
+      channel.on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'account_settings',
+        filter: `user_id=eq.${user.id}`
+      }, (payload: any) => {
+        setIsPaused(!payload.new.is_scraping_active);
+      });
+    }
+
+    channel.subscribe();
+
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [user]);
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -171,6 +194,51 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const toggleEngine = async (status: 'active' | 'paused') => {
+    if (!user) {
+      if (status === 'active') {
+        setShowGuestDialog(true);
+      }
+      return;
+    }
+
+    if (status === 'active') {
+      const { count } = await supabase.from('campaigns').select('id', { count: 'exact', head: true });
+      if (!count || count === 0) {
+        setShowNoCampaignDialog(true);
+        setIsPaused(true);
+        return;
+      }
+    }
+
+    const newActiveState = status === 'active';
+    setIsPaused(!newActiveState);
+
+    const { error } = await supabase
+      .from('account_settings')
+      .update({ is_scraping_active: newActiveState })
+      .eq('user_id', user.id);
+
+    if (error) {
+      setIsPaused(newActiveState);
+      toast({
+        title: "Error",
+        description: "Failed to update engine status.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: newActiveState ? "Engine Started" : "Engine Paused",
+        description: newActiveState ? "Your campaigns are now running." : "Lead collection paused.",
+        style: {
+          backgroundColor: newActiveState ? '#059669' : '#dc2626',
+          color: 'white',
+          border: 'none'
+        }
+      });
+    }
+  };
 
   let navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -393,6 +461,70 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
         );
       })}
     </nav>
+
+    {/* No Campaign Dialog */}
+    <Dialog open={showNoCampaignDialog} onOpenChange={setShowNoCampaignDialog}>
+      <DialogContent className="bg-background/95 backdrop-blur-3xl border border-white/10 max-w-md rounded-none p-6 overflow-hidden shadow-2xl flex flex-col items-center text-center">
+        <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
+          <AlertTriangle className="w-6 h-6 text-amber-500" />
+        </div>
+        <DialogTitle className="text-xl font-black text-foreground uppercase tracking-tighter mb-2">
+          No Campaign Found
+        </DialogTitle>
+        <DialogDescription className="text-sm text-muted-foreground mb-6">
+          Please create a campaign first before starting the lead collection engine.
+        </DialogDescription>
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={() => {
+              setShowNoCampaignDialog(false);
+              navigate('/create-campaign');
+            }}
+            className="flex-1 bg-white text-black py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+          >
+            Create Campaign
+          </button>
+          <button
+            onClick={() => setShowNoCampaignDialog(false)}
+            className="flex-1 bg-white/5 border border-white/10 text-white hover:bg-white/10 py-2 rounded-lg text-xs font-bold transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Guest/Logged Out Engine Toggle Block Dialog */}
+    <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
+      <DialogContent className="bg-background/95 backdrop-blur-3xl border border-white/10 max-w-md rounded-none p-6 overflow-hidden shadow-2xl flex flex-col items-center text-center">
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          <Sparkles className="w-6 h-6 text-primary" />
+        </div>
+        <DialogTitle className="text-xl font-black text-foreground uppercase tracking-tighter mb-2">
+          Sign Up Required
+        </DialogTitle>
+        <DialogDescription className="text-sm text-muted-foreground mb-6">
+          Please sign up to activate the lead collection engine and start automated scraping.
+        </DialogDescription>
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={() => {
+              setShowGuestDialog(false);
+              navigate('/signup');
+            }}
+            className="flex-1 bg-white text-black py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+          >
+            Sign Up Free
+          </button>
+          <button
+            onClick={() => setShowGuestDialog(false)}
+            className="flex-1 bg-white/5 border border-white/10 text-white hover:bg-white/10 py-2 rounded-lg text-xs font-bold transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
     </>
   );
 };

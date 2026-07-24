@@ -99,16 +99,23 @@ export const TableRow: React.FC<Props & { validationStatus?: 'idle' | 'loading' 
             </div>
           </td>
         )}
-
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-white/[0.06] transition-colors">
-              <Building2 size={14} className="text-white/40" />
+            <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-white/[0.06] overflow-hidden transition-colors">
+              {lead.website ? (
+                <img 
+                  src={`https://www.google.com/s2/favicons?domain=${lead.website}&sz=64`} 
+                  alt="" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement?.classList.add('fallback-icon'); }}
+                />
+              ) : (
+                <Building2 size={14} className="text-white/40" />
+              )}
             </div>
             <span className="text-[13px] font-bold text-white/90 truncate max-w-[150px]">{lead.company}</span>
           </div>
         </td>
-
         <td className="px-6 py-4">
           <button
             onClick={() => setDrawerOpen(true)}

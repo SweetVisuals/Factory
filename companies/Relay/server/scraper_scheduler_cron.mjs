@@ -21,7 +21,7 @@ async function runScraperScheduler() {
     const { data: campaigns, error: campaignError } = await supabase
         .from('campaigns')
         .select(`
-            id, name, status, niche
+            id, name, status, niche, user_id
         `)
         .in('status', ['in_progress', 'active', 'draft', 'review']);
 
@@ -46,6 +46,28 @@ async function runScraperScheduler() {
         if (countError) {
             console.error(`[Scraper Scheduler] Error fetching lead count for ${c.id}:`, countError.message);
             continue;
+        }
+
+        // Fetch user account settings
+        const { data: accSettings, error: accErr } = await supabase
+            .from('account_settings')
+            .select('*')
+            .eq('user_id', c.user_id)
+            .maybeSingle();
+
+        if (!accSettings) {
+             console.log(`[Scraper Scheduler] No account settings found for user ${c.user_id}. Skipping campaign ${c.id}.`);
+             continue;
+        }
+
+        if (!accSettings.is_scraping_active) {
+             console.log(`[Scraper Scheduler] User ${c.user_id} has paused scraping. Skipping campaign ${c.id}.`);
+             continue;
+        }
+
+        if (accSettings.plan_type === 'free' && accSettings.scrapes_this_month >= 2500) {
+             console.log(`[Scraper Scheduler] User ${c.user_id} has hit free tier limit (2500). Skipping campaign ${c.id}.`);
+             continue;
         }
 
         // Max out server: feed leads to campaigns under 5000 leads
@@ -128,6 +150,12 @@ async function runScraperScheduler() {
                     const result = await resp.json();
                     console.log(`[Scraper Scheduler] Successfully triggered scraper for ${c.id}. Response:`, result);
                     startedCount++;
+                    
+                    // Increment scrape counter
+                    await supabase.rpc('increment_scrapes', { uid: c.user_id, amount: scrapeLimit }).catch(e => {
+                        // fallback if RPC doesn't exist
+                        supabase.from('account_settings').update({ scrapes_this_month: (accSettings.scrapes_this_month || 0) + scrapeLimit }).eq('user_id', c.user_id).then();
+                    });
                 } else {
                     console.error(`[Scraper Scheduler] Failed to trigger scraper for ${c.id}. Status: ${resp.status}`);
                 }

@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { LeadIntelligenceDrawer } from '../components/lead-scraper/LeadIntelligenceDrawer';
+import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
 
 interface Campaign {
   id: string;
@@ -24,11 +26,39 @@ type SortField = 'name' | 'company' | 'email' | 'location' | 'created_at';
 type SortDir = 'asc' | 'desc';
 
 const Discover: React.FC = () => {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
+  const [planType, setPlanType] = useState('guest');
+  const [showSignUpDialog, setShowSignUpDialog] = useState(false);
+
+  const handlePageChange = (newPage: number) => {
+    if (planType === 'guest' && (newPage - 1) * limit >= 100) {
+      setShowSignUpDialog(true);
+      return;
+    }
+    setPage(newPage);
+  };
+
+  useEffect(() => {
+    const fetchPlan = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: accSettings } = await supabase.from('account_settings').select('plan_type').eq('user_id', user.id).maybeSingle();
+        if (accSettings) {
+          setPlanType(accSettings.plan_type || 'free');
+        } else {
+          setPlanType('free');
+        }
+      } else {
+        setPlanType('guest');
+      }
+    };
+    fetchPlan();
+  }, []);
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
@@ -234,11 +264,26 @@ const Discover: React.FC = () => {
       }
 
       const from = (page - 1) * limit;
+      let to = from + limit - 1;
+      
+      if (planType === 'guest') {
+        to = Math.min(to, 99);
+      }
+      
+      if (from > 99 && planType === 'guest') {
+        setLeads([]);
+        setTotalCount(count || 0);
+        setLoading(false);
+        setShowSignUpDialog(true);
+        return;
+      }
+
       const { data, count, error } = await query
         .order(sortField, { ascending: sortDir === 'asc' })
-        .range(from, from + limit - 1);
+        .range(from, to);
       if (error) throw error;
       setLeads((data as unknown as Lead[]) || []);
+      
       setTotalCount(count || 0);
     } catch (err) {
       console.error(err);
@@ -891,10 +936,10 @@ const Discover: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={() => setPage(1)} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
+                <button onClick={() => handlePageChange(1)} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
                   First
                 </button>
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
+                <button onClick={() => handlePageChange(Math.max(1, page - 1))} disabled={page === 1 || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 
@@ -911,7 +956,7 @@ const Discover: React.FC = () => {
                     pageNum = page - 2 + i;
                   }
                   return (
-                    <button key={pageNum} onClick={() => setPage(pageNum)} className={cn(
+                    <button key={pageNum} onClick={() => handlePageChange(pageNum)} className={cn(
                       "w-7 h-7 rounded text-xs font-bold transition-all",
                       page === pageNum ? "bg-primary/20 text-primary" : "text-white/30 hover:text-white hover:bg-white/5"
                     )}>
@@ -920,10 +965,10 @@ const Discover: React.FC = () => {
                   );
                 })}
                 
-                <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
+                <button onClick={() => handlePageChange(page + 1)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all">
                   <ChevronRight className="w-4 h-4" />
                 </button>
-                <button onClick={() => setPage(totalPages)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
+                <button onClick={() => handlePageChange(totalPages)} disabled={page >= totalPages || loading} className="px-2 py-1 rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-25 disabled:hover:bg-transparent transition-all font-bold text-[10px] uppercase tracking-wider">
                   Last
                 </button>
               </div>
@@ -978,6 +1023,37 @@ const Discover: React.FC = () => {
         )}
       </div>
       </div>
+
+      <Dialog open={showSignUpDialog} onOpenChange={setShowSignUpDialog}>
+        <DialogContent className="bg-background/95 backdrop-blur-3xl border border-white/10 max-w-md rounded-none p-6 overflow-hidden shadow-2xl flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Sparkles className="w-6 h-6 text-primary" />
+          </div>
+          <DialogTitle className="text-xl font-black text-foreground uppercase tracking-tighter mb-2">
+            Unlock Full Access
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground mb-6">
+            Unlock access to the complete database of {totalCount.toLocaleString()} leads. Sign up now to start automating your outreach.
+          </DialogDescription>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={() => {
+                setShowSignUpDialog(false);
+                navigate('/signup');
+              }}
+              className="flex-1 bg-white text-black py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+            >
+              Sign Up Free
+            </button>
+            <button
+              onClick={() => setShowSignUpDialog(false)}
+              className="flex-1 bg-white/5 border border-white/10 text-white hover:bg-white/10 py-2 rounded-lg text-xs font-bold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

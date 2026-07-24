@@ -46,6 +46,7 @@
     "nodemailer": "^6.9.16",
     "openclaw-factory": "file:../..",
     "papaparse": "^5.4.1",
+    "pg": "^8.22.0",
     "puppeteer": "^24.36.1",
     "puppeteer-core": "^25.1.0",
     "react": "^18.3.1",

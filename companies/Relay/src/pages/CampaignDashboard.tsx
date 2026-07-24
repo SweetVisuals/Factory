@@ -206,8 +206,10 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                     campaignName={campaign.name}
                     campaignStatus={campaign.status}
                     campaignBusinessId={campaign.business_id}
+                    campaignToneId={campaign.email_tone_id}
                     onNameChange={(newName) => updateCampaign(campaign.id, { name: newName })}
                     onBusinessChange={(bizId) => updateCampaign(campaign.id, { business_id: bizId })}
+                    onToneChange={(toneId) => updateCampaign(campaign.id, { email_tone_id: toneId })}
                     onDelete={() => deleteCampaign(campaign.id)}
                     onResume={async () => {
                       updateCampaign(campaign.id, { status: 'in_progress' });

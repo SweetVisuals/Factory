@@ -18,23 +18,31 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     niche: '',
     objective: '',
     business_id: '',
+    email_tone_id: '',
     maxEmailsPerDay: '100',
     frequency: 'daily' as 'daily' | 'weekly',
   });
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [tones, setTones] = useState<any[]>([]);
+
   React.useEffect(() => {
-    const fetchBusinesses = async () => {
-      const { data } = await supabase.from('businesses').select('*').eq('status', 'active');
-      if (data) {
-        setBusinesses(data);
-        if (data.length > 0) {
-          setFormData(prev => ({ ...prev, business_id: data[0].id }));
+    const fetchData = async () => {
+      const { data: bData } = await supabase.from('businesses').select('*').eq('status', 'active');
+      if (bData) {
+        setBusinesses(bData);
+        if (bData.length > 0) {
+          setFormData(prev => ({ ...prev, business_id: bData[0].id }));
         }
       }
+      
+      const { data: tData } = await supabase.from('email_tones').select('*').eq('status', 'active');
+      if (tData) {
+        setTones(tData);
+      }
     };
-    fetchBusinesses();
+    fetchData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +59,7 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
         niche: formData.niche,
         objective: formData.objective,
         business_id: formData.business_id,
+        email_tone_id: formData.email_tone_id || undefined,
         schedule: {
           frequency: formData.frequency,
           maxEmailsPerDay: parseInt(formData.maxEmailsPerDay),
@@ -158,23 +167,44 @@ const CreateCampaignModal: React.FC<Props> = ({ onClose, onSuccess }) => {
             </div>
 
             {/* Sender Profile / Business */}
-            <div className="space-y-1">
-              <label className={labelClassName}>Sender Profile (Business Context)</label>
-              <select
-                required
-                value={formData.business_id}
-                onChange={(e) => setFormData({ ...formData, business_id: e.target.value })}
-                className={inputClassName}
-              >
-                {businesses.map((biz) => (
-                  <option key={biz.id} value={biz.id} className="bg-[#111]">
-                    {biz.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[9px] font-medium text-white/30 tracking-wide mt-1">
-                The AI will adopt this persona and signature when generating emails for this campaign.
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1">
+                <label className={labelClassName}>Sender Profile (Business Context)</label>
+                <select
+                  required
+                  value={formData.business_id}
+                  onChange={(e) => setFormData({ ...formData, business_id: e.target.value })}
+                  className={inputClassName}
+                >
+                  {businesses.map((biz) => (
+                    <option key={biz.id} value={biz.id} className="bg-[#111]">
+                      {biz.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[9px] font-medium text-white/30 tracking-wide mt-1">
+                  The AI will adopt this persona and signature when generating emails.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className={labelClassName}>Campaign Tone</label>
+                <select
+                  value={formData.email_tone_id}
+                  onChange={(e) => setFormData({ ...formData, email_tone_id: e.target.value })}
+                  className={inputClassName}
+                >
+                  <option value="" className="bg-[#111]">No Specific Tone</option>
+                  {tones.map((t) => (
+                    <option key={t.id} value={t.id} className="bg-[#111]">
+                      {t.name} {t.category ? `(${t.category})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[9px] font-medium text-white/30 tracking-wide mt-1">
+                  The specific writing style and rules the AI will follow.
+                </p>
+              </div>
             </div>
 
             {/* Automated Deliverability & Safety Defaults */}

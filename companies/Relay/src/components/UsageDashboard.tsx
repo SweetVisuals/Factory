@@ -36,7 +36,10 @@ const UsageItem = ({
       
       <div>
         {showUpgrade ? (
-          <button className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded transition-colors">
+          <button 
+            onClick={() => window.location.href = '/pricing'}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded transition-colors"
+          >
             Upgrade
           </button>
         ) : (
