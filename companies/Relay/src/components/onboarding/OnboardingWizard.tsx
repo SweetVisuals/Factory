@@ -104,7 +104,7 @@ const OnboardingWizard = () => {
           <div className="w-full h-1 bg-white/5">
             <div 
               className="h-full bg-primary transition-all duration-700 ease-out" 
-              style={{ width: \`\${(step / 3) * 100}%\` }}
+              style={{ width: `${(step / 3) * 100}%` }}
             />
           </div>
 
