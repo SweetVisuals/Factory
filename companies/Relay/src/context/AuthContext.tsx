@@ -80,18 +80,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // 2. Fast initial load from local storage
+    // 2. Strict initial load — validates token with server
     const fetchInitialSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted && session) {
-          setUser(session.user);
-          await checkOnboardingStatus(session.user.id);
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          console.error('Invalid session, forcing logout:', error.message);
+          await supabase.auth.signOut();
+          localStorage.removeItem('relay-factory-auth-token');
+          if (mounted) {
+            setUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (mounted && user) {
+          setUser(user);
+          await checkOnboardingStatus(user.id);
           clearTimeout(safetyTimeout);
           setLoading(false);
         }
       } catch (e) {
-        console.error('Error fetching initial session:', e);
+        console.error('Error fetching initial user:', e);
+        if (mounted) setLoading(false);
       }
     };
 
@@ -101,12 +114,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('[Auth] State change:', event, session?.user?.email || 'no user');
       
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await checkOnboardingStatus(session.user.id);
-      } else {
+      if (event === 'SIGNED_OUT' || !session) {
+        localStorage.removeItem('relay-factory-auth-token');
+        setUser(null);
         setNeedsOnboarding(false);
+      } else if (session?.user) {
+        setUser(session.user);
+        await checkOnboardingStatus(session.user.id);
       }
       
       clearTimeout(safetyTimeout);
@@ -126,9 +140,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      navigate('/profile');
     } catch (err) {
-      setError(err as AuthError);
+      console.error('Error during sign out (ignoring):', err);
+    } finally {
+      // Force clear everything no matter what the server says
+      localStorage.removeItem('relay-factory-auth-token');
+      localStorage.clear();
+      setUser(null);
+      navigate('/profile');
     }
   };
 
