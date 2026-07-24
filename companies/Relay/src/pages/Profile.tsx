@@ -128,6 +128,7 @@ export default function ProfilePage() {
       }
     };
     fetchPlan();
+  }, [user]);
 
   const [usageStats, setUsageStats] = useState({
     emailsSent: 0,
