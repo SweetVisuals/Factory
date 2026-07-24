@@ -38,11 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
-    // Safety timeout — if nothing resolves auth within 5s, stop loading anyway
-    const safetyTimeout = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 5000);
-
     // 1. First, handle any URL-based session tokens (email confirm links, magic links)
     const handleUrlSession = async () => {
       try {
@@ -57,7 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               refresh_token: refreshToken
             });
             window.location.hash = '';
-            return; // onAuthStateChange will handle the rest
           }
         }
 
@@ -73,46 +67,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           url.searchParams.delete('access_token');
           url.searchParams.delete('refresh_token');
           window.history.replaceState({}, document.title, url.pathname + url.search);
-          return; // onAuthStateChange will handle the rest
         }
       } catch (e) {
         console.error('Error handling URL session:', e);
       }
     };
 
-    // 2. Strict initial load — validates token with server
-    const fetchInitialSession = async () => {
+    // 2. Fast initial load from local storage
+    const initAuth = async () => {
+      await handleUrlSession();
+      
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('Invalid session, forcing logout:', error.message);
-          await supabase.auth.signOut();
-          localStorage.removeItem('relay-factory-auth-token');
-          if (mounted) {
-            setUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
         if (mounted) {
-          if (user) {
-            setUser(user);
-            await checkOnboardingStatus(user.id);
+          if (session?.user) {
+            setUser(session.user);
+            await checkOnboardingStatus(session.user.id);
           } else {
             setUser(null);
           }
-          clearTimeout(safetyTimeout);
           setLoading(false);
         }
       } catch (e) {
-        console.error('Error fetching initial user:', e);
+        console.error('Error in initAuth:', e);
         if (mounted) setLoading(false);
       }
     };
 
-    // 3. Listen for auth state changes — this handles server validation and token refreshes
+    // 3. Listen for auth state changes (token refresh, logout, etc)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
@@ -127,31 +110,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await checkOnboardingStatus(session.user.id);
       }
       
-      clearTimeout(safetyTimeout);
       setLoading(false);
     });
 
-    // Run initialization
-    handleUrlSession().then(() => fetchInitialSession());
+    initAuth();
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error('Error during sign out (ignoring):', err);
-    } finally {
-      // Force clear everything no matter what the server says
+      // Force clear first for instant UI response
       localStorage.removeItem('relay-factory-auth-token');
       localStorage.clear();
       setUser(null);
       navigate('/profile');
+      
+      // Then inform server
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Error during sign out (ignoring):', err);
     }
   };
 
