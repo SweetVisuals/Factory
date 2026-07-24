@@ -38,6 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
+      // Fallback timeout to ensure we never get stuck on the loading spinner
+      const safetyTimeout = setTimeout(() => {
+        setLoading(false);
+      }, 5000);
+
       try {
         // 1. Check hash parameters
         const hash = window.location.hash;
@@ -54,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               window.location.hash = '';
               setUser(data.session.user);
               await checkOnboardingStatus(data.session.user.id);
+              clearTimeout(safetyTimeout);
               setLoading(false);
               return;
             }
@@ -76,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             window.history.replaceState({}, document.title, url.pathname + url.search);
             setUser(data.session.user);
             await checkOnboardingStatus(data.session.user.id);
+            clearTimeout(safetyTimeout);
             setLoading(false);
             return;
           }
@@ -85,13 +92,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Check active session
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
         if (session?.user) {
           await checkOnboardingStatus(session.user.id);
         }
+      } catch (e) {
+        console.error('Error fetching session:', e);
+      } finally {
+        clearTimeout(safetyTimeout);
         setLoading(false);
-      });
+      }
     };
 
     initAuth();
@@ -104,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setNeedsOnboarding(false);
       }
+      setLoading(false); // Ensure loading is disabled on any auth state change
     });
 
     return () => subscription.unsubscribe();
