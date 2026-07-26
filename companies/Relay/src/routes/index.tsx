@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import SignUpLayout from '../components/auth/SignUpLayout';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
-import { Dashboard } from '../components/Dashboard';
+import { DashboardRouter } from '../components/admin/DashboardRouter';
 import { CampaignHub } from '../pages/CampaignHub';
 import CreateCampaign from '../pages/CreateCampaign';
 import CampaignDashboard from '../pages/CampaignDashboard';
@@ -49,7 +49,7 @@ const AppRoutes = () => {
 
       <Route path="/dashboard" element={
         <ProtectedRoute>
-          <Dashboard />
+          <DashboardRouter />
         </ProtectedRoute>
       } />
 

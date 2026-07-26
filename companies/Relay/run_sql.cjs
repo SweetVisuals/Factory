@@ -5,18 +5,10 @@ const conn = new Client();
 conn.on('ready', () => {
   console.log('Client :: ready');
   
-  const sql = `
-CREATE TABLE IF NOT EXISTS chat_logs (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-ALTER TABLE chat_logs ENABLE ROW LEVEL SECURITY;
-  `;
-  
-  const cmd = `docker exec supabase-db psql -U postgres -c "${sql}"`;
+  const sql = fs.readFileSync('admin_rpcs.sql', 'utf8');
+  const cmd = `cat << 'EOF_SQL' | docker exec -i supabase-db psql -U postgres
+${sql}
+EOF_SQL`;
   
   conn.exec(cmd, (err, stream) => {
     if (err) throw err;
@@ -33,5 +25,5 @@ ALTER TABLE chat_logs ENABLE ROW LEVEL SECURITY;
   host: '5.75.252.100',
   port: 22,
   username: 'root',
-  password: 'jjqnE3gMLAmf'
+  password: '4ULxwjLbbKxM'
 });

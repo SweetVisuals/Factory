@@ -63,8 +63,9 @@ export async function fetchAIChatCompletion(params, log = console.log) {
     
     // 1. Try DeepSeek API first if key exists (strictly no fallback if this key exists)
     if (DEEPSEEK_API_KEY) {
-      const COOLDOWN_MS = 140000; // 2 minutes and 20 seconds buffer
-      const MAX_CALLS = 3;
+      // DeepSeek allows high concurrency. We only rate-limit if the API returns a 429.
+      const COOLDOWN_MS = 60000; // 1 minute window
+      const MAX_CALLS = 100; // Increased to 100 requests per minute to prevent artificial bottleneck
 
       let dsRetries = 0;
       const maxDsRetries = 2;
@@ -80,10 +81,9 @@ export async function fetchAIChatCompletion(params, log = console.log) {
           const oldestCall = deepSeekCallTimes[0];
           const waitTime = COOLDOWN_MS - (Date.now() - oldestCall);
           if (waitTime > 0) {
-            log(`[AI-Client] DeepSeek cooldown: waiting ${Math.ceil(waitTime / 1000)}s to respect ${MAX_CALLS} calls / 2 min limit...`);
+            log(`[AI-Client] DeepSeek cooldown: waiting ${Math.ceil(waitTime / 1000)}s to respect ${MAX_CALLS} calls / min limit...`);
             await new Promise(r => setTimeout(r, waitTime));
           }
-          // The wait might have exceeded the timeframe, so clean up again
           const nowAfterWait = Date.now();
           while (deepSeekCallTimes.length > 0 && nowAfterWait - deepSeekCallTimes[0] >= COOLDOWN_MS) {
             deepSeekCallTimes.shift();

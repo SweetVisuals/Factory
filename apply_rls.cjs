@@ -64,4 +64,4 @@ conn.on('ready', () => {
     stream.write(sqlScript);
     stream.end();
   });
-}).connect({ host: '5.75.252.100', port: 22, username: 'root', password: 'jjqnE3gMLAmf', readyTimeout: 60000 });
+}).connect({ host: '5.75.252.100', port: 22, username: 'root', password: '4ULxwjLbbKxM', readyTimeout: 60000 });

@@ -5,7 +5,7 @@ const path = require('path');
 
 const host = '5.75.252.100';
 const username = 'root';
-const password = 'jjqnE3gMLAmf';
+const password = '4ULxwjLbbKxM';
 const appDir = path.join(__dirname, 'companies', 'Relay');
 
 console.log('Building the Vite frontend...');
