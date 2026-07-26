@@ -1,51 +1,43 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { UserPlus, Megaphone } from 'lucide-react';
+import { UserPlus, Megaphone, Activity } from 'lucide-react';
 
 export const AdminActivityFeed = ({ activities }) => {
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 flex flex-col h-full min-h-[350px]">
-      <div className="mb-6">
-        <h3 className="text-foreground font-black uppercase tracking-tight text-lg">Live Activity Feed</h3>
-        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Platform-wide events</p>
+    <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col h-full max-h-[400px]">
+      <div className="p-4 border-b border-border/50 bg-background/50 flex items-center gap-2">
+        <Activity size={16} className="text-primary" />
+        <h3 className="text-foreground font-bold uppercase tracking-widest text-xs">Platform Activity Feed</h3>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         {(!activities || activities.length === 0) ? (
-          <div className="flex items-center justify-center h-full">
-            <span className="text-muted-foreground text-xs uppercase tracking-widest font-bold">No recent activity</span>
+          <div className="flex items-center justify-center h-full p-8">
+            <span className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">No recent activity</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col">
             {activities.map((item, index) => {
               const isUser = item.type === 'user_joined';
               const Icon = isUser ? UserPlus : Megaphone;
-              const colorClass = isUser ? 'text-primary bg-primary/10 border-primary/20' : 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+              const colorClass = isUser ? 'text-primary' : 'text-blue-500';
               
               return (
-                <div key={`${item.id}-${index}`} className="flex gap-4 items-start relative group">
-                  {/* Timeline connector */}
-                  {index !== activities.length - 1 && (
-                    <div className="absolute top-8 left-[19px] bottom-[-24px] w-px bg-border/50 group-hover:bg-primary/30 transition-colors" />
-                  )}
-                  
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border z-10 ${colorClass}`}>
-                    <Icon size={16} />
-                  </div>
-                  
-                  <div className="flex flex-col pt-1 w-full bg-background/50 hover:bg-white/[0.02] p-2 -my-2 rounded-lg transition-colors border border-transparent hover:border-border">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-bold text-foreground">
+                <div key={`${item.id}-${index}`} className="flex items-center justify-between p-3 border-b border-border/30 hover:bg-white/[0.02] transition-colors group">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <Icon size={14} className={`${colorClass} shrink-0 opacity-80 group-hover:opacity-100 transition-opacity`} />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-bold text-foreground truncate">
                         {isUser ? 'New User Joined' : 'New Campaign Launched'}
                       </span>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground whitespace-nowrap">
-                        {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        {item.name}
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground mt-1 truncate">
-                      {item.name}
-                    </span>
                   </div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground/60 shrink-0 ml-4 group-hover:text-muted-foreground transition-colors">
+                    {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                  </span>
                 </div>
               );
             })}

@@ -87,9 +87,27 @@ export const AdminCampaignHub = () => {
                       <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Joined {new Date(u.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-4">
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Campaigns</span>
                     <span className="font-black text-lg text-foreground">{u.campaign_count}</span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 pt-4 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Subscription</span>
+                    <select
+                      value={u.plan_type || 'free'}
+                      onChange={async (e) => {
+                        const newPlan = e.target.value;
+                        setUsers(prev => prev.map(user => user.id === u.id ? { ...user, plan_type: newPlan } : user));
+                        await supabase.rpc('admin_update_user_plan', { target_uid: u.id, new_plan: newPlan });
+                      }}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs font-bold text-foreground focus:outline-none focus:border-primary/50 cursor-pointer"
+                    >
+                      <option value="free">Free ($0/mo)</option>
+                      <option value="starter">Starter ($49/mo)</option>
+                      <option value="pro">Pro ($99/mo)</option>
+                      <option value="enterprise">Enterprise ($299/mo)</option>
+                    </select>
                   </div>
                 </div>
               ))}

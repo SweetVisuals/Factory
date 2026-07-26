@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Mail, Megaphone, Activity } from 'lucide-react';
+import { Users, Mail, Megaphone, Activity, DollarSign, Target } from 'lucide-react';
 
 export const AdminStatsGrid = ({ stats }) => {
   if (!stats) return null;
@@ -7,12 +7,12 @@ export const AdminStatsGrid = ({ stats }) => {
   const statCards = [
     { name: 'Registered Users', value: stats.total_users || 0, icon: Users, color: 'text-primary' },
     { name: 'Live Users (1h)', value: stats.live_users || 0, icon: Activity, color: 'text-emerald-500' },
-    { name: 'Total Campaigns', value: stats.total_campaigns || 0, icon: Megaphone, color: 'text-blue-500' },
-    { name: 'Connected Emails', value: stats.total_emails || 0, icon: Mail, color: 'text-violet-500' }
+    { name: 'Total Campaigns', value: stats.total_campaigns || 0, icon: Target, color: 'text-blue-500' },
+    { name: 'Estimated MRR', value: `$${stats.total_mrr || 0}`, icon: DollarSign, color: 'text-amber-500' }
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {statCards.map((stat, i) => {
         const Icon = stat.icon;
         return (
