@@ -5,8 +5,8 @@ import { generateEmail as engineGenerateEmail } from './email_engine.mjs';
 import { resetRunCounters, canSendEmail, recordEmailSent, recordBounce, canCallAI, recordAICall, getUsageSummary } from './rate_limiter.mjs';
 const USE_AI = process.env.USE_AI_PERSONALIZATION === 'true';
 const Te =
-    process.env["DEEPSEEK_API_KEY"] || "sk-6733c8ac2b83402b8626e5e253824488",
-  Pe = "https://api.deepseek.com",
+    process.env["GEMINI_API_KEY"] || "sk-6733c8ac2b83402b8626e5e253824488",
+  Pe = "https://generativelanguage.googleapis.com/v1beta/openai",
   Ae =
     process.env["SUPABASE_URL"] || "https://fzcrjogrnujrfxafxbkh.supabase.co",
   Re = process.env["SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_ANON_KEY"] || "",
@@ -167,7 +167,7 @@ export async function runProcessCampaign() {
       { data: pe } = await n
         .from("api_keys")
         .select("key_value")
-        .eq("service", "disable_deepseek")
+        .eq("service", "disable_gemini")
         .maybeSingle(),
       ge = pe?.key_value === "true";
 
@@ -636,7 +636,7 @@ export async function runProcessCampaign() {
         const totalSequenceSteps = campaignSchedules.length;
 
         // Determine if we should use AI or rule-based engine
-        const useAiForThisLead = USE_AI && !ge; // USE_AI env flag AND DeepSeek not disabled
+        const useAiForThisLead = USE_AI && !ge; // USE_AI env flag AND Gemini not disabled
         
         // ═══ AI RATE LIMIT CHECK ═══
         let aiAllowed = false;
@@ -720,7 +720,7 @@ CRITICAL RULES:
                 'Original Template Subject: "' + e.templates.subject + '"\nOriginal Template Body: "' + i + '"\nLead Name: ' + s + '\nLead Company: ' + (t.company || "their business") + '\nLead Goals & Notes: "' + (t.summary || "") + '"\nMy Company: "' + (a?.company || e.campaigns?.businesses?.name || "our company") + '"\nIndustry: "' + (e.campaigns?.niche || "your industry") + '"\n\nInstructions: Return the template with the placeholders dynamically replaced based on this exact lead data.';
             let r;
             if (ge) {
-              console.log("DeepSeek is disabled. Trying OpenRouter key cycling...");
+              console.log("Gemini is disabled. Trying OpenRouter key cycling...");
               let c = !1;
               for (let d = 0; d < ue.length; d++) {
                 const U = ue[d];
@@ -742,12 +742,12 @@ CRITICAL RULES:
               r = await fetch(Pe + "/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: "Bearer " + Te },
-                body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "system", content: k }, { role: "user", content: R }], response_format: { type: "json_object" } }),
+                body: JSON.stringify({ model: "gemini-1.5-flash", messages: [{ role: "system", content: k }, { role: "user", content: R }], response_format: { type: "json_object" } }),
               });
             if (r.status === 402 || r.status === 429 || !r.ok) {
               const c = await r.text();
               console.error(`AI API Error (status ${r.status}):`, c);
-              await recordAICall(n, { provider: ge ? 'openrouter' : 'deepseek', model: ge ? 'owl-alpha' : 'deepseek-chat', success: false, errorMessage: c.substring(0, 500), campaignId: e.campaign_id, leadId: t.id });
+              await recordAICall(n, { provider: ge ? 'openrouter' : 'gemini', model: ge ? 'owl-alpha' : 'gemini-1.5-flash', success: false, errorMessage: c.substring(0, 500), campaignId: e.campaign_id, leadId: t.id });
               throw new Error("AI_CREDITS_EXHAUSTED");
             } else {
               const c = await r.json();
@@ -767,8 +767,8 @@ CRITICAL RULES:
                 // ═══ RATE LIMITER: Record AI call success ═══
                 const _usage = c.usage || {};
                 await recordAICall(n, { 
-                  provider: ge ? 'openrouter' : 'deepseek', 
-                  model: ge ? 'owl-alpha' : 'deepseek-chat',
+                  provider: ge ? 'openrouter' : 'gemini', 
+                  model: ge ? 'owl-alpha' : 'gemini-1.5-flash',
                   tokensPrompt: _usage.prompt_tokens || 0,
                   tokensCompletion: _usage.completion_tokens || 0,
                   costUsd: ((_usage.prompt_tokens || 0) * 0.000001) + ((_usage.completion_tokens || 0) * 0.000002), // Estimated cost

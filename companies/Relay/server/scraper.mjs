@@ -959,7 +959,7 @@ async function scrapeDDGXRay(browser, companyName) {
     }
 }
 
-// Helper: Fetch with retry (no rate limiting needed for DeepSeek)
+// Helper: Fetch with retry (no rate limiting needed for Gemini)
 function fetchWithRateLimit(url, options, maxRetries = 3) {
     const log = console.log;
 

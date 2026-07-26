@@ -22,7 +22,7 @@ async function main() {
   const { data: status } = await client.from('agent_memory').select('*').eq('key_name', 'factory_status').single();
   console.log('Factory Status:', status);
 
-  const { data: deepseek } = await client.from('api_keys').select('*').eq('service', 'disable_deepseek').single();
-  console.log('DeepSeek Disable Status:', deepseek);
+  const { data: gemini } = await client.from('api_keys').select('*').eq('service', 'disable_gemini').single();
+  console.log('Gemini Disable Status:', gemini);
 }
 main();

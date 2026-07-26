@@ -9,7 +9,7 @@
 | **Hetzner** | VPS hosting the Node.js server | Runs `companies/Relay/server/index.mjs` |
 | **Puppeteer** | Deep research — scrapes prospect websites for pain points | `server/scraper.mjs` → `performDeepResearch()` |
 | **Companies House API** | UK company data — finds directors, filing info, SIC codes | `server/companies_house_cron.mjs` |
-| **DeepSeek** | AI personalization — rewrites templates per-lead using research | `process_campaign_node.mjs` |
+| **Gemini** | AI personalization — rewrites templates per-lead using research | `process_campaign_node.mjs` |
 | **Hermes** | Autonomous multi-step research agent (Llama 3 + tools) | `server/hermes_orchestrator.mjs` |
 | **PrivateEmail (Namecheap)** | SMTP sending — `privateemail.com` accounts (`@relaysolutions.net`) | `email_accounts` table, sent via `nodemailer` |
 
@@ -69,7 +69,7 @@ For EACH campaign (all 5 in parallel via Promise.allSettled):
 1. Fetch pending leads for this schedule step
 2. Cross-campaign dedup (don't email same person twice)
 3. Check inbox for replies (halt sequence if replied)
-4. **AI PERSONALIZATION (DeepSeek):**
+4. **AI PERSONALIZATION (Gemini):**
    - Takes template + `lead.summary` (pain points from research)
    - Rewrites into curiosity-based plain text email
    - Returns JSON `{ subject, body }`

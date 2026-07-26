@@ -1011,8 +1011,8 @@ Tone: Professional, insightful, "Sherlock Holmes" style.
 Format: Markdown (headers ##, bullet points).
 `;
 
-        const API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
-        const BASE_URL = 'https://api.deepseek.com';
+        const API_KEY = process.env.GEMINI_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
+        const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 
         const response = await fetch(`${BASE_URL}/chat/completions`, {
             method: 'POST',
@@ -1021,7 +1021,7 @@ Format: Markdown (headers ##, bullet points).
                 'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
-                model: "deepseek-chat",
+                model: "gemini-1.5-flash",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: `Here is the gathered data:\n\n${text.substring(0, 15000)}` } // increased limit slightly
@@ -1434,9 +1434,9 @@ export async function performDeepResearch(company, website, notesContext = '') {
             log(`Google search error: ${e.message}`);
         }
 
-        // 3. Generate Report via DeepSeek
-        const API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
-        const BASE_URL = 'https://api.deepseek.com';
+        // 3. Generate Report via Gemini
+        const API_KEY = process.env.GEMINI_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
+        const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 
         const systemPrompt = `You are an elite business intelligence researcher. 
         Your task is to write a comprehensive "Deep Research" report (approx 600 words) about the target company.
@@ -1461,7 +1461,7 @@ export async function performDeepResearch(company, website, notesContext = '') {
                 'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
-                model: 'deepseek-chat',
+                model: 'gemini-1.5-flash',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: aggregatedData }

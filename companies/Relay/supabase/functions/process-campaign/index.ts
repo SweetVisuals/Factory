@@ -15,8 +15,8 @@ function isAccountAllowedForBusiness(email: string, businessId: string): boolean
 }
 
 // Config
-const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') || 'sk-6733c8ac2b83402b8626e5e253824488';
-const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'sk-6733c8ac2b83402b8626e5e253824488';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://fzcrjogrnujrfxafxbkh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
@@ -29,13 +29,13 @@ Deno.serve(async (req) => {
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch DeepSeek disable setting
-    const { data: deepseekOption } = await supabaseAdmin
+    // Fetch Gemini disable setting
+    const { data: geminiOption } = await supabaseAdmin
         .from('api_keys')
         .select('key_value')
-        .eq('service', 'disable_deepseek')
+        .eq('service', 'disable_gemini')
         .maybeSingle();
-    const disableDeepseek = deepseekOption?.key_value === 'true';
+    const disableDeepseek = geminiOption?.key_value === 'true';
 
     // Fetch all email accounts to dynamically strip any other sender names
     const { data: allDbAccounts } = await supabaseAdmin.from('email_accounts').select('name, email, company');
@@ -535,7 +535,7 @@ Deno.serve(async (req) => {
 
                       let aiResp: any;
                        if (disableDeepseek) {
-                           console.log("DeepSeek is disabled. Trying OpenRouter key cycling...");
+                           console.log("Gemini is disabled. Trying OpenRouter key cycling...");
                            let success = false;
                            for (let k = 0; k < OPENROUTER_KEYS.length; k++) {
                                const apiKey = OPENROUTER_KEYS[k];
@@ -587,14 +587,14 @@ Deno.serve(async (req) => {
                                };
                            }
                        } else {
-                           aiResp = await fetch(DEEPSEEK_BASE_URL + '/chat/completions', {
+                           aiResp = await fetch(GEMINI_BASE_URL + '/chat/completions', {
                               method: 'POST',
                               headers: {
                                   'Content-Type': 'application/json',
-                                  'Authorization': 'Bearer ' + DEEPSEEK_API_KEY
+                                  'Authorization': 'Bearer ' + GEMINI_API_KEY
                               },
                               body: JSON.stringify({
-                                  model: 'deepseek-chat',
+                                  model: 'gemini-1.5-flash',
                                   messages: [
                                       { role: 'system', content: systemPrompt },
                                       { role: 'user', content: userPrompt }
@@ -606,7 +606,7 @@ Deno.serve(async (req) => {
 
                        if (aiResp.status === 402 || aiResp.status === 429 || !aiResp.ok) {
                            const errText = await aiResp.text();
-                           console.error(`DeepSeek API Error (status ${aiResp.status}):`, errText);
+                           console.error(`Gemini API Error (status ${aiResp.status}):`, errText);
                            
                            const isInsufficientCredits = aiResp.status === 402 || 
                                errText.toLowerCase().includes('balance') || 
@@ -625,7 +625,7 @@ Deno.serve(async (req) => {
                                
                                await supabaseAdmin.from('debug_logs').insert({
                                    level: 'error',
-                                   message: 'DeepSeek personalizer paused sequence engine due to insufficient AI credits',
+                                   message: 'Gemini personalizer paused sequence engine due to insufficient AI credits',
                                    context: { status: aiResp.status, error: errText, campaign_id: schedule.campaign_id }
                                });
 
@@ -638,7 +638,7 @@ Deno.serve(async (req) => {
                                    headers: { 'Content-Type': 'application/json' }
                                });
                            } else {
-                               throw new Error(`DeepSeek API non-ok response (${aiResp.status}): ${errText}`);
+                               throw new Error(`Gemini API non-ok response (${aiResp.status}): ${errText}`);
                            }
                        } else {
                            const aiData = await aiResp.json();
@@ -659,7 +659,7 @@ Deno.serve(async (req) => {
                                    await supabaseAdmin.from('agent_memory').upsert({ key_name: 'api_credits', value: { balance } }, { onConflict: 'key_name' });
                                    
                                    if (balance <= 0) {
-                                       console.log("DeepSeek credit depletion detected! (Balance: 0)");
+                                       console.log("Gemini credit depletion detected! (Balance: 0)");
                                        await supabaseAdmin.from('agent_memory').upsert({ key_name: 'factory_status', value: { status: 'paused', reason: 'insufficient_credits' } }, { onConflict: 'key_name' });
                                    }
                                } catch (err) {

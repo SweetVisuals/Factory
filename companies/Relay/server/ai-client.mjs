@@ -16,7 +16,7 @@ const supabaseClient = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, 
 const keyCooldowns = new Map();
 const KEY_COOLDOWN_MS = 5 * 60 * 1000;
 
-// Track DeepSeek API call timestamps for 3 calls per 2 minutes
+// Track Gemini API call timestamps for 3 calls per 2 minutes
 const deepSeekCallTimes = [];
 
 async function fetchWithTimeout(url, options, timeoutMs = 15000) {
@@ -55,15 +55,15 @@ export async function fetchAIChatCompletion(params, log = console.log) {
       messages,
       temperature = 0.3,
       response_format,
-      model = 'deepseek-chat',
+      model = 'gemini-1.5-flash',
       max_tokens = 150
     } = params;
 
-    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-0a7858e4ab064eb18241a7005f04df41';
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'sk-0a7858e4ab064eb18241a7005f04df41';
     
-    // 1. Try DeepSeek API first if key exists (strictly no fallback if this key exists)
-    if (DEEPSEEK_API_KEY) {
-      // DeepSeek allows high concurrency. We only rate-limit if the API returns a 429.
+    // 1. Try Gemini API first if key exists (strictly no fallback if this key exists)
+    if (GEMINI_API_KEY) {
+      // Gemini allows high concurrency. We only rate-limit if the API returns a 429.
       const COOLDOWN_MS = 60000; // 1 minute window
       const MAX_CALLS = 100; // Increased to 100 requests per minute to prevent artificial bottleneck
 
@@ -81,7 +81,7 @@ export async function fetchAIChatCompletion(params, log = console.log) {
           const oldestCall = deepSeekCallTimes[0];
           const waitTime = COOLDOWN_MS - (Date.now() - oldestCall);
           if (waitTime > 0) {
-            log(`[AI-Client] DeepSeek cooldown: waiting ${Math.ceil(waitTime / 1000)}s to respect ${MAX_CALLS} calls / min limit...`);
+            log(`[AI-Client] Gemini cooldown: waiting ${Math.ceil(waitTime / 1000)}s to respect ${MAX_CALLS} calls / min limit...`);
             await new Promise(r => setTimeout(r, waitTime));
           }
           const nowAfterWait = Date.now();
@@ -91,17 +91,17 @@ export async function fetchAIChatCompletion(params, log = console.log) {
         }
 
         deepSeekCallTimes.push(Date.now());
-        log(`[AI-Client] Attempting DeepSeek API (deepseek-chat)... (Attempt ${dsRetries + 1})`);
+        log(`[AI-Client] Attempting Gemini API (gemini-1.5-flash)... (Attempt ${dsRetries + 1})`);
 
         try {
-          const dsResult = await fetchWithTimeout('https://api.deepseek.com/chat/completions', {
+          const dsResult = await fetchWithTimeout('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+              'Authorization': `Bearer ${GEMINI_API_KEY}`
             },
             body: JSON.stringify({
-              model: 'deepseek-chat',
+              model: 'gemini-1.5-flash',
               temperature,
               messages,
               max_tokens,
@@ -110,40 +110,40 @@ export async function fetchAIChatCompletion(params, log = console.log) {
           }, 30000); // 30s timeout
 
           if (dsResult.ok && dsResult.body && dsResult.body.choices && dsResult.body.choices[0]) {
-            log(`[AI-Client] ✅ DeepSeek success!`);
+            log(`[AI-Client] ✅ Gemini success!`);
             return dsResult.body;
           } else {
             const errBody = typeof dsResult.body === 'string' ? dsResult.body : JSON.stringify(dsResult.body);
-            log(`[AI-Client] DeepSeek failed (Status ${dsResult.status}): ${errBody}`);
+            log(`[AI-Client] Gemini failed (Status ${dsResult.status}): ${errBody}`);
             
             if (dsResult.status === 429) {
-              log(`[AI-Client] DeepSeek 429 Rate Limit. Waiting 15 seconds before retry...`);
+              log(`[AI-Client] Gemini 429 Rate Limit. Waiting 15 seconds before retry...`);
               await new Promise(r => setTimeout(r, 15000));
             } else if (dsResult.status === 402) {
               const backoff = 15000 * Math.pow(2, dsRetries);
-              log(`[AI-Client] DeepSeek 402 Insufficient Balance. Waiting ${backoff / 1000} seconds before retry...`);
+              log(`[AI-Client] Gemini 402 Insufficient Balance. Waiting ${backoff / 1000} seconds before retry...`);
               await new Promise(r => setTimeout(r, backoff));
             } else if (dsResult.status >= 500) {
-              log(`[AI-Client] DeepSeek server error. Waiting 5 seconds before retry...`);
+              log(`[AI-Client] Gemini server error. Waiting 5 seconds before retry...`);
               await new Promise(r => setTimeout(r, 5000));
             }
           }
         } catch (dsErr) {
-          log(`[AI-Client] DeepSeek exception: ${dsErr.message}`);
+          log(`[AI-Client] Gemini exception: ${dsErr.message}`);
           await new Promise(r => setTimeout(r, 5000));
         }
         
         dsRetries++;
       }
 
-      // If DeepSeek was available but failed after retries, fail completely instead of falling back to Groq.
-      throw new Error('[AI-Client] DeepSeek API failed after retries. Not falling back to Groq to save tokens and respect user preferences.');
+      // If Gemini was available but failed after retries, fail completely instead of falling back to Groq.
+      throw new Error('[AI-Client] Gemini API failed after retries. Not falling back to Groq to save tokens and respect user preferences.');
     }
 
-    // 2. Fall back to Groq API only if DeepSeek API key is NOT provided
+    // 2. Fall back to Groq API only if Gemini API key is NOT provided
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     if (!GROQ_API_KEY) {
-      throw new Error('[AI-Client] Neither DEEPSEEK_API_KEY nor GROQ_API_KEY are configured.');
+      throw new Error('[AI-Client] Neither GEMINI_API_KEY nor GROQ_API_KEY are configured.');
     }
 
     const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';

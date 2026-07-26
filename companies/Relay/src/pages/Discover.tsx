@@ -153,11 +153,10 @@ const Discover: React.FC = () => {
   useEffect(() => {
     fetchCampaigns();
     fetchMetrics();
-    // Replaced realtime subscription with 15s polling to prevent WebSocket connection spam
+    // Replaced realtime subscription with 60s polling to prevent DB overload
     const pollInterval = setInterval(() => {
       fetchLeads();
-      fetchMetrics();
-    }, 15000);
+    }, 60000);
     return () => clearInterval(pollInterval);
   }, []);
 
@@ -176,9 +175,9 @@ const Discover: React.FC = () => {
   };
 
   const fetchMetrics = async () => {
-    const { count: total } = await supabase.from('leads').select('*', { count: 'exact', head: true });
-    const { count: verified } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'valid');
-    const { count: invalid } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('validation_status', 'invalid');
+    const { count: total } = await supabase.from('leads').select('*', { count: 'estimated', head: true });
+    const { count: verified } = await supabase.from('leads').select('*', { count: 'estimated', head: true }).eq('validation_status', 'valid');
+    const { count: invalid } = await supabase.from('leads').select('*', { count: 'estimated', head: true }).eq('validation_status', 'invalid');
     const totalNum = total || 0;
     const verifiedNum = verified || 0;
     setMetrics({
@@ -192,7 +191,7 @@ const Discover: React.FC = () => {
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('leads').select('*', { count: 'exact' });
+      let query = supabase.from('leads').select('*', { count: 'estimated' });
       if (debouncedSearch.trim()) query = query.or(`name.ilike.%${debouncedSearch}%,company.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%`);
       if (debouncedIndustry.trim()) query = query.ilike('industry', `%${debouncedIndustry}%`);
       if (debouncedLocation.trim()) query = query.ilike('location', `%${debouncedLocation}%`);

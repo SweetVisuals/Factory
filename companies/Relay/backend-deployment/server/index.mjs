@@ -42,8 +42,8 @@ app.use(cors({
 // Handle preflight requests explicitly
 app.options('*', cors());
 
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
-const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 
 app.post('/api/generate-sequences', async (req, res) => {
   try {
@@ -134,15 +134,15 @@ ${isSingle ? '' : 'Each email MUST be completely different in topic and approach
 
 SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "${niche}" and genuinely intriguing to a decision-maker in that space. Think carefully about the real daily challenges, ambitions, and pressures of someone running a business in the "${niche}" industry, and write subjects that speak directly to those. Be bold, be specific, be original. Do NOT use generic phrases.`;
 
-    const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
       method: 'POST',
       signal: AbortSignal.timeout(60000), // 60-second timeout to prevent infinite hanging
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+        'Authorization': `Bearer ${GEMINI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'gemini-1.5-flash',
         temperature: 1.2,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -153,10 +153,10 @@ SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "$
     });
 
     const data = await response.json();
-    console.log('DeepSeek Response:', data);
+    console.log('Gemini Response:', data);
 
     if (data.error) {
-      throw new Error(data.error.message || 'DeepSeek API Error');
+      throw new Error(data.error.message || 'Gemini API Error');
     }
 
     const contentString = data.choices[0].message.content;
@@ -196,7 +196,7 @@ app.post('/api/generate-lead-emails', async (req, res) => {
 
     const results = [];
 
-    // Process leads in parallel but with a small concurrency limit to avoid hitting DeepSeek rate limits
+    // Process leads in parallel but with a small concurrency limit to avoid hitting Gemini rate limits
     const BATCH_SIZE = 5;
     for (let i = 0; i < leads.length; i += BATCH_SIZE) {
       const batch = leads.slice(i, i + BATCH_SIZE);
@@ -241,14 +241,14 @@ Rules:
 - Return ONLY a JSON object with 'subject' and 'content' keys.`;
 
         try {
-          const aiResponse = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+          const aiResponse = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+              'Authorization': `Bearer ${GEMINI_API_KEY}`
             },
             body: JSON.stringify({
-              model: 'deepseek-chat',
+              model: 'gemini-1.5-flash',
               messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }

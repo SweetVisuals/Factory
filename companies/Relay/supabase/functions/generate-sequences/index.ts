@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const DEEPSEEK_API_KEY = 'sk-0d0013ae961e47ba9afae12205877d98';
-const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
+const GEMINI_API_KEY = 'sk-0d0013ae961e47ba9afae12205877d98';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://fzcrjogrnujrfxafxbkh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -32,12 +32,12 @@ serve(async (req) => {
     const { campaignName, niche, company, contactNumber, primaryEmail, count = 5 } = await req.json()
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { data: deepseekOption } = await supabaseAdmin
+    const { data: geminiOption } = await supabaseAdmin
         .from('api_keys')
         .select('key_value')
-        .eq('service', 'disable_deepseek')
+        .eq('service', 'disable_gemini')
         .maybeSingle();
-    const disableDeepseek = deepseekOption?.key_value === 'true';
+    const disableDeepseek = geminiOption?.key_value === 'true';
 
     console.log(`Generating ${count} sequences for ${company} (${niche})`);
 
@@ -158,7 +158,7 @@ Do NOT mention the lead's role or job title anywhere.`;
 
     let data;
     if (disableDeepseek) {
-      console.log("DeepSeek is disabled. Trying OpenRouter key cycling for sequence generation...");
+      console.log("Gemini is disabled. Trying OpenRouter key cycling for sequence generation...");
       let success = false;
       for (let k = 0; k < OPENROUTER_KEYS.length; k++) {
           const apiKey = OPENROUTER_KEYS[k];
@@ -200,14 +200,14 @@ Do NOT mention the lead's role or job title anywhere.`;
           throw new Error("All OpenRouter API keys failed or exhausted for sequence generation.");
       }
     } else {
-      const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+      const response = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+          'Authorization': `Bearer ${GEMINI_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: 'gemini-1.5-flash',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }

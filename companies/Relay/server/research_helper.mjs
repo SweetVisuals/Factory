@@ -207,7 +207,7 @@ function sanitizeResearchData(parsed) {
 /**
  * Unified deep research function that:
  * 1. Scrapes the company website (via performDeepResearch in scraper.mjs)
- * 2. Processes the data with DeepSeek via fetchAIChatCompletion using comprehensive extraction prompt.
+ * 2. Processes the data with Gemini via fetchAIChatCompletion using comprehensive extraction prompt.
  * 3. Returns structured research data with quality scoring.
  * 4. Preserves backward compatibility with old summary format.
  */
@@ -236,7 +236,7 @@ export async function researchAndSummarizeLead(lead, log = console.log, campaign
     const prompt = buildResearchPrompt(companyName, rawWebsite, scrapedReport, campaignPitch, lead);
 
     try {
-      log(`[Research Helper] Calling DeepSeek AI for comprehensive analysis...`);
+      log(`[Research Helper] Calling Gemini AI for comprehensive analysis...`);
       const aiRes = await fetchAIChatCompletion({
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2,

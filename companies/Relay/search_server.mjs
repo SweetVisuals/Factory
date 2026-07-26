@@ -21,8 +21,8 @@ function searchDir(dir, query) {
   }
 }
 
-console.log('--- Searching for "api.deepseek.com" ---');
-searchDir(__dirname, 'api.deepseek.com');
+console.log('--- Searching for "generativelanguage.googleapis.com/v1beta/openai" ---');
+searchDir(__dirname, 'generativelanguage.googleapis.com/v1beta/openai');
 
-console.log('--- Searching for "deepseek-v4-flash" ---');
-searchDir(__dirname, 'deepseek-v4-flash');
+console.log('--- Searching for "gemini-v4-flash" ---');
+searchDir(__dirname, 'gemini-v4-flash');

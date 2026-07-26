@@ -9,7 +9,7 @@ Here are the step-by-step instructions.
 1. Create a zip file containing **ONLY** the following files and folders:
    - `server/` (directory)
    - `package.json`
-   - `.env` (make sure this has your `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DEEPSEEK_API_KEY`, etc.)
+   - `.env` (make sure this has your `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GEMINI_API_KEY`, etc.)
 
    *Note: Do NOT zip `node_modules` or `src` or `dist`.*
 
