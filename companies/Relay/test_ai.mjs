@@ -38,10 +38,10 @@ const userPrompt = "Template Subject: \"" + schedule.templates.subject + "\"\n" 
 import { fetchAIChatCompletion } from './server/ai-client.mjs';
 
 async function testPrompt() {
-    console.log("Testing Gemini AI Generation...");
+    console.log("Testing DeepSeek AI Generation...");
     try {
         const data = await fetchAIChatCompletion({
-            model: 'gemini-1.5-flash',
+            model: 'deepseek-v4-flash',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }

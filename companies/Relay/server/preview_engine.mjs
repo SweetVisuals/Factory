@@ -3,8 +3,8 @@ import fetch from 'node-fetch';
 
 const router = express.Router();
 
-const GEMINI_API_KEY = process.env["GEMINI_API_KEY"] || "sk-6733c8ac2b83402b8626e5e253824488";
-const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
+const DEEPSEEK_API_KEY = process.env["DEEPSEEK_API_KEY"];
+const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 
 router.post('/preview', async (req, res) => {
   try {
@@ -26,14 +26,14 @@ ${businessOverview ? 'BUSINESS CONTEXT:\n' + businessOverview.substring(0, 2000)
 
     const userPrompt = `Please write a sample email to a prospect named 'John Doe' who is the CEO at 'Acme Corp'. They are in the e-commerce space and are struggling with manual data entry.`;
 
-    const response = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${GEMINI_API_KEY}`,
+        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gemini-1.5-flash",
+        model: "deepseek-v4-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }

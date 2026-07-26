@@ -27,8 +27,8 @@ async function runHermes(prompt) {
       env: { 
         ...process.env, 
         PYTHONPATH: HERMES_BASE,
-        GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-        OPENAI_API_KEY: process.env.GEMINI_API_KEY
+        DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+        OPENAI_API_KEY: process.env.DEEPSEEK_API_KEY
       }
     });
     return stdout;

@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const GEMINI_API_KEY = 'sk-0d0013ae961e47ba9afae12205877d98';
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+const DEEPSEEK_API_KEY = 'sk-0d0013ae961e47ba9afae12205877d98';
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://fzcrjogrnujrfxafxbkh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -200,14 +200,14 @@ Do NOT mention the lead's role or job title anywhere.`;
           throw new Error("All OpenRouter API keys failed or exhausted for sequence generation.");
       }
     } else {
-      const response = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
+      const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GEMINI_API_KEY}`
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'gemini-1.5-flash',
+          model: 'deepseek-v4-flash',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }

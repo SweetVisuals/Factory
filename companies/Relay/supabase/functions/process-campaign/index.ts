@@ -15,8 +15,8 @@ function isAccountAllowedForBusiness(email: string, businessId: string): boolean
 }
 
 // Config
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'sk-6733c8ac2b83402b8626e5e253824488';
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://fzcrjogrnujrfxafxbkh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
@@ -587,14 +587,14 @@ Deno.serve(async (req) => {
                                };
                            }
                        } else {
-                           aiResp = await fetch(GEMINI_BASE_URL + '/chat/completions', {
+                           aiResp = await fetch(DEEPSEEK_BASE_URL + '/chat/completions', {
                               method: 'POST',
                               headers: {
                                   'Content-Type': 'application/json',
-                                  'Authorization': 'Bearer ' + GEMINI_API_KEY
+                                  'Authorization': 'Bearer ' + DEEPSEEK_API_KEY
                               },
                               body: JSON.stringify({
-                                  model: 'gemini-1.5-flash',
+                                  model: 'deepseek-v4-flash',
                                   messages: [
                                       { role: 'system', content: systemPrompt },
                                       { role: 'user', content: userPrompt }

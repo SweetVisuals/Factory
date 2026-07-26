@@ -18,8 +18,8 @@ async function runEmailerCron() {
       console.log('[Emailer Cron] Factory is paused due to insufficient credits. Checking balance...');
       hasAiCredits = false;
       try {
-         const geminiKey = process.env.GEMINI_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
-         const balRes = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/user/balance', { headers: { 'Authorization': `Bearer ${geminiKey}` } });
+         const deepseekKey = process.env.DEEPSEEK_API_KEY;
+         const balRes = await fetch('https://api.deepseek.com/user/balance', { headers: { 'Authorization': `Bearer ${deepseekKey}` } });
          if (balRes.ok) {
             const balData = await balRes.json();
             if (balData && balData.balance_infos && balData.balance_infos.length > 0) {

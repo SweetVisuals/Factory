@@ -289,8 +289,8 @@ app.post('/api/hermes/chat', async (req, res) => {
       env: { 
         ...process.env, 
         PYTHONPATH: hermesBase,
-        GEMINI_API_KEY: process.env.GEMINI_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc',
-        OPENAI_API_KEY: process.env.GEMINI_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc'
+        DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+        OPENAI_API_KEY: process.env.DEEPSEEK_API_KEY
       }
     });
 
@@ -318,8 +318,8 @@ app.get('/api/hermes/skills', async (req, res) => {
       env: { 
         ...process.env, 
         PYTHONPATH: hermesBase,
-        GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-        OPENAI_API_KEY: process.env.GEMINI_API_KEY
+        DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+        OPENAI_API_KEY: process.env.DEEPSEEK_API_KEY
       }
     });
     res.json({ success: true, skills: stdout });
@@ -345,8 +345,8 @@ app.get('/api/hermes/status', async (req, res) => {
   }
 });
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'sk-d703ac9c0fe74d05b1693c50a81ea9bc';
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 
 app.post('/api/edit-brief-ai', async (req, res) => {
   try {
@@ -476,14 +476,14 @@ User's Description: ${blurb || 'N/A'}
 Scraped Website Content: ${scrapedText || 'N/A'}
 `;
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GEMINI_API_KEY}`
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gemini-1.5-flash',
+        model: 'deepseek-v4-flash',
         response_format: { type: 'json_object' },
         messages: [{ role: 'user', content: prompt }]
       })
@@ -491,7 +491,7 @@ Scraped Website Content: ${scrapedText || 'N/A'}
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini API returned status ${response.status}: ${errText}`);
+      throw new Error(`DeepSeek API returned status ${response.status}: ${errText}`);
     }
 
     const result = await response.json();
@@ -638,17 +638,17 @@ Each email MUST be completely different in topic and approach — no repetition 
 
 SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "${niche}" and genuinely intriguing to a decision-maker in that space. Think carefully about the real daily challenges, ambitions, and pressures of someone running a business in the "${niche}" industry, and write subjects that speak directly to those. Be bold, be specific, be original. Do NOT use generic phrases.`;
 
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'sk-0a7858e4ab064eb18241a7005f04df41';
+    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
     console.log(`[Automated Sequences] Making direct request to Gemini to bypass rate limit / queue for campaign ${campaignId}...`);
     
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GEMINI_API_KEY}`
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gemini-1.5-flash',
+        model: 'deepseek-v4-flash',
         temperature: 1.2,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -660,7 +660,7 @@ SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "$
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini API returned status ${response.status}: ${errText}`);
+      throw new Error(`DeepSeek API returned status ${response.status}: ${errText}`);
     }
 
     const data = await response.json();
@@ -935,7 +935,7 @@ ${isSingle ? '' : 'Each email MUST be completely different in topic and approach
 SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "${niche}" and genuinely intriguing to a decision-maker in that space. Think carefully about the real daily challenges, ambitions, and pressures of someone running a business in the "${niche}" industry, and write subjects that speak directly to those. Be bold, be specific, be original. Do NOT use generic phrases.`;
 
     const data = await fetchAIChatCompletion({
-      model: 'gemini-1.5-flash',
+      model: 'deepseek-v4-flash',
       temperature: 1.2,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -1030,7 +1030,7 @@ app.get('/api/campaigns/:id/preview-email', async (req, res) => {
       return res.status(404).json({ success: false, error: 'No leads with a valid email found to preview.' });
     }
 
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'sk-0a7858e4ab064eb18241a7005f04df41';
+    const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
     
     const previews = await Promise.all(leads.map(async (lead) => {
       // If the name is too long or contains keywords, it's probably a company name incorrectly placed in the name field
@@ -1092,14 +1092,14 @@ Template Subject: ${templateSubject}
 Template Body: ${templateContent}`;
 
       try {
-        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+        const response = await fetch('https://api.deepseek.com/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GEMINI_API_KEY}`
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
           },
           body: JSON.stringify({
-            model: 'gemini-1.5-flash',
+            model: 'deepseek-v4-flash',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
@@ -1109,7 +1109,7 @@ Template Body: ${templateContent}`;
         });
 
         if (!response.ok) {
-          throw new Error(`Direct Gemini API returned status ${response.status}`);
+          throw new Error(`Direct DeepSeek API returned status ${response.status}`);
         }
 
         const resData = await response.json();
@@ -1206,7 +1206,7 @@ Return ONLY JSON with 'subject' and 'content'.`;
 
         try {
           const aiResponse = await fetchAIChatCompletion({
-            model: 'gemini-1.5-flash',
+            model: 'deepseek-v4-flash',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
@@ -1498,7 +1498,7 @@ Lead Info: ${leadFirstName} at ${lead.company || 'their company'}`;
     userPrompt += `\n\nEmail Thread History:\n${thread}\n\nDraft the reply now (raw text only):`;
 
     const data = await fetchAIChatCompletion({
-      model: 'gemini-1.5-flash',
+      model: 'deepseek-v4-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -2097,7 +2097,7 @@ Schema:
 The lead's name is "${name || 'John Doe'}" and email is "${email || 'john@example.com'}".`;
 
     const data = await fetchAIChatCompletion({
-      model: 'gemini-1.5-flash',
+      model: 'deepseek-v4-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }

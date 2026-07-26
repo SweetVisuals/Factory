@@ -5,8 +5,8 @@ import { generateEmail as engineGenerateEmail } from './email_engine.mjs';
 import { resetRunCounters, canSendEmail, recordEmailSent, recordBounce, canCallAI, recordAICall, getUsageSummary } from './rate_limiter.mjs';
 const USE_AI = process.env.USE_AI_PERSONALIZATION === 'true';
 const Te =
-    process.env["GEMINI_API_KEY"] || "sk-6733c8ac2b83402b8626e5e253824488",
-  Pe = "https://generativelanguage.googleapis.com/v1beta/openai",
+    process.env["DEEPSEEK_API_KEY"],
+  Pe = "https://api.deepseek.com",
   Ae =
     process.env["SUPABASE_URL"] || "https://fzcrjogrnujrfxafxbkh.supabase.co",
   Re = process.env["SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_ANON_KEY"] || "",
@@ -742,12 +742,12 @@ CRITICAL RULES:
               r = await fetch(Pe + "/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: "Bearer " + Te },
-                body: JSON.stringify({ model: "gemini-1.5-flash", messages: [{ role: "system", content: k }, { role: "user", content: R }], response_format: { type: "json_object" } }),
+                body: JSON.stringify({ model: "deepseek-v4-flash", messages: [{ role: "system", content: k }, { role: "user", content: R }], response_format: { type: "json_object" } }),
               });
             if (r.status === 402 || r.status === 429 || !r.ok) {
               const c = await r.text();
               console.error(`AI API Error (status ${r.status}):`, c);
-              await recordAICall(n, { provider: ge ? 'openrouter' : 'gemini', model: ge ? 'owl-alpha' : 'gemini-1.5-flash', success: false, errorMessage: c.substring(0, 500), campaignId: e.campaign_id, leadId: t.id });
+              await recordAICall(n, { provider: ge ? 'openrouter' : 'gemini', model: ge ? 'owl-alpha' : 'deepseek-v4-flash', success: false, errorMessage: c.substring(0, 500), campaignId: e.campaign_id, leadId: t.id });
               throw new Error("AI_CREDITS_EXHAUSTED");
             } else {
               const c = await r.json();
@@ -768,7 +768,7 @@ CRITICAL RULES:
                 const _usage = c.usage || {};
                 await recordAICall(n, { 
                   provider: ge ? 'openrouter' : 'gemini', 
-                  model: ge ? 'owl-alpha' : 'gemini-1.5-flash',
+                  model: ge ? 'owl-alpha' : 'deepseek-v4-flash',
                   tokensPrompt: _usage.prompt_tokens || 0,
                   tokensCompletion: _usage.completion_tokens || 0,
                   costUsd: ((_usage.prompt_tokens || 0) * 0.000001) + ((_usage.completion_tokens || 0) * 0.000002), // Estimated cost
