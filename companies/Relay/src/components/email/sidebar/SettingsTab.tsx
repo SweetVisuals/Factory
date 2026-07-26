@@ -7,6 +7,7 @@ import { EmailAccount } from '../../../types';
 import { updateEmailAccount } from '../../../lib/api/email-accounts';
 import { useToast } from '../../ui/use-toast';
 import { cn } from '../../../lib/utils';
+import { supabase } from '../../../lib/supabase';
 
 interface SettingsTabProps {
   account: EmailAccount;
@@ -33,6 +34,7 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
   const [newSigImageUrl, setNewSigImageUrl] = useState('');
   const [sigImageMode, setSigImageMode] = useState<'upload' | 'url'>('upload');
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state with account signatures
@@ -125,25 +127,46 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
   }, [account.warmup_filter_tag]);
 
   // Image File Processor
-  const processImageFile = (file: File) => {
+  const processImageFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast({ title: 'Invalid File', description: 'Please upload an image file (PNG, JPG, SVG, GIF)', variant: 'destructive' });
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ title: 'File Too Large', description: 'Image size should be under 2MB for fast email loading', variant: 'destructive' });
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'File Too Large', description: 'Image size should be under 5MB for fast email loading', variant: 'destructive' });
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setNewSigImageUrl(e.target.result as string);
-        toast({ title: 'Image Uploaded', description: 'Logo attached to signature template' });
+    try {
+      setIsUploadingImage(true);
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('signatures')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
       }
-    };
-    reader.readAsDataURL(file);
+
+      const { data } = supabase.storage.from('signatures').getPublicUrl(filePath);
+      
+      if (data?.publicUrl) {
+        setNewSigImageUrl(data.publicUrl);
+        toast({ title: 'Image Uploaded', description: 'Logo securely hosted and attached to signature' });
+      } else {
+        throw new Error('Failed to get public URL');
+      }
+    } catch (error: any) {
+      console.error('Image upload failed:', error);
+      toast({ title: 'Upload Failed', description: error.message || 'Could not upload image', variant: 'destructive' });
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   // Signatures Logic
@@ -353,20 +376,27 @@ const SettingsTab = ({ account, onUpdate }: SettingsTabProps) => {
                       const file = e.dataTransfer.files?.[0];
                       if (file) processImageFile(file);
                     }}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => {
+                      if (!isUploadingImage) fileInputRef.current?.click();
+                    }}
                     className={cn(
-                      "border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2",
+                      "border-2 border-dashed rounded-xl p-4 text-center transition-all flex flex-col items-center justify-center gap-2",
+                      isUploadingImage ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
                       isDragging 
                         ? "border-primary bg-primary/10" 
                         : "border-white/10 hover:border-white/20 bg-black/30 hover:bg-black/40"
                     )}
                   >
-                    <UploadCloud className={cn("w-6 h-6", isDragging ? "text-primary animate-bounce" : "text-white/40")} />
+                    {isUploadingImage ? (
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <UploadCloud className={cn("w-6 h-6", isDragging ? "text-primary animate-bounce" : "text-white/40")} />
+                    )}
                     <div className="space-y-0.5">
                       <p className="text-xs font-semibold text-white/80">
-                        Drag & drop logo image here, or <span className="text-primary underline">browse</span>
+                        {isUploadingImage ? "Uploading..." : <>Drag & drop logo image here, or <span className="text-primary underline">browse</span></>}
                       </p>
-                      <p className="text-[10px] text-white/40">Supports PNG, JPG, SVG, GIF (max 2MB)</p>
+                      <p className="text-[10px] text-white/40">Supports PNG, JPG, SVG, GIF (max 5MB)</p>
                     </div>
                   </div>
                 </div>
