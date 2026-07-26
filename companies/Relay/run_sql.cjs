@@ -5,7 +5,7 @@ const conn = new Client();
 conn.on('ready', () => {
   console.log('Client :: ready');
   
-  const sql = fs.readFileSync('admin_rpcs.sql', 'utf8');
+  const sql = fs.readFileSync('admin_rpcs_v2.sql', 'utf8');
   const cmd = `cat << 'EOF_SQL' | docker exec -i supabase-db psql -U postgres
 ${sql}
 EOF_SQL`;

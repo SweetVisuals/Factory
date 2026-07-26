@@ -16,6 +16,26 @@ import TestDeleteFunction from '../pages/TestDeleteFunction';
 import Layout from '../components/layout/Layout';
 import OnboardingWizard from '../components/onboarding/OnboardingWizard';
 import AuthVerify from '../pages/AuthVerify';
+import { AdminCampaignHub } from '../pages/admin/AdminCampaignHub';
+import { AdminAccountsHub } from '../pages/admin/AdminAccountsHub';
+import { useAuth } from '../context/AuthContext';
+
+const CampaignsRouter = () => {
+  const { user } = useAuth();
+  if (user?.email === 'admin@relaysolutions.net') {
+    return <AdminCampaignHub />;
+  }
+  return <CampaignHub />;
+};
+
+const EmailAccountsRouter = () => {
+  const { user } = useAuth();
+  if (user?.email === 'admin@relaysolutions.net') {
+    return <AdminAccountsHub />;
+  }
+  return <EmailAccounts />;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -55,7 +75,7 @@ const AppRoutes = () => {
 
       <Route path="/campaigns" element={
         <ProtectedRoute>
-          <CampaignHub />
+          <CampaignsRouter />
         </ProtectedRoute>
       } />
 
@@ -93,7 +113,7 @@ const AppRoutes = () => {
 
       <Route path="/email-accounts" element={
         <ProtectedRoute>
-          <EmailAccounts />
+          <EmailAccountsRouter />
         </ProtectedRoute>
       } />
 

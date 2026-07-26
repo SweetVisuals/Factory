@@ -16,11 +16,11 @@ export const AdminStatsGrid = ({ stats }) => {
       {statCards.map((stat, i) => {
         const Icon = stat.icon;
         return (
-          <div key={i} className="flex flex-col bg-card border border-border rounded-none p-6 relative overflow-hidden group hover:border-border/80 transition-all duration-300">
+          <div key={i} className="flex flex-col bg-card border border-border rounded-2xl p-6 relative overflow-hidden group hover:border-border/80 transition-all duration-300">
             <div className={`absolute top-0 right-0 w-32 h-32 bg-current opacity-[0.02] -mr-8 -mt-8 rounded-full transition-transform duration-500 group-hover:scale-110 ${stat.color}`} />
             
             <div className="flex justify-between items-start mb-4 relative z-10">
-              <div className={`p-3 bg-background border border-border rounded-none shadow-sm ${stat.color}`}>
+              <div className={`p-3 bg-background border border-border rounded-xl shadow-sm ${stat.color}`}>
                 <Icon size={20} />
               </div>
             </div>

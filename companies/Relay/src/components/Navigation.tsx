@@ -254,6 +254,13 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
       { name: 'Discover', path: '/discover', icon: Compass },
       { name: 'Profile', path: '/profile', icon: Settings },
     ];
+  } else if (user.email === 'admin@relaysolutions.net') {
+    navItems = [
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { name: 'Discover', path: '/discover', icon: Compass },
+      { name: 'Campaigns', path: '/campaigns', icon: Target },
+      { name: 'Accounts', path: '/email-accounts', icon: AtSign },
+    ];
   }
 
   return (

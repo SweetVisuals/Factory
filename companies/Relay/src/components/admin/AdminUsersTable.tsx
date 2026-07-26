@@ -101,7 +101,7 @@ export const AdminUsersTable = ({ users, setUsers }) => {
   return (
     <div className="flex flex-col gap-2">
       {users.map(u => (
-        <div key={u.id} className="bg-card border border-border rounded-none overflow-hidden transition-all">
+        <div key={u.id} className="bg-card border border-border rounded-2xl overflow-hidden transition-all">
           <div 
             onClick={() => handleExpand(u.id)}
             className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/[0.02]"
