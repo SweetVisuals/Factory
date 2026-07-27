@@ -2224,9 +2224,9 @@ app.post('/api/scrape-leads', async (req, res) => {
       }
     }
 
-    // Global Concurrency Limiter: Push Hetzner Node to max capacity
-    // Allow up to 8 concurrent campaigns to be scraped at any given time.
-    if (activeScrapes.size >= 8) {
+    // Global Concurrency Limiter: Prevent Hetzner Node OOM crashes
+    // Allow up to 2 concurrent campaigns to be scraped at any given time.
+    if (activeScrapes.size >= 2) {
       console.log(`[Scraper API] Server busy: ${activeScrapes.size} active scrapes running. Rejecting new request.`);
       return res.status(429).json({ success: false, message: 'Server is currently at maximum scraping capacity. Please try again later.' });
     }
