@@ -64,17 +64,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         campaignApi.fetchCampaigns().then(setCampaigns).catch(console.error);
       };
 
-      const campaignChannel = supabase
-        .channel('global-campaigns-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, reloadCampaigns)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_progress' }, reloadCampaigns)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_leads' }, reloadCampaigns)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, reloadCampaigns)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_emails' }, reloadCampaigns)
-        .subscribe();
+      // Poll campaigns every 15 seconds instead of using heavy realtime subscriptions
+      // which cause infinite querying and network saturation when the scraper is running
+      const pollInterval = setInterval(reloadCampaigns, 15000);
 
       return () => {
-        supabase.removeChannel(campaignChannel);
+        clearInterval(pollInterval);
       };
     }
   }, [user]);

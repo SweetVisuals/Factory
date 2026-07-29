@@ -2254,7 +2254,15 @@ app.post('/api/scrape-leads', async (req, res) => {
       // Internal Bypass: allow if token matches anon/service key (used by agents)
       if (token === process.env.SUPABASE_ANON_KEY || token === process.env.SUPABASE_SERVICE_ROLE_KEY) {
         console.log('[Scraper] Bypassing auth for internal system request');
-        userId = 'c5f44ad2-63d1-43c2-8e17-0333d12e8643'; // Default to admin user
+        
+        // If triggered for a campaign, ensure leads are assigned to the campaign owner
+        const cid = req.body.campaignId;
+        if (cid) {
+          const { data: cData } = await client.from('campaigns').select('user_id').eq('id', cid).maybeSingle();
+          userId = cData?.user_id || 'c5f44ad2-63d1-43c2-8e17-0333d12e8643';
+        } else {
+          userId = 'c5f44ad2-63d1-43c2-8e17-0333d12e8643'; // Default to admin user
+        }
       } else {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
