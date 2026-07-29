@@ -159,10 +159,11 @@ async function runScraperScheduler() {
                     startedCount++;
                     
                     // Increment scrape counter
-                    await supabase.rpc('increment_scrapes', { uid: c.user_id, amount: scrapeLimit }).catch(e => {
+                    const { error: rpcError } = await supabase.rpc('increment_scrapes', { uid: c.user_id, amount: scrapeLimit });
+                    if (rpcError) {
                         // fallback if RPC doesn't exist
-                        supabase.from('account_settings').update({ scrapes_this_month: (accSettings.scrapes_this_month || 0) + scrapeLimit }).eq('user_id', c.user_id).then();
-                    });
+                        await supabase.from('account_settings').update({ scrapes_this_month: (accSettings.scrapes_this_month || 0) + scrapeLimit }).eq('user_id', c.user_id);
+                    }
                 } else {
                     console.error(`[Scraper Scheduler] Failed to trigger scraper for ${c.id}. Status: ${resp.status}`);
                 }
