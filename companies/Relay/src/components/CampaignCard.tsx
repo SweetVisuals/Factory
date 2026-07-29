@@ -146,7 +146,7 @@ const CampaignCard = ({
             <span className="px-2 py-0.5 rounded-none bg-primary/10 border border-primary/20">{bizLabel}</span>
             {loc && <span className="text-muted-foreground">{loc}</span>}
           </div>
-          <h3 className="font-black text-2xl tracking-tight text-foreground truncate capitalize">{cleanName}</h3>
+          <h3 className="font-black text-2xl tracking-tight text-foreground truncate uppercase">{cleanName}</h3>
         </div>
         
         {/* Agent Status Badge */}
