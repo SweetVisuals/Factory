@@ -3,6 +3,8 @@ import { fetchAIChatCompletion } from './ai-client.mjs';
 import { researchAndSummarizeLead, AIRateLimitError } from './research_helper.mjs';
 
 let supabase = null;
+const failedToSaveCache = new Set();
+let lastCacheClear = Date.now();
 
 /**
  * Research Cron - Processes leads through deep research queue:
@@ -17,14 +19,25 @@ async function runResearchCron() {
   console.log('[Research Cron] Checking for leads needing deep research...');
   
   try {
+    // Clear cache every hour to allow retrying eventually
+    if (Date.now() - lastCacheClear > 60 * 60 * 1000) {
+      failedToSaveCache.clear();
+      lastCacheClear = Date.now();
+    }
+
     // Fetch leads that need research (no summary or with failed research)
-    const { data: leads, error: leadsError } = await supabase
+    let { data: leads, error: leadsError } = await supabase
       .from('leads')
       .select('*')
       .or('research_status.is.null,research_status.neq.completed')
       .lte('research_attempts', 2)
       .order('research_attempts', { ascending: true })
-      .limit(10); // Process 10 leads at a time
+      .limit(30); // Fetch more in case we skip some
+    
+    // Filter out leads that recently failed to save
+    if (leads && leads.length > 0) {
+      leads = leads.filter(l => !failedToSaveCache.has(l.id)).slice(0, 10);
+    }
     
     if (leadsError) {
       console.error('[Research Cron] Error fetching leads:', leadsError.message);
@@ -115,10 +128,16 @@ async function runResearchCron() {
           }
 
           // Update lead with all research data
-          await supabase
+          const { error: updateError } = await supabase
             .from('leads')
             .update(updatePayload)
             .eq('id', lead.id);
+            
+          if (updateError) {
+            console.error(`[Research Cron] Database save failed for ${companyName}. Adding to circuit breaker cache.`);
+            failedToSaveCache.add(lead.id);
+            throw new Error(`Database save failed: ${updateError.message}`);
+          }
             
           if (res.status === 'completed') {
             // Find and link to campaigns (conditional campaign linking)
@@ -140,7 +159,7 @@ async function runResearchCron() {
             
             if (newAttempts >= 3) {
               console.log(`[Research Cron] ⚠️ Research failed after 3 attempts for ${lead.company || lead.name}. Marking as failed (lead preserved).`);
-              await supabase
+              const { error: failUpdateError } = await supabase
                 .from('leads')
                 .update({
                   research_status: 'failed',
@@ -148,8 +167,9 @@ async function runResearchCron() {
                   updated_at: new Date().toISOString()
                 })
                 .eq('id', lead.id);
+              if (failUpdateError) failedToSaveCache.add(lead.id);
             } else {
-              await supabase
+              const { error: errUpdateError } = await supabase
                 .from('leads')
                 .update({
                   research_status: 'error',
@@ -157,6 +177,7 @@ async function runResearchCron() {
                   updated_at: new Date().toISOString()
                 })
                 .eq('id', lead.id);
+              if (errUpdateError) failedToSaveCache.add(lead.id);
             }
             break;
           }

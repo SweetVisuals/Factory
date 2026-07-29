@@ -106,7 +106,7 @@ const CampaignScraperTab = ({ campaignId }: CampaignScraperTabProps) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        const config = { headers: { Authorization: `Bearer ${session.access_token}` } };
+        const config = { headers: { Authorization: `Bearer ${session.access_token}` }, params: { campaignId } };
         const logRes = await api.get('/scraper-logs', config);
         if (Array.isArray(logRes.data)) setLogs(logRes.data);
 

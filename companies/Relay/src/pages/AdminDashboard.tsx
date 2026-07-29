@@ -15,6 +15,7 @@ export const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [growthData, setGrowthData] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [serverHealth, setServerHealth] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,6 +33,23 @@ export const AdminDashboard = () => {
         if (statsRes.data) setStats(statsRes.data);
         if (growthRes.data) setGrowthData(growthRes.data);
         if (activityRes.data) setActivities(activityRes.data);
+
+        // Fetch Node Server Health
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const baseUrl = import.meta.env.VITE_API_URL || 'https://db.relaysolutions.net';
+            const healthRes = await fetch(`${baseUrl}/api/admin/system-health`, {
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+            if (healthRes.ok) {
+              const data = await healthRes.json();
+              setServerHealth(data);
+            }
+          }
+        } catch (healthErr) {
+          console.error('Error fetching server health:', healthErr);
+        }
       } catch (error) {
         console.error('Error fetching admin data:', error);
       } finally {
@@ -94,7 +112,7 @@ export const AdminDashboard = () => {
                 <AdminGrowthChart data={growthData} />
               </div>
               <div className="xl:col-span-4">
-                <AdminSystemHealth stats={stats} />
+                <AdminSystemHealth stats={stats} serverHealth={serverHealth} />
               </div>
             </div>
 

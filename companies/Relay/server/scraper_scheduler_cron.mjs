@@ -34,6 +34,12 @@ async function runScraperScheduler() {
         return;
     }
 
+    // Shuffle campaigns to prevent starvation when server hits 2-concurrent scrape limit
+    for (let i = campaigns.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [campaigns[i], campaigns[j]] = [campaigns[j], campaigns[i]];
+    }
+
     let startedCount = 0;
 
     for (const c of campaigns) {
@@ -125,7 +131,8 @@ async function runScraperScheduler() {
                 location = isUS ? 'United States' : 'United Kingdom';
             }
 
-            const scrapeLimit = Math.floor(Math.random() * 5) + 1; // Random 1 - 5 leads
+            // Increase batch sizes for faster scraping
+            const scrapeLimit = Math.floor(Math.random() * 16) + 15; // Random 15 - 30 leads
             console.log(`[Scraper Scheduler] Feeding campaign "${c.name}" — current leads: ${count}, requesting ${scrapeLimit} more (controlled pace)`);
 
             try {
@@ -193,7 +200,17 @@ export function startScraperSchedulerCron() {
   console.log('[Scraper Scheduler] Initialized. Running every 5 minutes.');
   
   // Wait a few seconds on startup before running so server has time to boot fully
-  setTimeout(() => {
+  setTimeout(async () => {
+    try {
+        console.log('[Scraper Scheduler] Clearing any stuck tasks from previous runs...');
+        await supabase.from('tasks')
+            .update({ status: 'failed', error: 'Server restarted while scraping.' })
+            .eq('assigned_to', 'Scraper')
+            .in('status', ['in_progress', 'pending', 'waiting']);
+    } catch (e) {
+        console.error('[Scraper Scheduler] Failed to clear stuck tasks:', e.message);
+    }
+
     runScraperScheduler();
     // Run every 5 minutes
     setInterval(runScraperScheduler, 5 * 60 * 1000);

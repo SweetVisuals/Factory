@@ -91,7 +91,7 @@ export async function fetchAIChatCompletion(params, log = console.log) {
         }
 
         deepSeekCallTimes.push(Date.now());
-        log(`[AI-Client] DeepSeek API (deepseek-v4-flash)... (Attempt ${dsRetries + 1})`);
+        log(`[AI-Client] DeepSeek API (${model})... (Attempt ${dsRetries + 1})`);
 
         try {
           const dsResult = await fetchWithTimeout('https://api.deepseek.com/chat/completions', {
@@ -101,7 +101,7 @@ export async function fetchAIChatCompletion(params, log = console.log) {
               'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
             },
             body: JSON.stringify({
-              model: 'deepseek-v4-flash',
+              model: model,
               temperature,
               messages,
               max_tokens,
@@ -120,9 +120,8 @@ export async function fetchAIChatCompletion(params, log = console.log) {
               log(`[AI-Client] DeepSeek 429 Rate Limit. Waiting 15 seconds before retry...`);
               await new Promise(r => setTimeout(r, 15000));
             } else if (dsResult.status === 402) {
-              const backoff = 15000 * Math.pow(2, dsRetries);
-              log(`[AI-Client] DeepSeek 402 Insufficient Balance. Waiting ${backoff / 1000} seconds before retry...`);
-              await new Promise(r => setTimeout(r, backoff));
+              log(`[AI-Client] DeepSeek 402 Insufficient Balance. Aborting.`);
+              throw new Error(`[AI-Client] DeepSeek 402 Insufficient Balance. Cannot use DeepSeek API.`);
             } else if (dsResult.status >= 500) {
               log(`[AI-Client] DeepSeek server error. Waiting 5 seconds before retry...`);
               await new Promise(r => setTimeout(r, 5000));
@@ -130,17 +129,22 @@ export async function fetchAIChatCompletion(params, log = console.log) {
           }
         } catch (dsErr) {
           log(`[AI-Client] DeepSeek exception: ${dsErr.message}`);
+          if (dsErr.message.includes('402 Insufficient Balance')) {
+            log(`[AI-Client] 402 Insufficient Balance detected. Switching to Groq fallback to maintain data quality...`);
+            break; // Break out of retry loop and proceed to Groq
+          }
           await new Promise(r => setTimeout(r, 5000));
         }
         
         dsRetries++;
       }
 
-      // If DeepSeek was available but failed after retries, fail completely instead of falling back to Groq.
-      throw new Error('[AI-Client] DeepSeek API failed after retries. Not falling back to Groq to save tokens and respect user preferences.');
+      // If we exhausted retries and it's NOT a 402, we usually throw to prevent silent token drain on another provider.
+      // However, since the user wants high quality without deepseek credits, we will allow fallback to Groq always if DeepSeek fails.
+      log(`[AI-Client] DeepSeek API unavailable. Falling back to Groq...`);
     }
 
-    // 2. Fall back to Groq API only if DeepSeek API key is NOT provided
+    // 2. Fall back to Groq API
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     if (!GROQ_API_KEY) {
       throw new Error('[AI-Client] Neither DEEPSEEK_API_KEY nor GROQ_API_KEY are configured.');

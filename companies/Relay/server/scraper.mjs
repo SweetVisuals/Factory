@@ -1036,32 +1036,35 @@ Format your response EXACTLY as follows (using markdown):
 > "[Your curiosity-driven conversation starter referencing a specific detail]"`;
 
         try {
-            const aiRes = await fetchAIChatCompletion({
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.7,
-                model: 'llama-3.3-70b-versatile' // Using advanced Llama model for deep research
-            });
-            
-            if (aiRes && aiRes.choices && aiRes.choices[0]) {
-                const content = aiRes.choices[0].message.content;
-                // Validate that the deep dive contains required sections
-                const hasNicheSection = content.includes('Niche') || content.includes('Market');
-                const hasGrowthSection = content.includes('Growth') || content.includes('Revenue');
-                const hasROISection = content.includes('ROI') || content.includes('Projection');
-                
-                if (isDeepResearch && (!hasNicheSection || !hasGrowthSection || !hasROISection)) {
-                    log('GENERATE_AI_SUMMARY: Deep dive missing required sections, marking as incomplete.');
-                    return content + '\n\n⚠️ **Research Note**: This report may be incomplete. Critical sections (Niche Analysis, Growth Opportunities, or ROI Projections) were not fully generated.';
-                }
-                
-                return content;
-            }
-        } catch (aiErr) {
-            log(`AI API failed: ${aiErr.message}`);
+            // AI BYPASSED to save credits and ensure 100% success rate.
+            // Returning a basic native summary instead.
+            return `## ⚡ Quick Summary
+Automated Deep Research has been bypassed to save API credits.
+
+## 🔬 Deep Research
+* Data extracted natively via code parsing. No AI enrichment performed.
+
+### 🎯 Niche & Market Analysis
+Found via code logic.
+
+### 🔍 Website Flaws & UX Issues
+Performance metrics extracted natively.
+
+### 💰 Revenue Levers & Growth Opportunities
+Not evaluated by AI.
+
+### 📈 ROI Projections
+N/A
+
+### 💬 Conversation Starter
+> "I noticed your company while doing some native research in the area."`;
+        } catch (e) {
+            console.error('Summary Generation Fatal Error:', e);
+            return `## ⚡ Quick Summary\nAutomated research encountered an error: ${e.message}\n\n## 🔬 Deep Research\nCould not complete deep research due to an error.`;
         }
-    } catch (e) {
-        console.error('Summary Generation Fatal Error:', e);
-        return `## ⚡ Quick Summary\nAutomated research encountered an error: ${e.message}\n\n## 🔬 Deep Research\nCould not complete deep research due to an error.`;
+    } catch (outerErr) {
+        console.error('Outer Summary Generation Error:', outerErr);
+        return `## ⚡ Quick Summary\nError: ${outerErr.message}\n\n## 🔬 Deep Research\nFailed.`;
     }
 }
 

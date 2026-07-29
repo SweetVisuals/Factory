@@ -4,6 +4,8 @@ import De from "nodemailer";
 import { generateEmail as engineGenerateEmail } from './email_engine.mjs';
 import { resetRunCounters, canSendEmail, recordEmailSent, recordBounce, canCallAI, recordAICall, getUsageSummary } from './rate_limiter.mjs';
 const USE_AI = process.env.USE_AI_PERSONALIZATION === 'true';
+const failedEmailGenerationSet = new Set();
+let lastEmailCacheClear = Date.now();
 const Te =
     process.env["DEEPSEEK_API_KEY"],
   Pe = "https://api.deepseek.com",
@@ -779,6 +781,18 @@ CRITICAL RULES:
             }
           } catch (s) {
             console.error("AI Personalization Failed, using rule-based engine:", s.message || s);
+            
+            // Clear circuit breaker cache periodically
+            if (Date.now() - lastEmailCacheClear > 60 * 60 * 1000) {
+              failedEmailGenerationSet.clear();
+              lastEmailCacheClear = Date.now();
+            }
+
+            if (failedEmailGenerationSet.has(t.id)) {
+              console.log(`Skipping lead ${t.id} because it recently failed to save after email generation.`);
+              continue;
+            }
+
             try {
               const engineResult = engineGenerateEmail({
                 lead: t, campaign: e.campaigns, business: e.campaigns?.businesses,
@@ -794,6 +808,7 @@ CRITICAL RULES:
             } catch (fallbackErr) {
               console.error("Fallback personalization failed:", fallbackErr);
               console.log(`[AI Retry Queue] Skipping lead ${t.email} due to fallback failure.`);
+              failedEmailGenerationSet.add(t.id);
               continue;
             }
           }

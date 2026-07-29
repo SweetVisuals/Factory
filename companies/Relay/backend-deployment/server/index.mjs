@@ -354,7 +354,10 @@ app.get('/api/scraper-active', async (req, res) => {
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) return res.json({ active: false });
 
-    res.json({ active: activeScrapes.get(user.id) || false });
+    const campaignId = req.query.campaignId;
+    const storeKey = campaignId ? `${user.id}_${campaignId}` : user.id;
+
+    res.json({ active: activeScrapes.get(storeKey) || false });
   } catch (e) {
     res.json({ active: false });
   }
@@ -369,7 +372,10 @@ app.get('/api/scraper-logs', async (req, res) => {
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) return res.json([]);
 
-    res.json(userLogs.get(user.id) || []);
+    const campaignId = req.query.campaignId;
+    const storeKey = campaignId ? `${user.id}_${campaignId}` : user.id;
+
+    res.json(userLogs.get(storeKey) || []);
   } catch (e) {
     res.json([]);
   }
@@ -384,8 +390,11 @@ app.get('/api/scraper-results', async (req, res) => {
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) return res.json([]);
 
-    const results = userResults.get(user.id) || [];
-    console.log(`[API] Serving ${results.length} leads to user ${user.id}.`);
+    const campaignId = req.query.campaignId;
+    const storeKey = campaignId ? `${user.id}_${campaignId}` : user.id;
+
+    const results = userResults.get(storeKey) || [];
+    console.log(`[API] Serving ${results.length} leads to user ${user.id} for campaign ${campaignId || 'default'}.`);
     res.json(results);
   } catch (e) {
     res.json([]);
@@ -443,30 +452,31 @@ app.post('/api/scrape-leads', async (req, res) => {
     }
 
     // Initialize user-specific stores
-    userLogs.set(userId, []);
-    userResults.set(userId, []);
-    activeScrapes.set(userId, true);
+    const storeKey = campaignId ? `${userId}_${campaignId}` : userId;
+    userLogs.set(storeKey, []);
+    userResults.set(storeKey, []);
+    activeScrapes.set(storeKey, true);
 
     // Respond immediately - scrape runs in background, frontend polls for updates
     res.json({ success: true, message: 'Scrape started' });
 
     const log = (message) => {
       const timestamp = new Date().toLocaleTimeString();
-      console.log(`[${userId}] ${message}`);
-      const logs = userLogs.get(userId) || [];
+      console.log(`[${storeKey}] ${message}`);
+      const logs = userLogs.get(storeKey) || [];
       logs.push({ timestamp, message });
       if (logs.length > 200) logs.shift();
-      userLogs.set(userId, logs);
+      userLogs.set(storeKey, logs);
     };
 
     const onResult = async (lead) => {
-      const results = userResults.get(userId) || [];
+      const results = userResults.get(storeKey) || [];
       const exists = results.some(r => (r.website && r.website === lead.website) || (r.email && r.email === lead.email));
 
       if (!exists) {
         results.push(lead);
-        userResults.set(userId, results);
-        console.log(`[Main Server] Added lead for ${userId}: ${lead.company}`);
+        userResults.set(storeKey, results);
+        console.log(`[Main Server] Added lead for ${storeKey}: ${lead.company}`);
 
         // Save to Supabase
         const scopedSupabase = createClient(
@@ -543,11 +553,11 @@ app.post('/api/scrape-leads', async (req, res) => {
       } catch (bgError) {
         console.error('Background scrape error:', bgError);
         try { fs.appendFileSync('scraper_endpoint.log', `[${new Date().toISOString()}] BG SCRAPE ERROR: ${bgError.stack}\n`); } catch (e) { }
-        const logs = userLogs.get(userId) || [];
+        const logs = userLogs.get(storeKey) || [];
         logs.push({ timestamp: new Date().toLocaleTimeString(), message: `ERROR: ${bgError.message}` });
-        userLogs.set(userId, logs);
+        userLogs.set(storeKey, logs);
       } finally {
-        activeScrapes.set(userId, false);
+        activeScrapes.set(storeKey, false);
       }
     })();
 
@@ -556,10 +566,11 @@ app.post('/api/scrape-leads', async (req, res) => {
     console.error('Scraping API Error:', error);
 
     if (userId) {
-      const logs = userLogs.get(userId) || [];
+      const storeKey = campaignId ? `${userId}_${campaignId}` : userId;
+      const logs = userLogs.get(storeKey) || [];
       logs.push({ timestamp: new Date().toLocaleTimeString(), message: `ERROR: ${error.message}` });
-      userLogs.set(userId, logs);
-      activeScrapes.set(userId, false);
+      userLogs.set(storeKey, logs);
+      activeScrapes.set(storeKey, false);
     }
 
     // Only send error response if headers haven't been sent yet

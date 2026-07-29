@@ -23,6 +23,7 @@ import { promisify } from 'util';
 const execPromise = promisify(exec);
 const execFilePromise = promisify(execFile);
 
+import os from 'os';
 import { Country, City } from 'country-state-city';
 import { scrapeLeadsNoPuppeteer } from './scraper_http.mjs';
 import { startCompaniesHouseCron } from './companies_house_cron.mjs';
@@ -124,6 +125,70 @@ app.get('/', (req, res) => {
 app.get('/api', (req, res) => {
   res.send('API Root Accessible');
 });
+
+// Admin System Health Endpoint
+app.get('/api/admin/system-health', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Missing auth header' });
+
+    const token = authHeader.replace('Bearer ', '');
+    const client = supabase; // Use the globally initialized supabase client
+    const { data: { user }, error: authError } = await client.auth.getUser(token);
+
+    if (authError || !user || user.email !== 'admin@relaysolutions.net') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Memory Usage
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const memoryUsagePercent = Math.round((usedMem / totalMem) * 100);
+
+    // Disk Usage
+    let diskUsagePercent = 0;
+    let diskFreeGB = 0;
+    try {
+      const { stdout } = await execPromise('df -k /');
+      // Example output: 
+      // Filesystem     1K-blocks    Used Available Use% Mounted on
+      // /dev/sda1       39276944 26978508   10271708  73% /
+      const lines = stdout.split('\\n');
+      if (lines.length >= 2) {
+        const parts = lines[1].trim().split(/\\s+/);
+        if (parts.length >= 5) {
+          const availableKB = parseInt(parts[3], 10);
+          diskFreeGB = (availableKB / (1024 * 1024)).toFixed(1);
+          diskUsagePercent = parseInt(parts[4].replace('%', ''), 10);
+        }
+      }
+    } catch (e) {
+      console.error('[System Health] Error checking disk space:', e);
+    }
+
+    res.json({
+      memoryUsagePercent,
+      diskUsagePercent,
+      diskFreeGB,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[System Health] API Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Auto-clean temporary Puppeteer profiles and cache every 6 hours
+setInterval(async () => {
+  console.log('[Auto-Clean] Running periodic temp directory cleanup...');
+  try {
+    await execPromise('rm -rf /root/tmp/* /root/.cache/puppeteer/* ./tmp/profile_* 2>/dev/null || true');
+    console.log('[Auto-Clean] Successfully cleared temp directories.');
+  } catch (err) {
+    console.error('[Auto-Clean] Error cleaning temp directories:', err.message);
+  }
+}, 6 * 60 * 60 * 1000);
 
 // Secure Public Leads Endpoint
 app.get('/api/public-leads', async (req, res) => {
@@ -2528,8 +2593,13 @@ app.post('/api/scrape-leads', async (req, res) => {
         );
         if (!hasSocial) missingFields.push('social_presence');
 
-        if (missingFields.length > 3) {
-          log(`[Filter] Dropped ${lead.company || 'lead'}: Lacked too many fields (${missingFields.length} missing: ${missingFields.join(', ')}). Only a maximum of 3 empty fields are allowed.`);
+        // If AI is bypassed, we expect many fields to be missing (company_size, tech_stack, etc)
+        // We only enforce that they have an email, phone, or website, plus some basic data.
+        const useAi = process.env.USE_AI_PERSONALIZATION === 'true';
+        const maxMissing = useAi ? 3 : 7;
+        
+        if (missingFields.length > maxMissing) {
+          log(`[Filter] Dropped ${lead.company || 'lead'}: Lacked too many fields (${missingFields.length} missing: ${missingFields.join(', ')}). Only a maximum of ${maxMissing} empty fields are allowed.`);
           return;
         }
 
@@ -3218,7 +3288,7 @@ The Scraper failed to find any leads in "${location}".
       const logs = userLogs.get(userId) || [];
       logs.push({ timestamp: new Date().toLocaleTimeString(), message: `ERROR: ${error.message}` });
       userLogs.set(userId, logs);
-      activeScrapes.delete(userId);
+      activeScrapes.delete(runId); // FIXED: delete runId, not userId
     }
 
     // Only send error response if headers haven't been sent yet
