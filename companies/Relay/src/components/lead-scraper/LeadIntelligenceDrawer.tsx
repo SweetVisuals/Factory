@@ -571,7 +571,7 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                   <Star size={12} /> Social Presence
                 </h3>
                 <div className="p-5 bg-white/[0.02] border border-white/5 rounded-xl">
-                  {(socialPresence.google_rating || socialPresence.review_count) ? (
+                  {(socialPresence.google_rating || displayLead.review_count || socialPresence.review_count) ? (
                     <div className="flex items-center gap-4 mb-4">
                       <div className="flex items-center gap-1">
                         {Array.from({ length: 5 }).map((_, i) => (
@@ -583,9 +583,9 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                         ))}
                       </div>
                       <span className="text-sm font-black text-white">{socialPresence.google_rating || '—'}</span>
-                      {socialPresence.review_count && (
-                        <span className="text-[10px] font-bold text-white/50">({socialPresence.review_count} reviews)</span>
-                      )}
+                      {(displayLead.review_count || socialPresence.review_count) ? (
+                        <span className="text-[10px] font-bold text-white/50">({displayLead.review_count || socialPresence.review_count} reviews)</span>
+                      ) : null}
                     </div>
                   ) : null}
                   <div className="flex gap-2">
@@ -613,12 +613,33 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                      !(socialPresence.instagram_url || displayLead.instagram) && 
                      !(socialPresence.twitter_url || displayLead.twitter) && 
                      !(socialPresence.linkedin_url || displayLead.linkedin) && 
-                     !socialPresence.google_rating && (
+                     !socialPresence.google_rating && !displayLead.review_count && (
                       <EmptySection icon={<Star size={36} />} message="No social presence data" />
                     )}
                   </div>
                 </div>
               </div>
+
+              {/* Bad Reviews */}
+              {displayLead.bad_reviews && displayLead.bad_reviews.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-2">
+                    <Star size={12} className="text-red-400" /> Negative Reviews ({displayLead.bad_reviews.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {displayLead.bad_reviews.map((review: any, i: number) => (
+                      <div key={i} className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl hover:bg-red-500/10 transition-colors">
+                        <p className="text-[11px] font-medium text-white/70 leading-relaxed italic">
+                          "{typeof review === 'string' ? review : (review.text || review.content || review.review_text || JSON.stringify(review))}"
+                        </p>
+                        {review.rating && (
+                          <p className="text-[9px] font-bold text-red-400 mt-2">{review.rating} Stars</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 

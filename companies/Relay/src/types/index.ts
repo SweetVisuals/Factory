@@ -185,6 +185,8 @@ export interface Lead {
   research_data_raw?: string;
   research_score?: number;
   researched_at?: string;
+  review_count?: number;
+  bad_reviews?: any[];
 }
 
 export interface EmailMessage {
