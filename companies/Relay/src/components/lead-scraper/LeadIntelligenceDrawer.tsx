@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Lead } from '@/types';
 import {
   X, BrainCircuit, Globe, Mail, Phone, Linkedin, Facebook, Instagram, Twitter,
@@ -127,6 +128,9 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
   const [isResearching, setIsResearching] = useState(false);
   const [enrichedLead, setEnrichedLead] = useState<Lead | null>(null);
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [copiedLeadEmail, setCopiedLeadEmail] = useState(false);
+  const [copiedLeadPhone, setCopiedLeadPhone] = useState(false);
+  const navigate = useNavigate();
 
   // Fetch full enriched data when drawer opens
   useEffect(() => {
@@ -179,6 +183,22 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
     }
   };
 
+  const handleCopyLeadEmail = () => {
+    if (displayLead?.email) {
+      navigator.clipboard.writeText(displayLead.email);
+      setCopiedLeadEmail(true);
+      setTimeout(() => setCopiedLeadEmail(false), 2000);
+    }
+  };
+
+  const handleCopyLeadPhone = () => {
+    if (displayLead?.phone) {
+      navigator.clipboard.writeText(displayLead.phone);
+      setCopiedLeadPhone(true);
+      setTimeout(() => setCopiedLeadPhone(false), 2000);
+    }
+  };
+
   const displayLead = enrichedLead || lead;
   if (!displayLead) return null;
 
@@ -199,12 +219,12 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
     <>
       {/* Backdrop */}
       <div
-        className={`fixed top-[46px] bottom-0 left-0 right-0 z-[90] h-[calc(100vh-46px)] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed md:top-[46px] top-0 bottom-0 left-0 right-0 z-[150] md:h-[calc(100vh-46px)] h-screen bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
       {/* Drawer */}
-      <div className={`fixed top-[46px] right-0 z-[90] h-[calc(100vh-46px)] w-full max-w-[780px] bg-[#0a0a0a] border-l border-white/10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+      <div className={`fixed md:top-[46px] top-0 right-0 z-[150] md:h-[calc(100vh-46px)] h-screen w-full md:max-w-[780px] bg-[#0a0a0a] border-l border-white/10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         
         {/* HEADER */}
         <div className="shrink-0 p-6 pb-4 border-b border-white/10 bg-[#111]">
@@ -265,9 +285,9 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
               </a>
             )}
             {displayLead.email && (
-              <a href={`mailto:${displayLead.email}`} className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] border border-white/10 text-white/80 hover:text-white hover:bg-white/[0.1] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
+              <button onClick={() => { onClose(); navigate(`/inbox?compose=${encodeURIComponent(displayLead.email)}`); }} className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] border border-white/10 text-white/80 hover:text-white hover:bg-white/[0.1] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
                 <Mail size={12} /> Email
-              </a>
+              </button>
             )}
             {displayLead.linkedin && (
               <a href={displayLead.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] border border-white/10 text-white/80 hover:text-white hover:bg-white/[0.1] rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all">
@@ -388,14 +408,16 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                   )}
                   <div className="flex flex-wrap gap-3 pl-[52px]">
                     {displayLead.email && (
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-white/60">
-                        <Mail size={12} className="text-white/40" /> {displayLead.email}
-                      </div>
+                      <button onClick={handleCopyLeadEmail} className="flex items-center gap-2 text-[11px] font-bold text-white/60 hover:text-white transition-colors">
+                        {copiedLeadEmail ? <Check size={12} className="text-emerald-400" /> : <Mail size={12} className="text-white/40" />}
+                        {displayLead.email}
+                      </button>
                     )}
                     {displayLead.phone && (
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-white/60">
-                        <Phone size={12} className="text-white/40" /> {displayLead.phone}
-                      </div>
+                      <button onClick={handleCopyLeadPhone} className="flex items-center gap-2 text-[11px] font-bold text-white/60 hover:text-white transition-colors">
+                        {copiedLeadPhone ? <Check size={12} className="text-emerald-400" /> : <Phone size={12} className="text-white/40" />}
+                        {displayLead.phone}
+                      </button>
                     )}
                   </div>
                 </div>

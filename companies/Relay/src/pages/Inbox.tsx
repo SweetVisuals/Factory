@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
-import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Filter, Mail, Send, CheckCircle2, Bot, ChevronDown, ArrowLeft, Trash2, X, Edit3, Plus, MessageSquare } from 'lucide-react';
+import { Inbox as InboxIcon, Archive, Star, Search, RefreshCw, Briefcase, Folder, Mail, Send, Bot, ChevronDown, ArrowLeft, Trash2, Edit3, MessageSquare, Menu } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { EmailMessage, EmailAccount, Campaign } from '../types';
 
 // Augment EmailMessage locally for the new field
 interface LocalEmailMessage extends EmailMessage {
   isImportant?: boolean;
+  campaignId?: string;
 }
 import { fetchEmailAccounts } from '../lib/api/email-accounts';
 import { api } from '../lib/api/api';
@@ -29,7 +30,7 @@ interface Thread {
   id: string;
   contactEmail: string;
   contactName: string;
-  messages: EmailMessage[];
+  messages: LocalEmailMessage[];
   lastMessageAt: Date;
   isRead: boolean;
   campaignId?: string;
@@ -40,16 +41,15 @@ interface Thread {
 
 const Inbox = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
   const [filter, setFilter] = useState<FilterState>({ type: 'replies' });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedThreads, setSelectedThreads] = useState<Set<string>>(new Set());
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
   // Reply State
   const [replyContent, setReplyContent] = useState('');
@@ -67,6 +67,14 @@ const Inbox = () => {
   
   const { toast } = useToast();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const composeEmail = searchParams.get('compose');
+
+  useEffect(() => {
+    if (composeEmail) {
+      setIsComposeOpen(true);
+    }
+  }, [composeEmail]);
 
   const getBusinessName = (accountId: string): string => {
     const account = accounts.find(a => a.id === accountId);
@@ -90,7 +98,7 @@ const Inbox = () => {
         await fetchEmails(false, false);
       } catch (err) {
         console.error('Failed to load inbox data:', err);
-        setError('Failed to load inbox. Please refresh.');
+        toast({ title: 'Error', description: 'Failed to load inbox data. Please refresh.', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
@@ -107,14 +115,13 @@ const Inbox = () => {
 
   const fetchEmails = async (refresh = false, syncNew = false) => {
     try {
-      setError(null);
       if (!refresh && !syncNew) setLoading(true);
       
       const { data, error: fetchErr } = await supabase.from('inbox_emails').select('*').order('received_at', { ascending: false });
       if (fetchErr) throw fetchErr;
 
       if (data) {
-        const parsedEmails: EmailMessage[] = data.map(email => ({
+        const parsedEmails: LocalEmailMessage[] = data.map(email => ({
           id: email.id, uid: email.uid, accountId: email.email_account_id,
           from: email.from, to: email.to, subject: email.subject, date: email.received_at,
           snippet: email.snippet || '', text: email.body_text, html: email.body_html,
@@ -122,7 +129,6 @@ const Inbox = () => {
           isImportant: email.is_important
         }));
         
-        setEmails(parsedEmails);
         
         // Group into threads
         const threadsMap = new Map<string, Thread>();
@@ -186,7 +192,7 @@ const Inbox = () => {
       }
     } catch (err) {
       console.error('Error fetching emails:', err);
-      if (!syncNew) setError('Failed to load emails. Please try again.');
+      if (!syncNew) toast({ title: 'Error', description: 'Failed to load emails. Please try again.', variant: 'destructive' });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -321,7 +327,7 @@ const Inbox = () => {
         const term = searchTerm.toLowerCase();
         return thread.contactName.toLowerCase().includes(term) || 
                thread.contactEmail.toLowerCase().includes(term) || 
-               thread.messages.some(m => m.subject.toLowerCase().includes(term) || m.text.toLowerCase().includes(term));
+               thread.messages.some(m => m.subject.toLowerCase().includes(term) || m.text?.toLowerCase().includes(term));
       }
       return true;
     });
@@ -380,7 +386,7 @@ const Inbox = () => {
     try {
       setIsDrafting(true);
       // Collect thread history for context
-      const threadHistory = selectedThread.messages.map(m => `${m.folder === 'sent' ? 'Relay:' : 'Lead:'} ${m.text}`).join('\n\n');
+      const threadHistory = selectedThread.messages.map(m => `${m.folder === 'sent' ? 'Relay:' : 'Lead:'} ${m.text || ''}`).join('\n\n');
       
       const res = await api.post('/draft-closing-reply', {
         lead: { email: selectedThread.contactEmail },
@@ -428,15 +434,125 @@ const Inbox = () => {
     }
   };
 
+  const getAvatarBgColor = (name: string) => {
+    const colors = [
+      'bg-red-500/20 text-red-300 border-red-500/30',
+      'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      'bg-green-500/20 text-green-300 border-green-500/30',
+      'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+      'bg-purple-500/20 text-purple-300 border-purple-500/30',
+      'bg-pink-500/20 text-pink-300 border-pink-300/30',
+      'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+    ];
+    let sum = 0;
+    for (let i = 0; i < name.length; i++) sum += name.charCodeAt(i);
+    return colors[sum % colors.length];
+  };
+
   return (
     <Layout fullHeight>
-      <div className="flex flex-col h-full bg-background animate-in fade-in duration-200 p-0">
+      <div className="flex flex-col h-full bg-background animate-in fade-in duration-200 p-0 relative">
         
+        {/* Mobile Navigation Drawer (Gmail Style) */}
+        {isDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            {/* Drawer Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+              onClick={() => setIsDrawerOpen(false)}
+            />
+            {/* Drawer Content */}
+            <div className="relative flex flex-col w-72 max-w-xs bg-[#1a1a1a] border-r border-white/10 h-full p-4 animate-in slide-in-from-left duration-200">
+              <div className="flex items-center gap-2 mb-6 px-2">
+                <span className="font-black text-lg tracking-wider text-white">Relay</span>
+                <span className="text-[10px] bg-primary/20 text-primary font-black px-1.5 py-0.5 rounded uppercase">Inbox</span>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6">
+                <div className="space-y-0.5">
+                  <span className="px-2 text-[10px] font-bold text-white/20 uppercase tracking-widest">Mailboxes</span>
+                  <button
+                    onClick={() => { setFilter({ type: 'replies' }); setSelectedThread(null); setSelectedThreads(new Set()); setIsDrawerOpen(false); }}
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'replies' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
+                  >
+                    <MessageSquare size={14} className={cn(filter.type === 'replies' ? "text-primary" : "text-white/30")} />
+                    Replies
+                  </button>
+                  <button
+                    onClick={() => { setFilter({ type: 'all' }); setSelectedThread(null); setSelectedThreads(new Set()); setIsDrawerOpen(false); }}
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'all' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
+                  >
+                    <InboxIcon size={14} className={cn(filter.type === 'all' ? "text-primary" : "text-white/30")} />
+                    All Conversations
+                    <span className={cn("ml-auto text-[10px] font-black", filter.type === 'all' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.folder !== 'archive' && t.folder !== 'trash').length}</span>
+                  </button>
+                  <button
+                    onClick={() => { setFilter({ type: 'important' }); setSelectedThread(null); setSelectedThreads(new Set()); setIsDrawerOpen(false); }}
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'important' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
+                  >
+                    <Star size={14} /> Starred
+                    <span className={cn("ml-auto text-[10px] font-black", filter.type === 'important' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.isImportant && t.folder !== 'trash').length}</span>
+                  </button>
+                  <button
+                    onClick={() => { setFilter({ type: 'archive' }); setSelectedThread(null); setSelectedThreads(new Set()); setIsDrawerOpen(false); }}
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'archive' ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
+                  >
+                    <Archive size={14} /> Archived
+                    <span className={cn("ml-auto text-[10px] font-black", filter.type === 'archive' ? "text-primary" : "text-white/20")}>{threads.filter(t => t.folder === 'archive').length}</span>
+                  </button>
+                  <button
+                    onClick={() => { setFilter({ type: 'trash' }); setSelectedThread(null); setSelectedThreads(new Set()); setIsDrawerOpen(false); }}
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all", filter.type === 'trash' ? "bg-red-500/10 text-red-400" : "text-white/40 hover:text-white hover:bg-white/5")}
+                  >
+                    <Trash2 size={14} /> Trash
+                    <span className={cn("ml-auto text-[10px] font-black", filter.type === 'trash' ? "text-red-400" : "text-white/20")}>{threads.filter(t => t.folder === 'trash').length}</span>
+                  </button>
+                </div>
+
+                <div className="space-y-0.5">
+                  <span className="px-2 text-[10px] font-bold text-white/20 uppercase tracking-widest">Organizations</span>
+                  {Object.entries(hierarchy).map(([businessName, bizCampaigns]) => {
+                    const isBizSelected = filter.type === 'business' && filter.businessName === businessName;
+                    let bizTotal = 0; Object.values(bizCampaigns).forEach(c => bizTotal += c);
+
+                    return (
+                      <div key={businessName} className="flex flex-col gap-0.5">
+                        <button
+                          onClick={() => { setFilter({ type: 'business', businessName }); setSelectedThread(null); setIsDrawerOpen(false); }}
+                          className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all min-w-0 w-full", isBizSelected ? "bg-primary/10 text-primary" : "text-white/40 hover:text-white hover:bg-white/5")}
+                        >
+                          <Briefcase size={12} className="shrink-0" /> <span className="truncate flex-1 text-left">{businessName}</span> <span className="ml-auto text-[10px] font-black shrink-0">{bizTotal}</span>
+                        </button>
+
+                        <div className="pl-7 space-y-0.5">
+                          {Object.entries(bizCampaigns).map(([campaignId, count]) => {
+                            const campaign = campaigns.find(c => c.id === campaignId);
+                            const isCampSelected = filter.type === 'campaign' && filter.campaignId === campaignId && filter.businessName === businessName;
+                            return (
+                              <button
+                                key={campaignId}
+                                onClick={() => { setFilter({ type: 'campaign', businessName, campaignId }); setSelectedThread(null); setIsDrawerOpen(false); }}
+                                className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all min-w-0", isCampSelected ? "bg-primary/10 text-primary" : "text-white/30 hover:text-white hover:bg-white/5")}
+                              >
+                                <Folder size={10} className="shrink-0" /> <span className="truncate flex-1 text-left uppercase">{campaign ? campaign.name : 'Unknown'}</span> <span className="ml-auto text-[9px] font-black shrink-0">{count}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Main Inbox Application Shell */}
         <div className="flex flex-col flex-1 overflow-hidden">
           <div className="flex flex-1 overflow-hidden">
-
-          {/* Sidebar */}
+ 
+          {/* Sidebar (Desktop Only) */}
           <div className="hidden lg:flex w-60 border-r border-border/50 flex-col bg-muted/20 shrink-0">
             <div className="p-4 border-b border-white/5 flex gap-2">
               <button 
@@ -530,7 +646,28 @@ const Inbox = () => {
 
           {/* Threads List Column */}
           <div className={cn("border-r border-white/5 flex flex-col bg-white/[0.01] relative z-10 shrink-0", selectedThread ? "hidden md:flex w-80" : "flex-1 w-full lg:w-80")}>
-            <div className="p-3 border-b border-white/5">
+            
+            {/* Mobile Header (Gmail Style Floating Search Bar) */}
+            <div className="md:hidden p-3 bg-background flex flex-col gap-2 shrink-0">
+              <div className="flex items-center gap-3 bg-white/[0.04] border border-white/10 rounded-full px-3 py-1.5 shadow-lg">
+                <button onClick={() => setIsDrawerOpen(true)} className="p-2 text-white/50 hover:text-white transition-colors hover:bg-white/5 rounded-full shrink-0">
+                  <Menu size={20} />
+                </button>
+                <input
+                  type="text"
+                  placeholder="Search in Relay mail"
+                  className="flex-1 bg-transparent text-sm focus:outline-none text-white placeholder:text-white/35 h-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/20 flex items-center justify-center text-xs font-black text-primary select-none shrink-0 uppercase">
+                  R
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Header */}
+            <div className="hidden md:block p-3 border-b border-white/5">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={13} />
                 <input
@@ -543,7 +680,7 @@ const Inbox = () => {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto relative">
               {loading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3">
                   <RefreshCw className="animate-spin text-primary" size={18} />
@@ -583,6 +720,7 @@ const Inbox = () => {
                       </button>
                     </div>
                   )}
+                  
                   {/* Thread Items */}
                   {filteredThreads.map(thread => {
                     const latestMsg = thread.messages[thread.messages.length - 1];
@@ -590,7 +728,7 @@ const Inbox = () => {
                     const isSelected = selectedThreads.has(thread.id);
                     
                     const isBounced = thread.messages.some(m => m.subject.toLowerCase().includes('bounce') || m.subject.toLowerCase().includes('undeliverable') || m.subject.toLowerCase().includes('postmaster'));
-                    const isOptOut = !isBounced && thread.messages.some(m => m.subject.toLowerCase().includes('unsubscribe') || m.subject.toLowerCase().includes('opt-out') || m.text.toLowerCase().includes('unsubscribe') || m.text.toLowerCase().includes('remove me'));
+                    const isOptOut = !isBounced && thread.messages.some(m => m.subject.toLowerCase().includes('unsubscribe') || m.subject.toLowerCase().includes('opt-out') || m.text?.toLowerCase().includes('unsubscribe') || m.text?.toLowerCase().includes('remove me'));
                     
                     let domain = thread.contactEmail.split('@')[1];
                     if (domain && domain.includes('>')) domain = domain.split('>')[0];
@@ -600,9 +738,9 @@ const Inbox = () => {
                       <div
                         key={thread.id}
                         className={cn(
-                          "px-3 py-3 cursor-pointer transition-all flex items-start gap-3 border-b border-white/[0.03] group",
+                          "px-4 py-3.5 cursor-pointer transition-all flex items-start gap-3.5 border-b border-white/[0.02] group",
                           isActive ? "bg-primary/[0.06] border-l-2 border-l-primary" : "border-l-2 border-l-transparent hover:bg-white/[0.02]",
-                          !thread.isRead && !isActive ? "bg-white/[0.02]" : "",
+                          !thread.isRead && !isActive ? "bg-white/[0.01]" : "",
                           isBounced ? "border-l-red-500 bg-red-500/[0.02]" : isOptOut ? "border-l-orange-500 bg-orange-500/[0.02]" : ""
                         )}
                         onClick={(e) => {
@@ -610,6 +748,7 @@ const Inbox = () => {
                           setSelectedThread(thread);
                         }}
                       >
+                        {/* Selector/Checkbox */}
                         <div className="flex flex-col items-center gap-2 pt-0.5 shrink-0 thread-checkbox">
                           <div className="scale-75">
                             <CustomCheckbox
@@ -624,40 +763,47 @@ const Inbox = () => {
                             />
                           </div>
                           <button 
-                            className="opacity-0 group-hover:opacity-100 transition-opacity mt-1"
-                            onClick={async () => {
+                            className="md:opacity-0 group-hover:opacity-100 transition-opacity mt-1.5"
+                            onClick={async (e) => {
+                              e.stopPropagation();
                               // Toggle important status
                               await supabase.from('inbox_emails').update({ is_important: !thread.isImportant }).in('id', thread.messages.map(m => m.id));
                               fetchEmails();
                             }}
                           >
-                            <Star size={12} className={cn(thread.isImportant ? "fill-yellow-500 text-yellow-500 opacity-100" : "text-white/20 hover:text-white")} />
+                            <Star size={14} className={cn(thread.isImportant ? "fill-yellow-500 text-yellow-500 opacity-100" : "text-white/20 hover:text-white")} />
                           </button>
                         </div>
                         
-                        {avatarUrl ? (
-                          <img src={avatarUrl} alt="" className="w-6 h-6 rounded bg-white/5 object-cover shrink-0 mt-0.5" />
-                        ) : (
-                          <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/50 shrink-0 mt-0.5">
+                        {/* Avatar (Gmail mobile circle style) */}
+                        <div className="shrink-0 mt-0.5">
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                          ) : null}
+                          <div className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border",
+                            avatarUrl ? "hidden" : getAvatarBgColor(thread.contactName)
+                          )}>
                             {thread.contactName.charAt(0).toUpperCase()}
                           </div>
-                        )}
+                        </div>
 
+                        {/* Thread detail snippet */}
                         <div className="flex flex-col gap-0.5 min-w-0 w-full">
                           <div className="flex justify-between items-center gap-2">
-                            <span className={cn("font-bold text-xs truncate", !thread.isRead ? "text-white" : "text-white/50")}>
+                            <span className={cn("text-sm truncate", !thread.isRead ? "font-black text-white" : "font-semibold text-white/50")}>
                               {thread.contactName}
                             </span>
-                            <span className="text-[9px] font-bold text-white/20 uppercase tracking-wider shrink-0">
+                            <span className={cn("text-[10px] uppercase tracking-wider shrink-0", !thread.isRead ? "font-bold text-primary" : "font-medium text-white/20")}>
                               {format(thread.lastMessageAt, 'MMM d')}
                             </span>
                           </div>
-                          <div className="text-[11px] truncate font-medium text-white/40 flex items-center gap-1.5">
-                            {latestMsg.folder === 'sent' ? <Send size={9} className="text-white/20 shrink-0" /> : <Mail size={9} className="text-primary/60 shrink-0" />}
+                          <div className={cn("text-xs truncate flex items-center gap-1.5", !thread.isRead ? "font-bold text-white/80" : "font-medium text-white/40")}>
+                            {latestMsg.folder === 'sent' ? <Send size={10} className="text-white/20 shrink-0" /> : <Mail size={10} className="text-primary/60 shrink-0" />}
                             {latestMsg.subject}
                           </div>
-                          <div className="text-[10px] line-clamp-1 text-white/20">
-                            {latestMsg.snippet || latestMsg.text?.substring(0, 60)}
+                          <div className="text-xs line-clamp-2 text-white/30 mt-0.5 leading-relaxed">
+                            {latestMsg.snippet || latestMsg.text?.substring(0, 80)}
                           </div>
                         </div>
                       </div>
@@ -666,78 +812,141 @@ const Inbox = () => {
                 </div>
               )}
             </div>
+
+            {/* Mobile Compose FAB */}
+            <button
+              onClick={() => setIsComposeOpen(true)}
+              className="md:hidden fixed bottom-6 right-6 z-20 flex items-center gap-2.5 bg-primary hover:bg-primary/95 text-primary-foreground px-5 py-3.5 rounded-full shadow-2xl active:scale-95 transition-all font-black text-xs uppercase tracking-wider"
+            >
+              <Edit3 size={16} />
+              <span>Compose</span>
+            </button>
+
           </div>
 
           {/* Thread Reading & Reply Pane */}
-          <div className={cn("bg-background flex flex-col min-w-0 relative", selectedThread ? "flex-1 w-full" : "hidden md:flex flex-1")}>
+          <div className={cn("bg-background flex flex-col min-w-0 relative h-full", selectedThread ? "flex-1 w-full fixed inset-0 z-20 md:relative md:inset-auto" : "hidden md:flex flex-1")}>
             {selectedThread ? (
               <>
-                <div className="h-14 flex items-center px-4 md:px-6 justify-between border-b border-white/5 bg-background sticky top-0 z-10 shrink-0">
+                {/* Header (Gmail Mobile style Actions) */}
+                <div className="h-14 flex items-center px-3 md:px-6 justify-between border-b border-white/5 bg-[#121212] sticky top-0 z-10 shrink-0">
                   <div className="flex items-center gap-2 md:gap-3">
                     <button 
                       onClick={() => setSelectedThread(null)} 
-                      className="md:hidden p-1.5 -ml-1 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                      className="p-2 -ml-1 text-white/70 hover:text-white hover:bg-white/5 rounded-full transition-colors"
                     >
-                      <ArrowLeft size={16} />
+                      <ArrowLeft size={20} />
                     </button>
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-black text-sm border border-primary/20 shrink-0 overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm border border-primary/20 shrink-0 overflow-hidden">
                       <img src={`https://www.google.com/s2/favicons?domain=${selectedThread.contactEmail.split('@')[1]}&sz=64`} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
                       <span className="hidden">{selectedThread.contactName.charAt(0).toUpperCase()}</span>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm text-white">{selectedThread.contactName}</span>
-                      <span className="text-[11px] text-white/30 font-medium">{selectedThread.contactEmail} · {selectedThread.messages.length} messages</span>
+                    <div className="flex flex-col min-w-0 max-w-[120px] sm:max-w-none">
+                      <span className="font-bold text-xs sm:text-sm text-white truncate">{selectedThread.contactName}</span>
+                      <span className="text-[10px] text-white/30 font-medium truncate">{selectedThread.contactEmail}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  
+                  {/* Actions list */}
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleAction('archive', selectedThread)}
-                      className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all"
+                      className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/5 transition-all"
                       title="Archive Thread"
                     >
-                      <Archive size={14} />
+                      <Archive size={18} />
                     </button>
-                    <button onClick={() => setSelectedThread(null)} className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all">
-                      <X size={14} />
+                    <button
+                      onClick={async () => {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session && selectedThread) {
+                          const uids = selectedThread.messages.map(m => m.uid);
+                          await api.post('/emails/action', { emailAccountId: selectedThread.accountId, uids, action: 'trash', folder: selectedThread.folder }, { headers: { 'Authorization': `Bearer ${session.access_token}` } });
+                          setSelectedThread(null);
+                          fetchEmails();
+                          toast({ title: 'Success', description: 'Thread moved to trash.' });
+                        }
+                      }}
+                      className="p-2 rounded-full text-white/70 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                      title="Move to Trash"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        // Mark as unread
+                        supabase.from('inbox_emails').update({ is_read: false }).in('id', selectedThread.messages.map(m => m.id)).then(() => {
+                          setSelectedThread(null);
+                          fetchEmails();
+                          toast({ title: 'Success', description: 'Marked as unread' });
+                        });
+                      }} 
+                      className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                      title="Mark as Unread"
+                    >
+                      <Mail size={18} />
                     </button>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
-                  <div className="max-w-3xl mx-auto flex flex-col gap-5">
-                    {selectedThread.messages.map((msg, idx) => {
+                {/* Message detail body */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-background">
+                  <div className="max-w-3xl mx-auto flex flex-col gap-4">
+                    {/* Subject line header */}
+                    <div className="pb-3 border-b border-white/5 mb-2">
+                      <h1 className="text-base sm:text-lg font-bold text-white">{selectedThread.messages[0]?.subject}</h1>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] bg-white/5 border border-white/10 text-white/40 font-bold px-1.5 py-0.5 rounded uppercase">
+                          {getBusinessName(selectedThread.accountId)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {selectedThread.messages.map((msg) => {
                       const isSent = msg.folder === 'sent';
-                      const senderAccount = accounts.find(a => a.id === msg.accountId);
-                      const fromLabel = isSent ? (senderAccount?.email || msg.from) : msg.from;
-                      const toLabel = isSent ? msg.to : (senderAccount?.email || msg.to);
+                      
                       return (
-                        <div key={msg.id} className={cn("flex flex-col max-w-[85%] animate-in fade-in duration-150", isSent ? "self-end items-end" : "self-start items-start")}>
-                          {/* From / To + Timestamp */}
-                          <div className="flex flex-col gap-0.5 mb-1.5 px-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
-                                {isSent ? 'You' : selectedThread.contactName.split(' ')[0]}
-                              </span>
-                              <span className="text-[9px] text-white/20">{format(new Date(msg.date), 'MMM d, h:mm a')}</span>
+                        <div key={msg.id} className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 flex flex-col gap-3">
+                          {/* Sender details header */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex gap-2.5 min-w-0">
+                              <div className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border",
+                                isSent ? "bg-primary/20 text-primary border-primary/20" : getAvatarBgColor(selectedThread.contactName)
+                              )}>
+                                {isSent ? 'Y' : selectedThread.contactName.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-bold text-xs text-white truncate">
+                                  {isSent ? 'You' : selectedThread.contactName}
+                                </span>
+                                <span className="text-[10px] text-white/30 truncate">
+                                  to {isSent ? selectedThread.contactName : 'me'}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3 text-[10px] text-white/20 font-medium">
-                              <span>From: <span className="text-white/35">{fromLabel.replace(/<|>/g, '').substring(0, 40)}</span></span>
-                              <span>To: <span className="text-white/35">{toLabel.replace(/<|>/g, '').substring(0, 40)}</span></span>
-                            </div>
+                            <span className="text-[10px] text-white/20 shrink-0 font-medium whitespace-nowrap mt-1">
+                              {format(new Date(msg.date), 'MMM d, h:mm a')}
+                            </span>
                           </div>
                           
-                          <div className={cn(
-                            "p-4 rounded-xl text-sm leading-relaxed whitespace-pre-wrap font-medium border",
-                            isSent 
-                              ? "bg-primary/[0.06] border-primary/10 text-white/80 rounded-tr-sm" 
-                              : "bg-white/[0.03] border-white/5 text-white/80 rounded-tl-sm"
-                          )}>
-                            {msg.text ? msg.text : (
+                          {/* Message HTML/Text */}
+                          <div className="text-xs sm:text-sm leading-relaxed text-white/80 overflow-x-auto pt-2 break-words">
+                            {msg.text ? (
+                              <div className="whitespace-pre-wrap font-medium">{msg.text}</div>
+                            ) : (
                               <iframe
                                 title={`msg-${msg.id}`}
-                                srcDoc={`<html><body style="font-family: sans-serif; color: #e4e4e7; margin: 0; padding: 0;">${msg.html}</body></html>`}
-                                className="w-full min-h-[100px] border-none"
+                                srcDoc={`<html><body style="font-family: sans-serif; color: #d4d4d8; margin: 0; padding: 0; background-color: transparent; font-size: 13px; line-height: 1.6;">${msg.html}</body></html>`}
+                                className="w-full min-h-[150px] border-none"
                                 sandbox="allow-same-origin"
+                                onLoad={(e) => {
+                                  // Adjust height of iframe to content
+                                  const iframe = e.currentTarget;
+                                  if (iframe.contentWindow?.document.body) {
+                                    iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 30) + 'px';
+                                  }
+                                }}
                               />
                             )}
                           </div>
@@ -748,21 +957,22 @@ const Inbox = () => {
                   </div>
                 </div>
 
-                {/* Reply Box */}
-                <div className="p-4 border-t border-white/5 shrink-0">
+                {/* Reply Editor Drawer/Pane */}
+                <div className="p-3 border-t border-white/5 shrink-0 bg-[#121212]">
                   <div className="max-w-3xl mx-auto">
                     <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-visible focus-within:border-primary/30 transition-colors">
-                      {/* From Selector */}
-                      <div className="flex items-center px-4 py-2.5 border-b border-white/5 bg-white/[0.01]">
+                      
+                      {/* Send reply from account row */}
+                      <div className="flex items-center px-4 py-2 border-b border-white/5 bg-white/[0.01]">
                         <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest mr-3">From:</span>
                         <div className="relative inline-block z-20">
                           <button
                             type="button"
                             onClick={() => setShowReplyFromDropdown(!showReplyFromDropdown)}
-                            className="bg-black/20 border border-white/5 px-2.5 py-1 rounded-lg text-xs text-white/70 hover:text-white transition-colors flex items-center gap-1 min-w-[140px] justify-between"
+                            className="bg-black/20 border border-white/5 px-2 py-0.5 rounded-lg text-[10px] text-white/70 hover:text-white transition-colors flex items-center gap-1 min-w-[120px] justify-between"
                           >
-                            <span className="truncate max-w-[120px]">{accounts.find(a => a.id === replyFromAccountId)?.email || 'Select Account'}</span>
-                            <ChevronDown size={12} className="opacity-50" />
+                            <span className="truncate max-w-[100px]">{accounts.find(a => a.id === replyFromAccountId)?.email || 'Select Account'}</span>
+                            <ChevronDown size={10} className="opacity-50" />
                           </button>
                           {showReplyFromDropdown && (
                             <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl overflow-hidden">
@@ -790,34 +1000,34 @@ const Inbox = () => {
                         </div>
                       </div>
 
-                      {/* Rich Text Editor */}
+                      {/* Content editable reply textarea */}
                       <div
                         ref={replyEditorRef}
                         contentEditable
                         onInput={(e) => setReplyContent(e.currentTarget.innerHTML)}
-                        className="w-full bg-transparent p-4 text-sm focus:outline-none min-h-[120px] text-white overflow-y-auto max-h-48 prose prose-invert focus:ring-0 empty:before:content-[attr(placeholder)] empty:before:text-white/20 empty:before:pointer-events-none"
-                        placeholder={`Reply to ${selectedThread.contactName}...`}
+                        className="w-full bg-transparent p-4 text-sm focus:outline-none min-h-[80px] text-white overflow-y-auto max-h-36 prose prose-invert focus:ring-0 empty:before:content-[attr(data-placeholder)] empty:before:text-white/20 empty:before:pointer-events-none"
+                        data-placeholder={`Reply to ${selectedThread.contactName}...`}
                         style={{ outline: 'none' }}
                       />
 
-                      {/* Toolbar & Send Actions */}
-                      <div className="flex items-center justify-between p-3 border-t border-white/5 bg-black/10">
-                        <div className="flex items-center gap-2">
+                      {/* Compose actions bar */}
+                      <div className="flex items-center justify-between p-2.5 border-t border-white/5 bg-black/10">
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={handleAIDraft}
                             disabled={isDrafting}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-40"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[9px] font-bold uppercase tracking-wider transition-colors disabled:opacity-40"
                           >
-                            <Bot size={12} /> {isDrafting ? 'Drafting...' : 'Draft with AI'}
+                            <Bot size={10} /> {isDrafting ? 'Drafting...' : 'AI Draft'}
                           </button>
 
-                          {/* Formatting Actions */}
-                          <div className="flex items-center gap-1 border-l border-white/5 pl-2 ml-1">
+                          {/* Formatting buttons */}
+                          <div className="flex items-center gap-0.5 border-l border-white/5 pl-2">
                             <button
                               type="button"
                               onClick={() => document.execCommand('bold')}
-                              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
+                              className="p-1 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
                               title="Bold"
                             >
                               <span className="font-bold text-xs">B</span>
@@ -825,7 +1035,7 @@ const Inbox = () => {
                             <button
                               type="button"
                               onClick={() => document.execCommand('italic')}
-                              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
+                              className="p-1 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
                               title="Italic"
                             >
                               <span className="italic text-xs font-serif">I</span>
@@ -833,22 +1043,22 @@ const Inbox = () => {
                             <button
                               type="button"
                               onClick={() => document.execCommand('underline')}
-                              className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
+                              className="p-1 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors"
                               title="Underline"
                             >
                               <span className="underline text-xs">U</span>
                             </button>
                           </div>
 
-                          {/* Signature Selector */}
-                          <div className="relative inline-block ml-1">
+                          {/* Signature insertion */}
+                          <div className="relative inline-block ml-0.5">
                             <button
                               type="button"
                               onClick={() => setShowReplySignatureDropdown(!showReplySignatureDropdown)}
                               className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded transition-colors flex items-center"
                               title="Insert Signature"
                             >
-                              <Edit3 size={14} />
+                              <Edit3 size={12} />
                             </button>
                             {showReplySignatureDropdown && (
                               <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl overflow-hidden z-20">
@@ -894,9 +1104,9 @@ const Inbox = () => {
                         <button
                           onClick={handleSendReply}
                           disabled={!replyContent.trim() || isSending}
-                          className="flex items-center gap-2 bg-white text-black px-5 py-2 rounded-xl hover:bg-gray-200 transition-all font-black uppercase tracking-widest text-[10px] disabled:opacity-40 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                          className="flex items-center gap-1.5 bg-white text-black px-4 py-1.5 rounded-xl hover:bg-gray-200 transition-all font-black uppercase tracking-widest text-[9px] disabled:opacity-40 shadow-md"
                         >
-                          {isSending ? 'Sending...' : 'Send'} <Send size={12} />
+                          {isSending ? 'Sending...' : 'Send'} <Send size={10} />
                         </button>
                       </div>
                     </div>
@@ -921,6 +1131,7 @@ const Inbox = () => {
       <ComposeDock 
         isOpen={isComposeOpen}
         onClose={() => setIsComposeOpen(false)}
+        initialToEmail={composeEmail || undefined}
         accounts={accounts}
       />
     </Layout>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { EmailAccount } from '../types';
-import { X, Paperclip, Send, Search, Image as ImageIcon, FileText, Bot, Settings, Minimize2, Maximize2, Minus, ChevronUp, ChevronDown, Edit3 } from 'lucide-react';
+import { X, Paperclip, Send, Search, Image as ImageIcon, FileText, Bot, Settings, Minimize2, Maximize2, Minus, ChevronUp, ChevronDown, Edit3, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api/api';
 import { cn } from '../lib/utils';
 import { useToast } from './ui/use-toast';
@@ -18,9 +18,10 @@ interface ComposeDockProps {
   onClose: () => void;
   accounts: EmailAccount[];
   isOpen: boolean;
+  initialToEmail?: string;
 }
 
-export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isOpen }) => {
+export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isOpen, initialToEmail }) => {
   const { toast } = useToast();
   
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
@@ -33,7 +34,13 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   
   // Custom To Email (if not a lead)
-  const [customToEmail, setCustomToEmail] = useState('');
+  const [customToEmail, setCustomToEmail] = useState(initialToEmail || '');
+
+  useEffect(() => {
+    if (initialToEmail) {
+      setCustomToEmail(initialToEmail);
+    }
+  }, [initialToEmail]);
 
   // Email Content
   const [subject, setSubject] = useState('');
@@ -298,16 +305,17 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
   return (
     <div 
       className={cn(
-        "fixed z-[200] bg-[#1e1e1e] border border-white/10 rounded-t-xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-in-out",
+        "fixed z-[200] bg-[#1e1e1e] flex flex-col overflow-hidden transition-all duration-300 ease-in-out",
+        "md:border md:border-white/10 md:rounded-t-xl md:shadow-2xl",
         isMaximized 
-          ? "bottom-0 right-0 left-0 top-0 sm:right-[5%] sm:left-[5%] sm:top-[10vh] md:right-24 md:left-24 rounded-b-none" 
-          : "bottom-0 right-0 left-0 sm:left-auto w-full sm:w-[500px] sm:right-24",
-        isMinimized ? "h-12" : isMaximized ? "h-full sm:h-[90vh]" : "h-[500px]"
+          ? "bottom-0 right-0 left-0 top-0 md:right-24 md:left-24 md:top-[10vh] md:rounded-b-none" 
+          : "bottom-0 right-0 left-0 md:left-auto w-full md:w-[500px] md:right-24",
+        isMinimized ? "h-12" : isMaximized ? "h-full md:h-[90vh]" : "h-full md:h-[500px]"
       )}
     >
-      {/* Header */}
+      {/* Desktop Header */}
       <div 
-        className="h-12 bg-[#2a2a2a] flex items-center justify-between px-4 cursor-pointer shrink-0"
+        className="hidden md:flex h-12 bg-[#2a2a2a] items-center justify-between px-4 cursor-pointer shrink-0"
         onClick={() => setIsMinimized(!isMinimized)}
       >
         <div className="flex items-center gap-3">
@@ -326,16 +334,104 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
         </div>
       </div>
 
+      {/* Mobile Header (Gmail Style) */}
+      <div className="flex md:hidden h-14 bg-[#1e1e1e] border-b border-white/5 items-center justify-between px-3 shrink-0">
+        <div className="flex items-center gap-3">
+          <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/5 rounded-full">
+            <ArrowLeft size={20} />
+          </button>
+          <span className="font-bold text-base text-white">Compose</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Attach file */}
+          <label className="p-2 text-white/70 hover:text-white hover:bg-white/5 rounded-full cursor-pointer transition-colors" title="Attach Files">
+            <Paperclip size={20} />
+            <input type="file" multiple className="hidden" onChange={handleFileUpload} />
+          </label>
+          {/* Send */}
+          <button 
+            onClick={handleSend}
+            disabled={isSending}
+            className="p-2 text-primary hover:text-primary/80 disabled:opacity-40 hover:bg-white/5 rounded-full"
+            title="Send"
+          >
+            <Send size={20} />
+          </button>
+          {/* More options menu */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/5 rounded-full"
+              title="More options"
+            >
+              <Settings size={20} />
+            </button>
+            {showTemplateDropdown && (
+              <div className="absolute top-full right-0 mt-1 w-48 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl overflow-hidden z-30">
+                <div className="px-3 py-2 border-b border-white/5 bg-[#1a1a1a]">
+                  <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Select Template</span>
+                </div>
+                {htmlTemplates.map(tmpl => (
+                  <button
+                    key={tmpl.id}
+                    onClick={() => { setSelectedHtmlTemplate(tmpl.id); setShowTemplateDropdown(false); }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/5",
+                      selectedHtmlTemplate === tmpl.id ? "bg-primary/10 text-primary font-medium" : "text-white"
+                    )}
+                  >
+                    {tmpl.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {!isMinimized && (
         <div className="flex-1 flex flex-col min-h-0 bg-background relative">
           
+          {/* Mobile From Field */}
+          <div className="flex md:hidden px-4 py-3 border-b border-white/5 items-center relative gap-2 shrink-0">
+            <span className="text-sm text-white/50 w-8">From</span>
+            <div className="flex-1 relative">
+              <button
+                type="button"
+                onClick={() => setShowFromDropdown(!showFromDropdown)}
+                className="bg-transparent text-sm text-white/70 hover:text-white transition-colors flex items-center gap-1 w-full justify-between h-9"
+              >
+                <span className="truncate">{selectedAccount?.email || 'Select Account'}</span>
+                <ChevronDown size={12} className="opacity-50" />
+              </button>
+              {showFromDropdown && (
+                <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-[#2a2a2a] border border-white/10 rounded shadow-xl max-h-48 overflow-y-auto">
+                  {accounts.map(acc => (
+                    <button
+                      key={acc.id}
+                      type="button"
+                      onClick={() => { setSelectedAccountId(acc.id); setShowFromDropdown(false); }}
+                      className={cn(
+                        "w-full text-left px-3 py-2.5 text-xs transition-colors hover:bg-white/5 flex items-center justify-between",
+                        selectedAccountId === acc.id ? "bg-primary/10 text-primary font-bold" : "text-white"
+                      )}
+                    >
+                      <span className="truncate">{acc.email}</span>
+                      {acc.status === 'active' && <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* To Field */}
-          <div className="px-4 py-2 border-b border-white/5 flex items-center relative gap-2 shrink-0">
+          <div className="px-4 py-3 border-b border-white/5 flex items-center relative gap-2 shrink-0">
             <span className="text-sm text-white/50 w-8">To</span>
             
             {selectedLead ? (
               <div className="flex-1 flex items-center gap-2">
-                <div className="bg-primary/20 border border-primary/30 rounded px-2 py-0.5 flex items-center gap-2">
+                <div className="bg-primary/20 border border-primary/30 rounded px-2 py-1 flex items-center gap-2">
                   <span className="text-sm font-medium text-primary">{selectedLead.name || selectedLead.email}</span>
                   <button onClick={() => setSelectedLead(null)} className="text-primary hover:text-white">
                     <X size={12} />
@@ -352,7 +448,7 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
                     setCustomToEmail(e.target.value);
                   }}
                   placeholder="Recipients"
-                  className="w-full bg-transparent text-sm focus:outline-none text-white h-7"
+                  className="w-full bg-transparent text-sm focus:outline-none text-white h-9"
                 />
                 {leadSearch.length >= 2 && leadResults.length > 0 && !selectedLead && (
                   <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-[#2a2a2a] border border-white/10 rounded shadow-xl max-h-48 overflow-y-auto">
@@ -360,7 +456,7 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
                       <div 
                         key={lead.id} 
                         onClick={() => { setSelectedLead(lead); setLeadSearch(''); }}
-                        className="px-3 py-2 border-b border-white/5 hover:bg-white/10 cursor-pointer flex justify-between items-center"
+                        className="px-3 py-2.5 border-b border-white/5 hover:bg-white/10 cursor-pointer flex justify-between items-center"
                       >
                         <span className="text-sm font-medium text-white">{lead.name || lead.email}</span>
                         {lead.company && <span className="text-xs text-white/40">{lead.company}</span>}
@@ -373,13 +469,13 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
           </div>
 
           {/* Subject Field */}
-          <div className="px-4 py-2 border-b border-white/5 flex items-center gap-2 shrink-0 group">
+          <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2 shrink-0 group">
             <input 
               type="text" 
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Subject"
-              className="flex-1 bg-transparent text-sm focus:outline-none text-white h-7 placeholder:text-white/50 font-medium"
+              className="flex-1 bg-transparent text-sm focus:outline-none text-white h-9 placeholder:text-white/50 font-medium"
             />
             <button 
               onClick={generateRandomSubject} 
@@ -430,28 +526,28 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
           )}
 
           {/* Bottom Toolbar */}
-          <div className="px-4 py-3 border-t border-white/5 flex items-center justify-between bg-[#1e1e1e] shrink-0">
-            <div className="flex items-center gap-4">
+          <div className="px-4 py-4 md:py-3 border-t border-white/5 flex items-center justify-between bg-[#1e1e1e] shrink-0">
+            <div className="flex items-center gap-2 w-full md:w-auto md:gap-4 justify-between md:justify-start">
               <button 
                 onClick={handleSend}
                 disabled={isSending}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-sm transition-all disabled:opacity-50"
+                className="hidden md:block px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-sm transition-all disabled:opacity-50"
               >
                 {isSending ? 'Sending...' : 'Send'}
               </button>
 
-              <div className="flex items-center gap-1 border-l border-white/10 pl-4">
-                <button onClick={() => execFormat('bold')} className="p-1.5 text-white/60 hover:bg-white/10 rounded font-bold transition-colors">B</button>
-                <button onClick={() => execFormat('italic')} className="p-1.5 text-white/60 hover:bg-white/10 rounded italic transition-colors">I</button>
-                <button onClick={() => execFormat('underline')} className="p-1.5 text-white/60 hover:bg-white/10 rounded underline transition-colors">U</button>
+              <div className="flex items-center gap-2 md:gap-1 md:border-l md:border-white/10 md:pl-4">
+                <button onClick={() => execFormat('bold')} className="p-2.5 md:p-1.5 text-base md:text-sm text-white/60 hover:bg-white/10 rounded font-bold transition-colors">B</button>
+                <button onClick={() => execFormat('italic')} className="p-2.5 md:p-1.5 text-base md:text-sm text-white/60 hover:bg-white/10 rounded italic transition-colors">I</button>
+                <button onClick={() => execFormat('underline')} className="p-2.5 md:p-1.5 text-base md:text-sm text-white/60 hover:bg-white/10 rounded underline transition-colors">U</button>
               </div>
 
-              <div className="flex items-center gap-1 border-l border-white/10 pl-4 relative">
-                <label className="p-1.5 text-white/60 hover:bg-white/10 rounded cursor-pointer transition-colors" title="Attach Files">
+              <div className="flex items-center gap-2 md:gap-1 border-l border-white/10 pl-3 md:pl-4 relative">
+                <label className="hidden md:inline-block p-1.5 text-white/60 hover:bg-white/10 rounded cursor-pointer transition-colors" title="Attach Files">
                   <Paperclip size={16} />
                   <input type="file" multiple className="hidden" onChange={handleFileUpload} />
                 </label>
-                <label className="p-1.5 text-white/60 hover:bg-white/10 rounded cursor-pointer transition-colors" title="Insert Image">
+                <label className="hidden md:inline-block p-1.5 text-white/60 hover:bg-white/10 rounded cursor-pointer transition-colors" title="Insert Image">
                   <ImageIcon size={16} />
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileUpload} />
                 </label>
@@ -461,10 +557,10 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
                   <button 
                     onClick={() => setShowSignatureDropdown(!showSignatureDropdown)}
                     type="button"
-                    className="p-1.5 text-white/60 hover:bg-white/10 rounded transition-colors"
+                    className="p-2.5 md:p-1.5 text-white/60 hover:bg-white/10 rounded transition-colors"
                     title="Insert Signature"
                   >
-                    <Edit3 size={16} />
+                    <Edit3 className="w-5 h-5 md:w-4 md:h-4" />
                   </button>
                   {showSignatureDropdown && selectedAccount && (
                     <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#2a2a2a] border border-white/10 rounded-lg shadow-xl overflow-hidden z-20">
@@ -477,7 +573,7 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
                             key={sig.id}
                             type="button"
                             onClick={() => { injectSignature(sig); setShowSignatureDropdown(false); }}
-                            className="w-full text-left px-3 py-2 text-xs text-white transition-colors hover:bg-white/5 flex items-center justify-between"
+                            className="w-full text-left px-3 py-2.5 text-xs text-white transition-colors hover:bg-white/5 flex items-center justify-between"
                           >
                             <span className="truncate">{sig.name}</span>
                             {sig.isDefault && <span className="text-[8px] text-primary uppercase font-bold">Def</span>}
@@ -494,7 +590,7 @@ export const ComposeDock: React.FC<ComposeDockProps> = ({ onClose, accounts, isO
               </div>
             </div>
 
-            <div className="flex items-center gap-2 relative">
+            <div className="hidden md:flex items-center gap-2 relative">
               <span className="text-xs text-white/40">From:</span>
               <div className="relative inline-block">
                 <button
