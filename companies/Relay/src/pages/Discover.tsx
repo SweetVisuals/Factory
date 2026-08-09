@@ -532,17 +532,20 @@ const Discover: React.FC = () => {
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Distance</label>
-                    <select
-                      value={locationRadius}
-                      onChange={e => setLocationRadius(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
-                    >
-                      <option className="bg-[#111]" value="5">5 Miles</option>
-                      <option className="bg-[#111]" value="10">10 Miles</option>
-                      <option className="bg-[#111]" value="25">25 Miles</option>
-                      <option className="bg-[#111]" value="50">50 Miles</option>
-                      <option className="bg-[#111]" value="100">100 Miles</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={locationRadius}
+                        onChange={e => setLocationRadius(e.target.value)}
+                        className="w-full pl-3 pr-8 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                      >
+                        <option className="bg-[#111]" value="5">5 Miles</option>
+                        <option className="bg-[#111]" value="10">10 Miles</option>
+                        <option className="bg-[#111]" value="25">25 Miles</option>
+                        <option className="bg-[#111]" value="50">50 Miles</option>
+                        <option className="bg-[#111]" value="100">100 Miles</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -567,17 +570,20 @@ const Discover: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Size</label>
-                  <select
-                    value={companySizeFilter}
-                    onChange={e => setCompanySizeFilter(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
-                  >
-                    <option className="bg-[#111]" value="all">Any Size</option>
-                    <option className="bg-[#111]" value="1-10 employees">1-10 employees</option>
-                    <option className="bg-[#111]" value="11-50 employees">11-50 employees</option>
-                    <option className="bg-[#111]" value="51-250 employees">51-250 employees</option>
-                    <option className="bg-[#111]" value="Over 250 employees">250+ employees</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={companySizeFilter}
+                      onChange={e => setCompanySizeFilter(e.target.value)}
+                      className="w-full pl-3 pr-8 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                    >
+                      <option className="bg-[#111]" value="all">Any Size</option>
+                      <option className="bg-[#111]" value="1-10 employees">1-10 employees</option>
+                      <option className="bg-[#111]" value="11-50 employees">11-50 employees</option>
+                      <option className="bg-[#111]" value="51-250 employees">51-250 employees</option>
+                      <option className="bg-[#111]" value="Over 250 employees">250+ employees</option>
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                  </div>
                 </div>
 
                 {/* Revenue Range Slider */}
@@ -659,17 +665,20 @@ const Discover: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Email Status</label>
-                  <select
-                    value={statusFilter}
-                    onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
-                  >
-                    <option className="bg-[#111]" value="all">Any Status</option>
-                    <option className="bg-[#111]" value="valid">Valid Emails</option>
-                    <option className="bg-[#111]" value="catch_all">Catch-all Domains</option>
-                    <option className="bg-[#111]" value="invalid">Invalid Emails</option>
-                    <option className="bg-[#111]" value="unverified">Unverified</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={statusFilter}
+                      onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                      className="w-full pl-3 pr-8 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                    >
+                      <option className="bg-[#111]" value="all">Any Status</option>
+                      <option className="bg-[#111]" value="valid">Valid Emails</option>
+                      <option className="bg-[#111]" value="catch_all">Catch-all Domains</option>
+                      <option className="bg-[#111]" value="invalid">Invalid Emails</option>
+                      <option className="bg-[#111]" value="unverified">Unverified</option>
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                  </div>
                 </div>
 
                 {/* Social media presence switches */}
@@ -737,15 +746,18 @@ const Discover: React.FC = () => {
             <div className="p-4 border-t border-white/5 bg-white/[0.01]">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Rows per page</label>
-                <select
-                  value={limit}
-                  onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
-                  className="py-1 px-2 bg-transparent border-none text-xs font-bold text-white focus:outline-none cursor-pointer text-right appearance-none"
-                >
-                  <option className="bg-[#111]" value={25}>25</option>
-                  <option className="bg-[#111]" value={50}>50</option>
-                  <option className="bg-[#111]" value={100}>100</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={limit}
+                    onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
+                    className="py-1 pl-2 pr-5 bg-transparent border-none text-xs font-bold text-white focus:outline-none cursor-pointer text-right appearance-none"
+                  >
+                    <option className="bg-[#111]" value={25}>25</option>
+                    <option className="bg-[#111]" value={50}>50</option>
+                    <option className="bg-[#111]" value={100}>100</option>
+                  </select>
+                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                </div>
               </div>
             </div>
 
@@ -1083,14 +1095,17 @@ const Discover: React.FC = () => {
             <div className="h-6 w-px bg-white/10" />
 
             <div className="flex items-center gap-2.5">
-              <select
-                value={selectedCampaignId}
-                onChange={e => setSelectedCampaignId(e.target.value)}
-                className="bg-transparent border border-white/10 rounded-lg outline-none text-xs font-medium text-white focus:ring-0 w-36 cursor-pointer truncate px-2 py-1.5"
-              >
-                <option value="">Campaign...</option>
-                {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedCampaignId}
+                  onChange={e => setSelectedCampaignId(e.target.value)}
+                  className="bg-transparent border border-white/10 rounded-lg outline-none text-xs font-medium text-white focus:ring-0 w-36 cursor-pointer truncate pl-2 pr-7 py-1.5 appearance-none"
+                >
+                  <option value="">Campaign...</option>
+                  {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/40 pointer-events-none" />
+              </div>
               <Button onClick={handleBulkAddToCampaign} disabled={addingToCampaign || !selectedCampaignId} size="sm" className="h-7 rounded-lg px-4 text-[10px] font-black uppercase tracking-wider">
                 {addingToCampaign ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />} Add
               </Button>
