@@ -363,29 +363,20 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
                  </div>
               )}
 
-              {/* Bad Reviews Section (Moved to Overview for instant visibility) */}
-              {badReviews.length > 0 ? (
-                 <div className="mb-6 p-4 border border-destructive/20 bg-destructive/5 rounded-xl space-y-3 shadow-[0_0_15px_-5px_rgba(239,68,68,0.2)]">
-                    <h4 className="text-[10px] font-black text-destructive uppercase tracking-widest flex items-center gap-2">
-                       <AlertTriangle size={14} /> Example Negative Reviews Found
+              {/* Reviews Section (Moved to Overview for instant visibility) */}
+              {badReviews.length > 0 && (
+                 <div className="mb-6 p-4 border border-blue-500/20 bg-blue-500/5 rounded-xl space-y-3 shadow-[0_0_15px_-5px_rgba(59,130,246,0.2)]">
+                    <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                       <Check size={14} /> Customer Reviews & Mentions
                     </h4>
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
                        {badReviews.map((rev, i) => (
-                          <div key={i} className="text-xs space-y-1 p-3 bg-black/20 rounded-lg border border-destructive/10">
+                          <div key={i} className="text-xs space-y-1 p-3 bg-black/20 rounded-lg border border-blue-500/10">
                              <p className="font-medium text-white/80 italic">"{rev.text}"</p>
-                             <p className="text-[9px] font-black uppercase tracking-widest text-destructive/60">— Source: {rev.source}</p>
+                             <p className="text-[9px] font-black uppercase tracking-widest text-blue-400/60">— Source: {rev.source}</p>
                           </div>
                        ))}
                     </div>
-                 </div>
-              ) : (
-                 <div className="mb-6 p-4 border border-emerald-500/20 bg-emerald-500/5 rounded-xl space-y-2">
-                    <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                       <Check size={14} /> Reputation Scan Clean
-                    </h4>
-                    <p className="text-xs text-white/60 pl-6">
-                      AI deep scan found no significant negative reviews or complaints online.
-                    </p>
                  </div>
               )}
 
