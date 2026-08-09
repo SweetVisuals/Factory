@@ -264,7 +264,7 @@ const SequenceEditor = () => {
 
     setIsPersonalizing(true);
     try {
-      const response = await fetch('http://localhost:3001/api/generate-lead-emails', {
+      const response = await fetch('/api/generate-lead-emails', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
