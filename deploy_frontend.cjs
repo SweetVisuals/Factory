@@ -5,7 +5,7 @@ const path = require('path');
 
 const host = '5.75.252.100';
 const username = 'root';
-const password = '4ULxwjLbbKxM';
+const password = 'JMhMH9j4KLwk';
 const appDir = path.join(__dirname, 'companies', 'Relay');
 
 console.log('Building the Vite frontend...');
@@ -40,9 +40,9 @@ conn.on('ready', () => {
       console.log('Upload complete. Extracting files...');
       
       const extractScript = `
-        rm -rf /var/www/relay/*
-        tar -xzf /tmp/dist.tar.gz -C /var/www/relay/
-        chown -R www-data:www-data /var/www/relay/
+        rm -rf /var/www/relay-frontend/*
+        tar -xzf /tmp/dist.tar.gz -C /var/www/relay-frontend/
+        chown -R www-data:www-data /var/www/relay-frontend/
         rm /tmp/dist.tar.gz
         echo "Deployment complete!"
       `;

@@ -10,7 +10,7 @@ interface TemplateListProps {
 
 const TemplateList = ({ templates, selectedTemplate, onSelect, onCreateNew }: TemplateListProps) => {
   return (
-    <div className="w-80 bg-card border-r border-border flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+    <div className={`bg-card md:border-r border-border flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] shrink-0 ${selectedTemplate ? 'hidden md:flex w-80' : 'flex w-full md:w-80'}`}>
       <div className="p-6 flex justify-between items-center bg-muted/20 border-b border-border">
         <div>
           <h3 className="text-sm font-bold text-foreground">Sequence Registry</h3>

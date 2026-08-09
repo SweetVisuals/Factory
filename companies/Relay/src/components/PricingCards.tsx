@@ -1,21 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, X } from 'lucide-react';
 
 export default function PricingCards({ hideHeader = false }: { hideHeader?: boolean }) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [planType, setPlanType] = useState<'individual' | 'business'>('individual');
+  const [spotsLeft, setSpotsLeft] = useState<number>(900);
+
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const res = await fetch('/api/signup-count');
+        const data = await res.json();
+        setSpotsLeft(data.spotsLeft || 900);
+      } catch (e) {
+        console.error('Error fetching user count:', e);
+      }
+    };
+    fetchUserCount();
+  }, []);
 
   return (
     <div className="w-full text-white font-sans">
       <div className="w-full max-w-6xl mx-auto">
         
         {!hideHeader && (
-          <>
+          <div className="mb-10">
+            <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-4 py-1 text-xs font-black tracking-wider text-purple-300 mb-6 uppercase animate-pulse">
+              🔥 SPECIAL LAUNCH PROMOTION ACTIVE
+            </div>
             <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">Upgrade your plan</h1>
-            <p className="text-gray-400 text-lg mb-10 max-w-2xl">
-              Lock better prices with upgrade or scale your creativity maximizing your current plan
+            <p className="text-gray-400 text-lg max-w-2xl">
+              Lock better prices with upgrade or scale your creativity maximizing your current plan. <br/>
+              <span className="text-purple-400 font-bold">First 100 signups automatically receive the Starter Plan for FREE (Only {spotsLeft} spots left!)</span>
             </p>
-          </>
+          </div>
         )}
 
         {/* Toggles Row */}
@@ -53,8 +71,8 @@ export default function PricingCards({ hideHeader = false }: { hideHeader?: bool
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
           {/* STARTER */}
           <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 flex flex-col">
             <h3 className="text-2xl font-black tracking-tight">STARTER</h3>

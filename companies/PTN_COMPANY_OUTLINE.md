@@ -29,15 +29,6 @@ graph TD
   * **Email Orchestrator**: An Express-based mail daemon utilizing pg_cron to schedule and deploy automated B2B outreach campaigns.
 * **Operational Directive**: Deploy autonomous AI agents to research markets, scrape leads, and generate personalized, high-conversion email sequences to secure development contracts.
 
-### 2.2 Scheduler (The Label)
-* **Focus:** Automated Curation, Video Generation, and High-Volume Media Distribution.
-* **Core Systems:**
-  * **Pinterest Curation Engine**: A system that scrapes and downloads images based on dark aesthetic color themes (Pink, Red, Green).
-  * **Asset Processor**: A service sorting images into organized folders.
-  * **Slideshow Generator**: A utility that stitches images together into promotional video slideshows for music releases (currently promoting Mani Rae's "What It Feels Like ft. Bigz / Breezy").
-  * **Postiz API Integration**: An automated publishing scheduler posting to multiple social media channels (e.g. TikTok, Pinterest, Instagram) every 4 hours.
-* **Operational Directive**: Drive massive, passive organic traffic for music releases without human intervention.
-
 ---
 
 ## 3. Technology & Automation Standards

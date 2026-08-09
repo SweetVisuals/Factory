@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../ui/use-toast';
-import { Sparkles, Globe, Building2, ChevronRight, Check, Loader2, ArrowRight } from 'lucide-react';
+import { Sparkles, Globe, Building2, ChevronRight, Check, Loader2, ArrowRight, X } from 'lucide-react';
 import Layout from '../layout/Layout';
 import Logo from '../Logo';
 
 const OnboardingWizard = () => {
-  const { user } = useAuth();
+  const { user, checkOnboardingStatus } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(2);
   const [loading, setLoading] = useState(false);
   const [generationCount, setGenerationCount] = useState(0);
 
@@ -65,12 +65,39 @@ const OnboardingWizard = () => {
     }
   };
 
-  const handleSave = async () => {
-    if (!generatedData) return;
+  const handleCloseOnboarding = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from('businesses').insert({
-        user_id: user?.id,
+      const { error } = await supabase
+        .from('account_settings')
+        .upsert({
+          user_id: user.id,
+          show_onboarding: false,
+          is_scraping_active: true,
+          plan_type: 'free'
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      if (checkOnboardingStatus) {
+        await checkOnboardingStatus(user.id);
+      }
+      toast({ title: 'Setup Wizard Closed', description: 'You can launch it again anytime from Settings.' });
+      navigate('/discover');
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!generatedData || !user) return;
+    setLoading(true);
+    try {
+      const { error: bizError } = await supabase.from('businesses').insert({
+        user_id: user.id,
         name: businessName,
         aims: generatedData.aims,
         objectives: generatedData.objectives,
@@ -79,7 +106,22 @@ const OnboardingWizard = () => {
         overview_md: generatedData.overview_md
       });
 
-      if (error) throw error;
+      if (bizError) throw bizError;
+
+      const { error: settingsError } = await supabase
+        .from('account_settings')
+        .upsert({
+          user_id: user.id,
+          show_onboarding: false,
+          is_scraping_active: true,
+          plan_type: 'free'
+        }, { onConflict: 'user_id' });
+
+      if (settingsError) throw settingsError;
+
+      if (checkOnboardingStatus) {
+        await checkOnboardingStatus(user.id);
+      }
 
       toast({ title: 'Welcome aboard!', description: 'Your business profile is set up. Let\'s get started!' });
       navigate('/dashboard'); // Go to dashboard!
@@ -99,6 +141,15 @@ const OnboardingWizard = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 w-full max-w-2xl bg-black/60 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-3xl overflow-hidden flex flex-col">
+          
+          {/* Skip Onboarding button */}
+          <button 
+            onClick={handleCloseOnboarding}
+            className="absolute top-4 right-4 z-20 p-2 rounded-xl bg-white/5 border border-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+            title="Skip Setup"
+          >
+            <X size={16} />
+          </button>
           
           {/* Progress Bar */}
           <div className="w-full h-1 bg-white/5">

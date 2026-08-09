@@ -142,16 +142,18 @@ const AgentChatLog = ({ isExpanded, onToggle }: { isExpanded: boolean, onToggle:
 
   return (
     <div 
-      style={{ width: isMaximized ? '100%' : `${chatWidth}px` }} 
+      style={{ 
+        '--chat-width': isMaximized ? '100%' : `${chatWidth}px` 
+      } as React.CSSProperties}
       className={cn(
-        "bg-card border-l border-border flex flex-col shadow-2xl transition-all duration-300 z-50",
-        isMaximized ? "fixed inset-0 w-full h-full" : "h-full shrink-0"
+        "bg-card flex flex-col shadow-2xl transition-all duration-300 z-[100] w-full md:w-[var(--chat-width)]",
+        isMaximized ? "fixed inset-0 h-full" : "fixed inset-0 h-[100dvh] md:relative md:inset-auto md:h-full md:shrink-0 md:border-l md:border-border"
       )}
     >
       {/* Resizer Handle */}
       {!isMaximized && (
         <div 
-          className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-50"
+          className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-50 hidden md:block"
           onMouseDown={() => setIsResizing(true)}
         />
       )}

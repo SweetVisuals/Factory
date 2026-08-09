@@ -313,8 +313,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, open, 
                 <div className="flex items-center gap-3">
                   <BrainCircuit className="text-primary" size={18} />
                   <div>
-                    <h4 className="text-xs font-black text-foreground uppercase tracking-wider">AI Intelligence Context</h4>
-                    <p className="text-[8px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">Intent mapping and corporate profile intelligence</p>
+                    <h4 className="text-xs font-black text-foreground uppercase tracking-wider">Corporate Intelligence & Scraped Reviews</h4>
+                    <p className="text-[8px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">Deterministically mapped business context and feedback</p>
                   </div>
                 </div>
                 
@@ -329,6 +329,23 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, open, 
               </div>
 
               <div className="space-y-4 text-foreground/80 min-h-[100px]">
+                {/* Bad Reviews Section */}
+                {lead?.bad_reviews && lead.bad_reviews.length > 0 && (
+                   <div className="mb-6 p-4 border border-destructive/20 bg-destructive/5 rounded-none space-y-3">
+                      <h4 className="text-xs font-black text-destructive uppercase tracking-widest flex items-center gap-2">
+                         <AlertTriangle size={14} /> Example Negative Reviews Found
+                      </h4>
+                      <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
+                         {lead.bad_reviews.map((rev, i) => (
+                            <div key={i} className="text-xs space-y-1">
+                               <p className="font-medium text-foreground/70 italic border-l-2 border-destructive/50 pl-3">"{rev.text}"</p>
+                               <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 pl-3">— Source: {rev.source}</p>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+                )}
+
                 {isResearching ? (
                   <div className="py-12 flex flex-col items-center justify-center space-y-3 opacity-50">
                     <Loader2 size={24} className="animate-spin text-primary" />

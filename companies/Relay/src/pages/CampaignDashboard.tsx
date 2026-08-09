@@ -166,7 +166,8 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
             {/* Stats Row */}
             <CampaignStats campaignId={campaign.id} />
 
-            <div className="bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden">
+            {/* Desktop View: Tabbed */}
+            <div className="hidden md:block bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden">
               <div className="flex border-b border-border/50">
                 <button
                   onClick={() => setLeadsSubTab('table')}
@@ -175,7 +176,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                     leadsSubTab === 'table' ? "border-primary text-primary bg-primary/5" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
-                  Inbox
+                  Deals
                 </button>
                 <button
                   onClick={() => setLeadsSubTab('scraper')}
@@ -221,6 +222,40 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
                     }}
                   />
                 )}
+              </div>
+            </div>
+
+            {/* Mobile View: Stacked */}
+            <div className="md:hidden flex flex-col space-y-4">
+              <div className="bg-card rounded-2xl shadow-sm border border-border/50 p-4">
+                <h3 className="text-sm font-bold text-foreground mb-4">Deals</h3>
+                <ClosingTab campaignId={campaign.id} />
+              </div>
+              <div className="bg-card rounded-2xl shadow-sm border border-border/50 p-4">
+                <h3 className="text-sm font-bold text-foreground mb-4">Progress</h3>
+                <ProgressTab campaignId={campaign.id} />
+              </div>
+              <div className="bg-card rounded-2xl shadow-sm border border-border/50 p-4">
+                <h3 className="text-sm font-bold text-foreground mb-4">Settings</h3>
+                <OptionsTab
+                  campaignId={campaign.id}
+                  campaignName={campaign.name}
+                  campaignStatus={campaign.status}
+                  campaignBusinessId={campaign.business_id}
+                  campaignToneId={campaign.email_tone_id}
+                  onNameChange={(newName) => updateCampaign(campaign.id, { name: newName })}
+                  onBusinessChange={(bizId) => updateCampaign(campaign.id, { business_id: bizId })}
+                  onToneChange={(toneId) => updateCampaign(campaign.id, { email_tone_id: toneId })}
+                  onDelete={() => deleteCampaign(campaign.id)}
+                  onResume={async () => {
+                    updateCampaign(campaign.id, { status: 'in_progress' });
+                    await supabase
+                      .from('scheduled_emails')
+                      .update({ status: 'scheduled' })
+                      .eq('campaign_id', campaign.id)
+                      .eq('status', 'paused');
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -292,7 +327,7 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
       case 'inbox':
         return (
           <div className="bg-card rounded-2xl shadow-sm border border-border h-full overflow-hidden flex flex-col">
-             <CampaignInbox campaignId={campaign.id} initialSearch={initialSearchTerm} />
+             <CampaignInbox campaignId={campaign.id} campaignName={campaign.name} initialSearch={initialSearchTerm} />
           </div>
         );
       default:
@@ -321,7 +356,10 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
       )}>
         
         {/* Premium Header Layout */}
-        <div className="relative px-[50px] pt-5 pb-2 shrink-0 overflow-hidden border-b border-border/40">
+        <div className={cn(
+          "relative px-4 md:px-[50px] pt-4 md:pt-5 pb-2 shrink-0 overflow-hidden border-b border-border/40",
+          activeTab === 'inbox' ? "hidden md:block" : ""
+        )}>
           <div className="flex flex-col gap-4 max-w-none w-full relative z-10">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
               
@@ -382,8 +420,8 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
               
             </div>
             
-            {/* Elegant Main Tabs */}
-            <div className="relative flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-xl w-fit shadow-sm backdrop-blur-sm mt-1">
+            {/* Elegant Main Tabs (Desktop) */}
+            <div className="hidden md:flex relative gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-xl w-fit shadow-sm backdrop-blur-sm mt-1">
               {[
                 { id: 'analytics', label: 'Analytics', icon: BarChart3 },
                 { id: 'leads', label: 'Leads', icon: Users },
@@ -410,10 +448,35 @@ const CampaignDashboard = ({ onScheduleChange }: CampaignDashboardProps) => {
         </div>
 
         <div className={cn(
-          "flex-1 px-[50px] py-5 max-w-none w-full",
-          activeTab === 'inbox' ? "overflow-hidden p-0 pt-3 px-[50px]" : "animate-in fade-in duration-200"
+          "flex-1 px-4 md:px-[50px] py-4 md:py-5 max-w-none w-full pb-24 md:pb-5",
+          activeTab === 'inbox' ? "overflow-hidden p-0 pt-3 px-4 md:px-[50px]" : "animate-in fade-in duration-200"
         )}>
           {renderTabContent()}
+        </div>
+
+        {/* Mobile Bottom Tabs */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10 p-2 pb-6 z-40 flex items-center justify-around">
+          {[
+            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+            { id: 'leads', label: 'Leads', icon: Users },
+            { id: 'sequences', label: 'Templates', icon: GitMerge },
+            { id: 'review', label: 'Review', icon: CheckCircle },
+            { id: 'inbox', label: 'Inbox', icon: MessageSquare }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={cn(
+                "flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all duration-300",
+                activeTab === tab.id 
+                  ? "text-primary bg-primary/10" 
+                  : "text-muted-foreground hover:text-white hover:bg-white/5"
+              )}
+            >
+              <tab.icon size={20} className={activeTab === tab.id ? "text-primary" : "text-muted-foreground"} />
+              <span className="text-[9px] font-bold tracking-wider">{tab.label}</span>
+            </button>
+          ))}
         </div>
       </div>
       <LeadDetailModal

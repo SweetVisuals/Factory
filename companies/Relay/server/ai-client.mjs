@@ -49,8 +49,6 @@ async function fetchWithTimeout(url, options, timeoutMs = 15000) {
 }
 
 export async function fetchAIChatCompletion(params, log = console.log) {
-
-  return executionQueue.enqueue(async () => {
     const {
       messages,
       temperature = 0.3,
@@ -116,7 +114,10 @@ export async function fetchAIChatCompletion(params, log = console.log) {
             const errBody = typeof dsResult.body === 'string' ? dsResult.body : JSON.stringify(dsResult.body);
             log(`[AI-Client] DeepSeek failed (Status ${dsResult.status}): ${errBody}`);
             
-            if (dsResult.status === 429) {
+            if (dsResult.status === 400) {
+                log(`[AI-Client] DeepSeek 400 Bad Request. Aborting to prevent infinite retry loops.`);
+                throw new Error(`[AI-Client] DeepSeek 400 Bad Request: ${errBody}`);
+            } else if (dsResult.status === 429) {
               log(`[AI-Client] DeepSeek 429 Rate Limit. Waiting 15 seconds before retry...`);
               await new Promise(r => setTimeout(r, 15000));
             } else if (dsResult.status === 402) {
@@ -194,5 +195,4 @@ export async function fetchAIChatCompletion(params, log = console.log) {
     }
 
     throw new Error('[AI-Client] All AI providers exhausted after retries.');
-  }, 'ai-chat-completion');
 }

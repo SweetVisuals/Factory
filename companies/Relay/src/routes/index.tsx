@@ -13,6 +13,8 @@ import Inbox from '../pages/Inbox';
 import EmailAccounts from '../pages/EmailAccounts';
 import Pricing from '../pages/Pricing';
 import TestDeleteFunction from '../pages/TestDeleteFunction';
+import TermsOfService from '../pages/TermsOfService';
+import PrivacyPolicy from '../pages/PrivacyPolicy';
 import Layout from '../components/layout/Layout';
 import OnboardingWizard from '../components/onboarding/OnboardingWizard';
 import AuthVerify from '../pages/AuthVerify';
@@ -136,6 +138,8 @@ const AppRoutes = () => {
           <Pricing />
         </ProtectedRoute>
       } />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
     </Routes>
   );
 };

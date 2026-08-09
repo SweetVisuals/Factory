@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Mail, RefreshCw, Trash2, Archive, Inbox as InboxIcon, Send as SendIcon, User, Globe, StickyNote, X, Building2, Phone, MapPin, Linkedin, ExternalLink, Activity, Radio, Database, Shield, Zap, Terminal, Command, Layers } from 'lucide-react';
+import { Search, Mail, RefreshCw, Trash2, Archive, Inbox as InboxIcon, Send as SendIcon, User, Globe, StickyNote, X, Building2, Phone, MapPin, Linkedin, ExternalLink, Activity, Radio, Database, Shield, Zap, Terminal, Command, Layers, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { EmailMessage } from '../../types';
 import { format } from 'date-fns';
@@ -10,10 +10,11 @@ import { api } from '../../lib/api/api';
 
 interface CampaignInboxProps {
     campaignId: string;
+    campaignName?: string;
     initialSearch?: string;
 }
 
-const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) => {
+const CampaignInbox = ({ campaignId, campaignName = 'Campaign', initialSearch = '' }: CampaignInboxProps) => {
     const [searchTerm, setSearchTerm] = useState(initialSearch);
     const [emails, setEmails] = useState<EmailMessage[]>([]);
     const [loading, setLoading] = useState(true);
@@ -299,7 +300,7 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
     return (
         <div className="h-full flex overflow-hidden relative bg-transparent">
             {/* Folders & Accounts Sidebar */}
-            <div className="w-64 bg-card/40 border-r border-white/5 flex flex-col shrink-0 backdrop-blur-md">
+            <div className={cn("w-64 bg-card/40 border-r border-white/5 flex-col shrink-0 backdrop-blur-md", selectedEmail ? "hidden" : "hidden md:flex")}>
                 <div className="p-6 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
                     {/* Folders */}
                     <div className="space-y-4">
@@ -380,7 +381,15 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
             </div>
 
             {/* Middle Column: Email List */}
-            <div className="w-90 flex flex-col shrink-0 border-r border-white/5 bg-background/20 backdrop-blur-sm">
+            <div className={cn("w-full md:w-90 flex-col shrink-0 md:border-r border-white/5 bg-background/20 backdrop-blur-sm", selectedEmail ? "hidden md:flex" : "flex")}>
+                {/* Mobile Header (Hidden on md) */}
+                <div className="md:hidden p-4 border-b border-border/40 bg-card/40 backdrop-blur flex items-center justify-between">
+                    <div>
+                        <h2 className="text-base font-bold text-foreground">Inbox</h2>
+                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">{campaignName}</p>
+                    </div>
+                </div>
+
                 <div className="p-6 border-b border-white/5 bg-card/20 flex flex-col gap-4">
                     <div className="flex items-center gap-3">
                         <div className="relative flex-1 group min-w-0">
@@ -496,12 +505,19 @@ const CampaignInbox = ({ campaignId, initialSearch = '' }: CampaignInboxProps) =
             </div>
 
             {/* Right Column: Reading Pane */}
-            <div className="flex-1 flex flex-col min-w-0 bg-card/40 relative backdrop-blur-sm">
+            <div className={cn("flex-1 flex-col min-w-0 bg-card/40 relative backdrop-blur-sm", selectedEmail ? "flex fixed md:relative inset-0 z-50 md:z-auto bg-background md:bg-card/40" : "hidden md:flex")}>
                 {selectedEmail ? (
                     <>
                         {/* Toolbar */}
-                        <div className="h-20 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-background/20">
-                            <div className="flex items-center gap-3">
+                        <div className="h-20 px-4 md:px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-background/20">
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <button
+                                    onClick={() => setSelectedEmail(null)}
+                                    className="md:hidden p-2 rounded-xl text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-all shrink-0"
+                                    title="Back"
+                                >
+                                    <ArrowLeft size={20} />
+                                </button>
                                 <button
                                     onClick={() => handleAction('archive', selectedEmailIds.size > 1 ? renderedEmails.filter(e => selectedEmailIds.has(e.id)) : selectedEmail)}
                                     className="p-2.5 rounded-xl text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-all"

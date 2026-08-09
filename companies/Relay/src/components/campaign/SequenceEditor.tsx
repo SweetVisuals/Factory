@@ -556,15 +556,18 @@ const SequenceEditor = () => {
           onCreateNew={createNewTemplate}
         />
 
-        <div className="flex-1 flex flex-col bg-background/50">
+        <div className={`flex-1 flex-col bg-background/50 min-w-0 ${selectedTemplate ? 'flex' : 'hidden md:flex'}`}>
           {selectedTemplate ? (
             <>
-              <div className="px-8 py-6 bg-card border-b border-border flex items-center justify-between shadow-sm z-10">
-                <div className="flex items-center gap-5">
-                  <div className="bg-primary/10 p-3 rounded-xl shadow-inner">
+              <div className="px-4 md:px-8 py-4 md:py-6 bg-card border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm z-10">
+                <div className="flex items-center gap-3 md:gap-5 min-w-0">
+                  <button onClick={() => setSelectedTemplate(null)} className="md:hidden p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-xl transition-colors shrink-0">
+                    <ChevronRight className="w-5 h-5 rotate-180" />
+                  </button>
+                  <div className="bg-primary/10 p-2 md:p-3 rounded-xl shadow-inner shrink-0">
                     <Users className="w-5 h-5 text-primary" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3">
                       <p className="text-base font-bold text-foreground">Calibration Engine</p>
                       <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-bold">

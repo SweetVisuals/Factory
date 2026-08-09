@@ -1,11 +1,10 @@
 import axios from 'axios';
 import { supabase } from '../supabase';
 
-const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-const defaultBaseURL = isDevelopment ? 'http://localhost:3000/api' : 'https://api.relaysolutions.net/api';
+const defaultBaseURL = import.meta.env.DEV ? '/api' : 'https://data.relaysolutions.net/api';
 
 let configuredURL = import.meta.env.VITE_API_URL || defaultBaseURL;
-if (configuredURL && !configuredURL.endsWith('/api')) {
+if (configuredURL && !configuredURL.endsWith('/api') && configuredURL !== '/api') {
   configuredURL = `${configuredURL.replace(/\/$/, '')}/api`;
 }
 

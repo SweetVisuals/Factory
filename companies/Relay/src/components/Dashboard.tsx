@@ -33,14 +33,33 @@ interface InboxEmail {
   is_read: boolean;
 }
 
+import { useAuth } from '../context/AuthContext';
+import { Sparkles, Globe, ShieldCheck, Check } from 'lucide-react';
+
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { campaigns } = useApp();
   const { toast } = useToast();
+  const { user, needsOnboarding, checkOnboardingStatus } = useAuth();
+  
+  const handleCloseOnboarding = async () => {
+    if (!user) return;
+    try {
+      await supabase
+        .from('account_settings')
+        .upsert({ user_id: user.id, show_onboarding: false }, { onConflict: 'user_id' });
+      if (checkOnboardingStatus) await checkOnboardingStatus(user.id);
+      toast({ title: 'Guide Closed', description: 'You can re-enable this guide in your Profile Settings.' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: 'Failed to close guide.', variant: 'destructive' });
+    }
+  };
   
   const [globalStats, setGlobalStats] = useState({ totalSent: 0, bounceRate: 0, opportunities: 0, conversions: 0, totalScraped: 0 });
   const [inboxEmails, setInboxEmails] = useState<InboxEmail[]>([]);
   const [historicalData, setHistoricalData] = useState<{progress: any[], leads: any[]}>({ progress: [], leads: [] });
+  const [onboardingProgress, setOnboardingProgress] = useState({ hasBusiness: false, hasTones: false, hasEmails: false });
+  const [showDomainGuide, setShowDomainGuide] = useState(false);
   
   const [showBounces, setShowBounces] = useState(false);
   const [showOptOuts, setShowOptOuts] = useState(false);
@@ -140,16 +159,39 @@ export const Dashboard = () => {
     };
 
     fetchAllData();
+    const pollInterval = setInterval(fetchAllData, 10000);
 
-    // Use polling instead of heavy postgres_changes subscriptions
-    const pollInterval = setInterval(() => {
-      fetchAllData();
-    }, 15000); // 15 seconds polling
-
-    return () => { 
+    return () => {
       clearInterval(pollInterval);
     };
   }, []);
+
+  useEffect(() => {
+    const fetchOnboardingProgress = async () => {
+      if (!user) return;
+      try {
+        const [{ count: bizCount }, { count: toneCount }, { count: emailCount }] = await Promise.all([
+          supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('email_tones').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('email_accounts').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+        ]);
+        setOnboardingProgress({
+          hasBusiness: (bizCount || 0) > 0,
+          hasTones: (toneCount || 0) > 0,
+          hasEmails: (emailCount || 0) > 0
+        });
+      } catch (err) {
+        console.error('Error checking onboarding details:', err);
+      }
+    };
+
+    fetchOnboardingProgress();
+    const interval = setInterval(fetchOnboardingProgress, 15000);
+
+    return () => { 
+      clearInterval(interval);
+    };
+  }, [user]);
 
   const handleAIDraft = async () => {
     if (!selectedInboxEmail) return;
@@ -416,7 +458,7 @@ export const Dashboard = () => {
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full relative z-10">
           
           {/* Top Metrics Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
             {[
               { label: 'Active Campaigns', val: activeCampaignsCount.toString(), icon: Activity, color: 'text-blue-400' },
               { label: 'Prospects Scraped', val: globalStats.totalScraped.toLocaleString(), icon: Users, color: 'text-amber-400' },
@@ -436,6 +478,230 @@ export const Dashboard = () => {
               </div>
             ))}
           </div>
+
+          {/* Onboarding Checklist Guide */}
+          {needsOnboarding && (
+          <div className="bg-gradient-to-r from-purple-950/20 via-black/40 to-blue-950/20 border border-purple-500/20 rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden backdrop-blur-xl">
+            <button 
+              onClick={handleCloseOnboarding}
+              className="absolute top-4 right-4 z-20 p-2 rounded-xl bg-white/5 border border-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+              title="Hide Guide"
+            >
+              <X size={16} />
+            </button>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-[60px] pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[60px] pointer-events-none" />
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 border-b border-white/5 pb-6">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="bg-purple-500/20 text-purple-300 text-[10px] font-black tracking-widest px-2.5 py-0.5 rounded-full border border-purple-500/20 flex items-center gap-1">
+                    <Sparkles size={10} className="animate-spin" /> GETTING STARTED GUIDE
+                  </span>
+                  <span className="text-[10px] font-black text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    4 SIMPLE STEPS
+                  </span>
+                </div>
+                <h2 className="text-xl font-black text-white tracking-tight">Setup your Outbound Machine</h2>
+                <p className="text-sm text-white/50 mt-1">Complete these tasks to launch highly optimized outreach campaigns that convert.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-muted-foreground uppercase">Progress:</span>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 4].map((step) => {
+                    const completed = 
+                      (step === 1 && onboardingProgress.hasBusiness) ||
+                      (step === 2 && onboardingProgress.hasTones) ||
+                      (step === 3 && onboardingProgress.hasEmails) ||
+                      (step === 4); // domain guide step is informational/completed upon reading
+                    return (
+                      <div 
+                        key={step} 
+                        className={cn(
+                          "w-6 h-1.5 rounded-full transition-all duration-300",
+                          completed ? "bg-purple-500 shadow-[0_0_8px_rgba(139,92,246,0.6)]" : "bg-white/10"
+                        )} 
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              
+              {/* STEP 1 */}
+              <div 
+                onClick={() => navigate('/profile?tab=business')}
+                className="bg-white/[0.02] border border-white/5 rounded-xl p-5 hover:bg-white/[0.04] transition-all cursor-pointer group flex flex-col justify-between h-40 relative"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-black text-white/40 group-hover:text-purple-400 transition-colors uppercase tracking-widest">Step 01</span>
+                    {onboardingProgress.hasBusiness ? (
+                      <div className="p-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <Check size={12} strokeWidth={3} />
+                      </div>
+                    ) : (
+                      <div className="w-2.5 h-2.5 rounded-full bg-purple-500/50 animate-pulse" />
+                    )}
+                  </div>
+                  <h4 className="text-white font-extrabold text-sm mb-1 group-hover:text-purple-300 transition-colors">Business Profile</h4>
+                  <p className="text-xs text-white/50 leading-relaxed">Tell Relay about your product, audience, and aims to drive the AI writer.</p>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-purple-400 uppercase tracking-wider group-hover:translate-x-1 transition-transform">
+                  Configure <ArrowRight size={10} />
+                </div>
+              </div>
+
+              {/* STEP 2 */}
+              <div 
+                onClick={() => navigate('/profile?tab=tones')}
+                className="bg-white/[0.02] border border-white/5 rounded-xl p-5 hover:bg-white/[0.04] transition-all cursor-pointer group flex flex-col justify-between h-40 relative"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-black text-white/40 group-hover:text-purple-400 transition-colors uppercase tracking-widest">Step 02</span>
+                    {onboardingProgress.hasTones ? (
+                      <div className="p-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <Check size={12} strokeWidth={3} />
+                      </div>
+                    ) : (
+                      <div className="w-2.5 h-2.5 rounded-full bg-purple-500/30" />
+                    )}
+                  </div>
+                  <h4 className="text-white font-extrabold text-sm mb-1 group-hover:text-purple-300 transition-colors">Tone Profiles</h4>
+                  <p className="text-xs text-white/50 leading-relaxed">Configure tone templates (e.g. bold, analytical) for outreach email generation.</p>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-purple-400 uppercase tracking-wider group-hover:translate-x-1 transition-transform">
+                  Configure Tones <ArrowRight size={10} />
+                </div>
+              </div>
+
+              {/* STEP 3 */}
+              <div 
+                onClick={() => navigate('/email-accounts')}
+                className="bg-white/[0.02] border border-white/5 rounded-xl p-5 hover:bg-white/[0.04] transition-all cursor-pointer group flex flex-col justify-between h-40 relative"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-black text-white/40 group-hover:text-purple-400 transition-colors uppercase tracking-widest">Step 03</span>
+                    {onboardingProgress.hasEmails ? (
+                      <div className="p-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <Check size={12} strokeWidth={3} />
+                      </div>
+                    ) : (
+                      <div className="w-2.5 h-2.5 rounded-full bg-purple-500/30" />
+                    )}
+                  </div>
+                  <h4 className="text-white font-extrabold text-sm mb-1 group-hover:text-purple-300 transition-colors">Add Senders</h4>
+                  <p className="text-xs text-white/50 leading-relaxed">Connect sending mailboxes via SMTP & IMAP. Use App Passwords for safety.</p>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-purple-400 uppercase tracking-wider group-hover:translate-x-1 transition-transform">
+                  Add Mailbox <ArrowRight size={10} />
+                </div>
+              </div>
+
+              {/* STEP 4 */}
+              <div 
+                onClick={() => setShowDomainGuide(true)}
+                className="bg-white/[0.02] border border-white/5 rounded-xl p-5 hover:bg-white/[0.04] transition-all cursor-pointer group flex flex-col justify-between h-40 relative"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-black text-white/40 group-hover:text-purple-400 transition-colors uppercase tracking-widest">Step 04</span>
+                    <div className="p-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      <Globe size={12} strokeWidth={2.5} />
+                    </div>
+                  </div>
+                  <h4 className="text-white font-extrabold text-sm mb-1 group-hover:text-purple-300 transition-colors">Domain Advice</h4>
+                  <p className="text-xs text-white/50 leading-relaxed">Where and how to purchase secondary domains like Namecheap & Godaddy.</p>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-purple-400 uppercase tracking-wider group-hover:translate-x-1 transition-transform">
+                  View Guide <ArrowRight size={10} />
+                </div>
+              </div>
+
+            </div>
+          </div>
+          )}
+
+          {/* Domain Purchasing Guide Modal */}
+          {showDomainGuide && (
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+              <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative">
+                <div className="absolute top-4 right-4">
+                  <button 
+                    onClick={() => setShowDomainGuide(false)}
+                    className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/70 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="p-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/20">
+                      <Globe size={20} />
+                    </div>
+                    <h3 className="text-xl font-black text-white tracking-tight">Domain & Sending Setup Best Practices</h3>
+                  </div>
+                  
+                  <div className="space-y-5 text-sm text-white/80 leading-relaxed max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <div>
+                      <h4 className="font-extrabold text-white text-sm uppercase tracking-wider mb-1.5 text-purple-300">1. Purchase Secondary Domains</h4>
+                      <p className="text-white/70">
+                        Never send cold emails from your primary company domain (e.g., <code className="bg-white/5 px-1 py-0.5 rounded text-white text-xs">acme.com</code>). If you get marked as spam, it ruins your email deliverability for day-to-day operations. Purchase similar secondary domains instead:
+                      </p>
+                      <ul className="list-disc pl-5 mt-2 space-y-1 text-white/60">
+                        <li><strong className="text-white">Where to buy:</strong> Cloudflare, Namecheap, GoDaddy, or Porkbun.</li>
+                        <li><strong className="text-white">Examples:</strong> <code className="text-xs bg-white/5 px-1 rounded">getacme.com</code>, <code className="text-xs bg-white/5 px-1 rounded">acmehq.com</code>, <code className="text-xs bg-white/5 px-1 rounded">useacme.com</code>.</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-extrabold text-white text-sm uppercase tracking-wider mb-1.5 text-purple-300">2. Create Sending Email Accounts</h4>
+                      <p className="text-white/70">
+                        Avoid cheap shared hosting emails. Set up dedicated business inboxes using:
+                      </p>
+                      <ul className="list-disc pl-5 mt-2 space-y-1 text-white/60">
+                        <li><strong className="text-white">Google Workspace:</strong> Cleanest SMTP/IMAP servers, recommended standard.</li>
+                        <li><strong className="text-white">Microsoft 365:</strong> Great for enterprise filters.</li>
+                        <li><strong className="text-white">Inboxes limit:</strong> Create at most 2 to 3 email inboxes per domain.</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-extrabold text-white text-sm uppercase tracking-wider mb-1.5 text-purple-300">3. Warmup Your Domains</h4>
+                      <p className="text-white/70">
+                        New domains are highly flagged by spam filters. You MUST warm them up before sending any campaign:
+                      </p>
+                      <ul className="list-disc pl-5 mt-2 space-y-1 text-white/60">
+                        <li>Keep the accounts in warmup status for at least <strong className="text-white">14 days</strong> before launching campaigns.</li>
+                        <li>Use ColdSpark's built-in Warmer or alternative warmup networks to automate peer-to-peer healthy correspondence.</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-purple-950/20 border border-purple-500/20 rounded-xl p-4 text-xs text-purple-300 flex gap-3">
+                      <ShieldCheck size={18} className="shrink-0 text-purple-400" />
+                      <div>
+                        <strong className="font-bold text-white block mb-0.5">DNS Records (Required)</strong>
+                        Make sure to add SPF, DKIM, and DMARC text records to your DNS provider (Namecheap/Godaddy settings) to verify you are a authenticated sender!
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 flex justify-end">
+                    <button 
+                      onClick={() => setShowDomainGuide(false)}
+                      className="bg-white text-black px-6 py-2.5 rounded-xl font-black uppercase tracking-widest text-[11px] hover:scale-105 transition-all"
+                    >
+                      Got it, thanks!
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Main Content Area: Chart (Left) + Needs Attention (Right) */}
           <div className="flex flex-col lg:flex-row flex-1 gap-6 min-h-0 lg:h-[600px] h-auto pb-6">
@@ -506,6 +772,7 @@ export const Dashboard = () => {
             </div>
 
             {/* Right Column (Needs Attention) */}
+            {inboxEmails.length > 0 && (
             <div className="flex-1 flex flex-col gap-4 min-w-[350px] max-w-[500px]">
               <div className="flex flex-col gap-2 bg-[#1a1a1a] p-3 rounded-2xl border border-white/5">
                 <div className="flex items-center justify-between mb-1 px-1">
@@ -701,7 +968,7 @@ export const Dashboard = () => {
                 )}
               </div>
             </div>
-
+            )}
           </div>
         </div>
       </div>

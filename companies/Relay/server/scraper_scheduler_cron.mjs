@@ -10,7 +10,18 @@ async function runScraperScheduler() {
   console.log('[Scraper Scheduler] Checking for active campaigns to feed leads...');
   try {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-    
+
+    // Self-healing: clear tasks older than 45 mins that are stuck in progress (prevent OOM deadlocks)
+    try {
+      const fortyFiveMinsAgo = new Date(Date.now() - 45 * 60000).toISOString();
+      await supabase.from('tasks')
+        .update({ status: 'failed', error: 'Task timed out. Assumed dead due to server crash.' })
+        .eq('assigned_to', 'Scraper')
+        .in('status', ['in_progress', 'pending', 'waiting'])
+        .lt('created_at', fortyFiveMinsAgo);
+    } catch (cleanupErr) {
+      console.error('[Scraper Scheduler] Non-fatal error during auto-cleanup of stuck tasks:', cleanupErr.message);
+    }
     const { data: memData } = await supabase.from('agent_memory').select('value').eq('key_name', 'factory_status').maybeSingle();
     if (memData?.value?.status === 'paused' && memData?.value?.reason !== 'insufficient_credits') {
       console.log(`[Scraper Scheduler] Factory is paused for reason: ${memData?.value?.reason}. Skipping scraper schedule.`);
@@ -71,9 +82,29 @@ async function runScraperScheduler() {
              continue;
         }
 
-        if (accSettings.plan_type === 'free' && accSettings.scrapes_this_month >= 2500) {
-             console.log(`[Scraper Scheduler] User ${c.user_id} has hit free tier limit (2500). Skipping campaign ${c.id}.`);
+        // Fetch total leads scraped count
+        const { count: totalLeadsScraped } = await supabase
+            .from('leads')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', c.user_id);
+
+        if (accSettings.plan_type === 'free' && totalLeadsScraped !== null && totalLeadsScraped >= 50000) {
+             console.log(`[Scraper Scheduler] User ${c.user_id} has hit free tier limit (50000 total leads). Skipping campaign ${c.id}.`);
              continue;
+        }
+
+        // Enforce concurrent active campaigns for free tier
+        if (accSettings.plan_type === 'free') {
+             const { count: activeCampaignsCount } = await supabase
+                 .from('campaigns')
+                 .select('id', { count: 'exact', head: true })
+                 .eq('user_id', c.user_id)
+                 .in('status', ['active', 'in_progress']);
+
+             if (activeCampaignsCount !== null && activeCampaignsCount > 10) {
+                 console.log(`[Scraper Scheduler] User ${c.user_id} has hit free concurrent limit (10 active campaigns). Skipping campaign ${c.id}.`);
+                 continue;
+             }
         }
 
         // Max out server: feed leads to campaigns under 5000 leads
@@ -93,6 +124,12 @@ async function runScraperScheduler() {
                     if (taskCheckErr) {
                         console.error(`[Scraper Scheduler] Error checking active tasks for ${c.id}:`, taskCheckErr.message);
                     } else if (activeTasks) {
+                        // Globally limit concurrent scrapers to prevent Chrome OOM crashes
+                        if (activeTasks.length >= 2) {
+                            console.log(`[Scraper Scheduler] Global limit of 2 concurrent scrapers reached. Waiting for next cycle.`);
+                            break; // Stop scheduling new campaigns this cycle
+                        }
+
                         // Only 1 scraper per campaign to avoid overloading the DB
                         const isAlreadyRunning = activeTasks.some(t => t.description && t.description.includes(c.id));
                         if (isAlreadyRunning) {
@@ -122,6 +159,26 @@ async function runScraperScheduler() {
                         nameLower.includes('ecom') ? 'ecommerce stores' :
                         nameLower.includes('legal') ? 'law firm' :
                         nameLower.includes('cyber') ? 'cybersecurity' : 'business';
+            }
+
+            // If location is still empty, try to extract it from the pitch/objective
+            if (!location && c.pitch) {
+                const p = c.pitch.toLowerCase();
+                // Common locations check
+                if (p.includes('london')) location = 'London';
+                else if (p.includes('manchester')) location = 'Manchester';
+                else if (p.includes('birmingham')) location = 'Birmingham';
+                else if (p.includes('leeds')) location = 'Leeds';
+                else if (p.includes('glasgow')) location = 'Glasgow';
+                else if (p.includes('liverpool')) location = 'Liverpool';
+                else if (p.includes('new york')) location = 'New York';
+                else if (p.includes('los angeles') || p.includes('la')) location = 'Los Angeles';
+                else if (p.includes('chicago')) location = 'Chicago';
+                else if (p.includes('houston')) location = 'Houston';
+                else if (p.includes('sydney')) location = 'Sydney';
+                else if (p.includes('melbourne')) location = 'Melbourne';
+                else if (p.includes('toronto')) location = 'Toronto';
+                else if (p.includes('dubai')) location = 'Dubai';
             }
 
             if (!location) {

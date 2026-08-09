@@ -29,6 +29,7 @@ import { scrapeLeadsNoPuppeteer } from './scraper_http.mjs';
 import { startCompaniesHouseCron } from './companies_house_cron.mjs';
 import { startAutoAssignCron } from './auto_assign_cron.mjs';
 import { startScraperSchedulerCron } from './scraper_scheduler_cron.mjs';
+import { startReputationSchedulerCron } from './reputation_cron.mjs';
 import { startResearchCron } from './research_cron.mjs';
 import { initOldLeadsMigrator } from './old_leads_migrator.mjs';
 import { generateEmail } from './email_engine.mjs';
@@ -57,6 +58,42 @@ process.on('uncaughtException', (err) => {
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey;
+
+export function formatPhoneNumber(phone) {
+  if (!phone) return '';
+  let withSpaces = phone.replace(/[^\d+\s]/g, '').replace(/\s+/g, ' ').trim();
+  let cleaned = phone.replace(/[^\d+]/g, '');
+
+  if (!cleaned) return '';
+
+  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
+  else if (cleaned.startsWith('0') && !cleaned.startsWith('00')) cleaned = '+44' + cleaned.slice(1);
+  else if (cleaned.startsWith('44')) cleaned = '+' + cleaned;
+  else if (!cleaned.startsWith('+') && cleaned.length >= 9) cleaned = '+44' + cleaned;
+
+  if (cleaned.startsWith('+44')) {
+    let core = cleaned.slice(3);
+    if (core.length === 10) {
+      if (core.startsWith('2')) {
+        return `+44 ${core.slice(0, 2)} ${core.slice(2, 6)} ${core.slice(6)}`;
+      } else if (core.startsWith('3') || core.startsWith('8') || core.startsWith('11') || /^1[2-9]1/.test(core)) {
+        return `+44 ${core.slice(0, 3)} ${core.slice(3, 6)} ${core.slice(6)}`;
+      } else {
+        return `+44 ${core.slice(0, 4)} ${core.slice(4)}`;
+      }
+    }
+    
+    if (withSpaces.startsWith('+44')) return withSpaces;
+    if (withSpaces.startsWith('0')) return '+44 ' + withSpaces.slice(1);
+    
+    if (core.length > 6) {
+         return `+44 ${core.slice(0, 4)} ${core.slice(4)}`;
+    }
+    return `+44 ${core}`;
+  }
+
+  return withSpaces || cleaned;
+}
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('CRITICAL ERROR: SUPABASE_URL or SUPABASE_ANON_KEY is missing from environment variables.');
@@ -514,8 +551,8 @@ app.post('/api/generate-business', async (req, res) => {
     let scrapedText = '';
     if (businessUrl) {
       try {
-        const puppeteer = require('puppeteer');
-        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const { Camoufox } = await import('camoufox-js');
+        const browser = await Camoufox({ headless: true });
         const page = await browser.newPage();
         await page.goto(businessUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
         scrapedText = await page.evaluate(() => document.body.innerText.substring(0, 5000));
@@ -541,25 +578,10 @@ User's Description: ${blurb || 'N/A'}
 Scraped Website Content: ${scrapedText || 'N/A'}
 `;
 
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: prompt }]
-      })
+    const result = await fetchAIChatCompletion({
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' }
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`DeepSeek API returned status ${response.status}: ${errText}`);
-    }
-
-    const result = await response.json();
     let parsed;
     try {
       parsed = JSON.parse(result.choices[0].message.content);
@@ -706,29 +728,14 @@ SUBJECT LINE REQUIREMENT: Each subject line must be sharply niche-specific to "$
     const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
     console.log(`[Automated Sequences] Making direct request to Gemini to bypass rate limit / queue for campaign ${campaignId}...`);
     
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        temperature: 1.2,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt + contextPrompt }
-        ],
-        response_format: { type: 'json_object' }
-      })
+    const data = await fetchAIChatCompletion({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt + contextPrompt }
+      ],
+      temperature: 1.2,
+      response_format: { type: 'json_object' }
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`DeepSeek API returned status ${response.status}: ${errText}`);
-    }
-
-    const data = await response.json();
     const contentString = data.choices[0].message.content;
     const content = JSON.parse(contentString);
     let sequences = Array.isArray(content) ? content : (content.sequences || content.emails);
@@ -1045,7 +1052,7 @@ app.get('/api/campaigns/:id/preview-email', async (req, res) => {
     // 1. Fetch Campaign
     const { data: campaign, error: campErr } = await supabaseAdmin
       .from('campaigns')
-      .select('*, businesses(*)')
+      .select('*')
       .eq('id', id)
       .single();
       
@@ -1157,27 +1164,13 @@ Template Subject: ${templateSubject}
 Template Body: ${templateContent}`;
 
       try {
-        const response = await fetch('https://api.deepseek.com/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: 'deepseek-v4-flash',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            response_format: { type: 'json_object' }
-          })
+        const resData = await fetchAIChatCompletion({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          response_format: { type: 'json_object' }
         });
-
-        if (!response.ok) {
-          throw new Error(`Direct DeepSeek API returned status ${response.status}`);
-        }
-
-        const resData = await response.json();
         const content = JSON.parse(resData.choices[0].message.content);
         return {
           lead,
@@ -1859,7 +1852,20 @@ import { scrapeGoogleMaps, scrapeLinkedIn, scrapeGeneralSearch, performDeepResea
 // User-specific stores for live updates
 const userLogs = new Map();
 const userResults = new Map();
-const activeScrapes = new Map(); // stores { status: 'running' | 'paused' | 'canceled' }
+const activeScrapes = new Map(); // stores { status: 'running' | 'paused' | 'canceled', userId, startedAt }
+
+// Self-healing: Periodically clean up stale activeScrapes entries that outlived their 30-min TTL.
+// This prevents zombie scrapes from permanently blocking the concurrency limiter.
+setInterval(() => {
+  const now = Date.now();
+  const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+  for (const [runId, state] of activeScrapes.entries()) {
+    if (state.startedAt && (now - state.startedAt) > STALE_THRESHOLD_MS) {
+      console.warn(`[Scraper Self-Heal] Evicting stale activeScrapes entry: runId=${runId}, age=${Math.round((now - state.startedAt) / 60000)}min, userId=${state.userId}`);
+      activeScrapes.delete(runId);
+    }
+  }
+}, 5 * 60 * 1000); // Check every 5 minutes
 
 app.get('/api/scraper-active', async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -2035,6 +2041,7 @@ app.post('/api/deep-research', async (req, res) => {
         updatePayload.key_people = s.key_people && s.key_people.length > 0 ? s.key_people : [];
         updatePayload.tech_stack = s.tech_stack && s.tech_stack.length > 0 ? s.tech_stack : [];
         updatePayload.pain_points = s.pain_points && s.pain_points.length > 0 ? s.pain_points : [];
+        updatePayload.bad_reviews = s.bad_reviews && s.bad_reviews.length > 0 ? s.bad_reviews : [];
         updatePayload.recent_news = s.recent_news && s.recent_news.length > 0 ? s.recent_news : [];
         updatePayload.social_presence = s.social_presence || {};
         updatePayload.services_offered = s.services_offered && s.services_offered.length > 0 ? s.services_offered : [];
@@ -2308,7 +2315,7 @@ app.post('/api/scrape-leads', async (req, res) => {
     userLogs.set(userId, []);
     userResults.set(userId, []);
     const runId = Date.now().toString();
-    activeScrapes.set(runId, { status: 'running', userId });
+    activeScrapes.set(runId, { status: 'running', userId, startedAt: Date.now() });
 
     // Respond immediately - scrape runs in background, frontend polls for updates
     res.json({ success: true, message: 'Scrape started' });
@@ -2431,7 +2438,14 @@ app.post('/api/scrape-leads', async (req, res) => {
       // PRE-INSERTION AI RESEARCH: Always run synchronous AI research before saving to DB
       let researchSummary = lead.summary || '';
       let researchStatus = lead.research_status || 'completed';
-      let structuredData = {};
+      let structuredData = lead.structured || {};
+      
+      // Remove duplicates from structuredData that shouldn't override basic lead data
+      if (structuredData) {
+          delete structuredData.personalised_detail;
+          delete structuredData.quick_fact;
+      }
+      
       const hasEmail = lead.email && lead.email.trim() !== '';
       
       if (!researchSummary || researchSummary.length < 20) {
@@ -2448,9 +2462,7 @@ app.post('/api/scrape-leads', async (req, res) => {
           
           if (res.structured) {
             structuredData = res.structured;
-            // Remove duplicates from structuredData that shouldn't override basic lead data
-            delete structuredData.personalised_detail;
-            delete structuredData.quick_fact;
+            // Removed duplicate delete logic (already done globally)
           }
         } catch (err) {
           log(`[Filter] Dropped ${lead.company || 'lead'}: AI Deep Research failed (${err.message}).`);
@@ -2543,13 +2555,18 @@ app.post('/api/scrape-leads', async (req, res) => {
         const validationStatus = !hasEmail ? 'invalid' : (lead.validation_status || null);
         const validationDetails = !hasEmail ? 'No email found during scrape' : (lead.validation_details || null);
 
+        if (validationStatus === 'invalid') {
+          log(`[Filter] Dropped ${lead.company || 'lead'}: Invalid lead (${validationDetails}).`);
+          return;
+        }
+
         const leadData = {
           user_id: userId,
           company: lead.company || '',
           email: lead.email || '',
           website: lead.website || '',
           location: lead.location || '',
-          phone: lead.phone || '',
+          phone: formatPhoneNumber(lead.phone),
           summary: researchSummary || lead.summary || '',
           source: lead.source || 'scraped',
           status: 'new',
@@ -2567,8 +2584,8 @@ app.post('/api/scrape-leads', async (req, res) => {
             instagram_url: lead.instagram || '',
             twitter_url: lead.twitter || '',
             linkedin_url: lead.linkedin || '',
-            google_rating: null,
-            review_count: null
+            google_rating: lead.google_rating || null,
+            review_count: lead.review_count || null
           },
           ...structuredData,
           // Prioritize direct statutory metadata (e.g. from Companies House) over AI deductions
@@ -2933,7 +2950,7 @@ app.post('/api/scrape-leads', async (req, res) => {
         log(`Starting scrape for ${business || keywords || 'unspecified niche'}...`);
         if (notesContext) log(`Custom Notes Focus: ${notesContext}`);
 
-        const MAX_CONCURRENT = 4; // Optimized for maximum throughput on current server constraints
+        const MAX_CONCURRENT = 4; // Set concurrency to 4 now that we have 8GB RAM
         const queue = [...scrapeLocations];
         const activePromises = new Set();
         let isCanceled = false;
@@ -3455,8 +3472,8 @@ app.get('/api/emails', async (req, res) => {
       console.log(`Syncing emails for ${emailAccounts.length} accounts...`);
 
       // Process accounts serially
-      const TIMEOUT_MS = 60000; // Increased timeout for sync
-      const MAX_CONCURRENT = 4;
+      const TIMEOUT_MS = 60000;
+      const MAX_CONCURRENT = 1;
 
       const chunk = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
         arr.slice(i * size, i * size + size)
@@ -4402,6 +4419,29 @@ app.post('/api/import-local-list', async (req, res) => {
   }
 });
 
+let signupSpotsLeft = 900;
+try {
+  if (fs.existsSync(path.join(process.cwd(), 'server', 'signup_counter.json'))) {
+    signupSpotsLeft = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'server', 'signup_counter.json'), 'utf8')).spotsLeft;
+  }
+} catch (e) {
+  console.error('Error reading signup counter:', e);
+}
+
+app.get('/api/signup-count', (req, res) => {
+  res.json({ spotsLeft: signupSpotsLeft });
+});
+
+app.post('/api/increment-signup', (req, res) => {
+  signupSpotsLeft = Math.max(0, signupSpotsLeft - 9);
+  try {
+    fs.writeFileSync(path.join(process.cwd(), 'server', 'signup_counter.json'), JSON.stringify({ spotsLeft: signupSpotsLeft }));
+  } catch (e) {
+    console.error('Error saving signup counter:', e);
+  }
+  res.json({ spotsLeft: signupSpotsLeft, success: true });
+});
+
 const PORT = process.env.PORT || 3001;
 
 // Start background services if enabled
@@ -4410,6 +4450,7 @@ if (process.env.ENABLE_CRONS !== 'false') {
   startCompaniesHouseCron();
   startAutoAssignCron();
   startScraperSchedulerCron();
+  startReputationSchedulerCron();
   startEmailerCron();
   startBounceProcessorCron();
   startSyncEmailsCron();

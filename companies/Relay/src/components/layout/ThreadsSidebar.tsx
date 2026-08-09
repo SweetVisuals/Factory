@@ -16,8 +16,16 @@ interface EmailMessage {
   campaign_id?: string;
 }
 
-export default function ThreadsSidebar() {
-  const [isOpen, setIsOpen] = useState(false);
+interface ThreadsSidebarProps {
+  isOpen?: boolean;
+  setIsOpen?: (open: boolean) => void;
+}
+
+export default function ThreadsSidebar({ isOpen: propIsOpen, setIsOpen: propSetIsOpen }: ThreadsSidebarProps = {}) {
+  const [localIsOpen, setLocalIsOpen] = useState(false);
+  const isOpen = propIsOpen !== undefined ? propIsOpen : localIsOpen;
+  const setIsOpen = propSetIsOpen !== undefined ? propSetIsOpen : setLocalIsOpen;
+  
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -56,7 +64,7 @@ export default function ThreadsSidebar() {
 
   if (!isOpen) {
     return (
-      <div className="w-12 border-l border-white/5 bg-[#111111] flex flex-col items-center py-4 shrink-0 h-full transition-all">
+      <div className="hidden md:flex w-12 border-l border-white/5 bg-[#111111] flex flex-col items-center py-4 shrink-0 h-full transition-all">
         <button 
           onClick={() => setIsOpen(true)}
           className="p-2 hover:bg-white/5 text-muted-foreground hover:text-foreground rounded-xl transition-colors"
@@ -69,7 +77,7 @@ export default function ThreadsSidebar() {
   }
 
   return (
-    <div className="w-80 border-l border-white/5 bg-[#111111] flex flex-col shrink-0 h-full transition-all animate-in slide-in-from-right-8 duration-200">
+    <div className="fixed inset-0 z-50 md:z-auto md:relative w-full md:w-80 md:border-l border-white/5 bg-[#111111] flex flex-col shrink-0 h-[100dvh] md:h-full transition-all animate-in slide-in-from-right-8 duration-200">
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2 text-foreground">
           <MessageSquare size={16} className="text-primary" />

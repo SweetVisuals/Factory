@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Activity, Upload, Plus, AlertTriangle, Users, Mail, Target, Zap, ArrowUpRight, Shield, Cpu, Eye, Trash2, CreditCard, Check, Sparkles, Building2, User, Settings, ArrowLeft, RefreshCw, Camera } from 'lucide-react';
+import { Activity, Upload, Plus, AlertTriangle, Users, Mail, Target, Zap, ArrowUpRight, Shield, Cpu, Eye, Trash2, CreditCard, Check, Sparkles, Building2, User, Settings, ArrowLeft, RefreshCw, Camera, MessageSquare, FileText, ExternalLink } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -23,9 +23,11 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { simpleMode, setSimpleMode } = useTheme();
+  const [isRegistryOpen, setIsRegistryOpen] = useState(false);
 
   // Profile States
   const [planType, setPlanType] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(true);
   const [identityLoading, setIdentityLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: user?.user_metadata?.full_name || '',
@@ -123,12 +125,33 @@ export default function ProfilePage() {
     
     const fetchPlan = async () => {
       if (user) {
-        const { data } = await supabase.from('account_settings').select('plan_type').eq('user_id', user.id).maybeSingle();
-        if (data) setPlanType(data.plan_type);
+        const { data } = await supabase.from('account_settings').select('plan_type, show_onboarding').eq('user_id', user.id).maybeSingle();
+        if (data) {
+          setPlanType(data.plan_type);
+          setShowOnboarding(!!data.show_onboarding);
+        }
       }
     };
     fetchPlan();
   }, [user]);
+
+  const handleToggleOnboarding = async (value: boolean) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('account_settings')
+        .update({ show_onboarding: value })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setShowOnboarding(value);
+      toast({
+        title: 'Settings Updated',
+        description: value ? 'Setup wizard is enabled.' : 'Setup wizard is disabled.'
+      });
+    } catch (err: any) {
+      toast({ title: 'Update Failed', description: err.message, variant: 'destructive' });
+    }
+  };
 
   const [usageStats, setUsageStats] = useState({
     emailsSent: 0,
@@ -477,7 +500,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <Layout>
+      <Layout hideFooterVisually={true}>
         <div className="w-full flex h-full bg-background overflow-hidden text-foreground">
           <div className="flex-1 overflow-y-auto p-8 lg:p-12">
             <div className="max-w-[1200px] mx-auto w-full h-full flex items-center justify-center">
@@ -490,15 +513,15 @@ export default function ProfilePage() {
   }
 
   return (
-    <Layout>
+    <Layout hideFooterVisually={true}>
       <div className="w-full flex h-full bg-background overflow-hidden text-foreground">
         
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 lg:p-12">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 pb-24 md:pb-12">
           <div className="max-w-[1200px] mx-auto w-full">
           
             {/* Top Navigation Tabs */}
-            <div className="flex items-center gap-1 mb-8 bg-black/40 p-1 rounded-lg backdrop-blur-sm border border-white/5 overflow-x-auto">
+            <div className="hidden md:flex items-center gap-1 mb-8 bg-black/40 p-1 rounded-lg backdrop-blur-sm border border-white/5 overflow-x-auto">
               {[
                 { id: 'profile', label: 'Profile', icon: User },
                 { id: 'business', label: 'Business', icon: Building2 },
@@ -635,6 +658,37 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              <div className="pt-8 border-t border-white/5 space-y-6 pb-20">
+                <h3 className="text-lg font-bold text-foreground mb-6">Legal & Policies</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-background border border-white/5 rounded-xl hover:bg-white/5 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 bg-muted rounded-xl group-hover:bg-primary/20 transition-colors">
+                        <FileText size={18} className="text-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">Terms of Service</span>
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Read our terms and conditions</span>
+                      </div>
+                    </div>
+                    <ExternalLink size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  </a>
+                  
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-background border border-white/5 rounded-xl hover:bg-white/5 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 bg-muted rounded-xl group-hover:bg-primary/20 transition-colors">
+                        <Shield size={18} className="text-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">Privacy Policy</span>
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Learn how we protect your data</span>
+                      </div>
+                    </div>
+                    <ExternalLink size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  </a>
+                </div>
+              </div>
+
             </div>
           )}
 
@@ -642,6 +696,31 @@ export default function ProfilePage() {
           {activeTab === 'settings' && (
             <div className="space-y-12 animate-in fade-in duration-200">
               <div className="pt-8 space-y-6">
+                
+                {/* Onboarding Setup Wizard Toggle */}
+                <div className="flex items-center justify-between p-6 bg-[#111111] border border-white/5 rounded-xl">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white/5 rounded-xl">
+                      <Sparkles size={24} className="text-primary" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-lg font-black text-foreground uppercase tracking-tight">Onboarding Setup Wizard</span>
+                      <span className="text-xs font-medium text-muted-foreground">Toggle whether the initial setup wizard shows when configuring new spaces.</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleToggleOnboarding(!showOnboarding)}
+                    className={cn(
+                      "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shadow-sm",
+                      showOnboarding
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20"
+                        : "bg-white/5 text-white/50 border-white/5 hover:bg-white/10"
+                    )}
+                  >
+                    {showOnboarding ? 'Enabled (Show)' : 'Disabled (Hide)'}
+                  </button>
+                </div>
+
                 <div className="flex items-center justify-between p-6 bg-[#111111] border border-white/5 rounded-xl">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-white/5 rounded-xl">
@@ -663,36 +742,36 @@ export default function ProfilePage() {
           {/* TAB: USAGE */}
           {activeTab === 'usage' && (
             <div className="animate-in fade-in duration-200 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                 {/* Limit Card 1 */}
-                <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Emails Sent Today</h4>
-                    <span className="text-sm font-black text-foreground">{usageStats.emailsSent} / {usageStats.emailsLimit}</span>
+                <div className="p-3 md:p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-2 md:space-y-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-1 md:mb-2">
+                    <h4 className="text-[8px] md:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Emails Sent Today</h4>
+                    <span className="text-xs md:text-sm font-black text-foreground">{usageStats.emailsSent} / {usageStats.emailsLimit}</span>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
+                  <div className="w-full h-1.5 md:h-2 bg-muted rounded-xl overflow-hidden">
                     <div className="h-full bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.emailsSent / usageStats.emailsLimit) * 100)}%` }} />
                   </div>
                 </div>
-
+ 
                 {/* Limit Card 2 */}
-                <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Campaigns</h4>
-                    <span className="text-sm font-black text-foreground">{usageStats.activeCampaigns} / {usageStats.campaignsLimit}</span>
+                <div className="p-3 md:p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-2 md:space-y-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-1 md:mb-2">
+                    <h4 className="text-[8px] md:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Campaigns</h4>
+                    <span className="text-xs md:text-sm font-black text-foreground">{usageStats.activeCampaigns} / {usageStats.campaignsLimit}</span>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
+                  <div className="w-full h-1.5 md:h-2 bg-muted rounded-xl overflow-hidden">
                     <div className="h-full bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.activeCampaigns / usageStats.campaignsLimit) * 100)}%` }} />
                   </div>
                 </div>
-
+ 
                 {/* Limit Card 3 */}
-                <div className="p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Contacts</h4>
-                    <span className="text-sm font-black text-foreground">{usageStats.activeContacts} / {usageStats.contactsLimit}</span>
+                <div className="p-3 md:p-6 bg-[#111111]/50 backdrop-blur-md border border-white/5 rounded-xl space-y-2 md:space-y-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-1 md:mb-2">
+                    <h4 className="text-[8px] md:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Contacts</h4>
+                    <span className="text-xs md:text-sm font-black text-foreground">{usageStats.activeContacts} / {usageStats.contactsLimit}</span>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-xl overflow-hidden">
+                  <div className="w-full h-1.5 md:h-2 bg-muted rounded-xl overflow-hidden">
                     <div className="h-full bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (usageStats.activeContacts / usageStats.contactsLimit) * 100)}%` }} />
                   </div>
                 </div>
@@ -1276,14 +1355,14 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2 border-b border-white/5 pb-2">
                         <h3 className="text-base font-black text-foreground uppercase tracking-tight">{category.replace('_', '-')}</h3>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                         {group.map(t => (
                           <div 
                             key={t.id} 
                             onClick={() => setSelectedTone(t)}
-                            className="flex flex-col p-5 bg-white/[0.03] border border-white/5 rounded-xl shadow-sm hover:bg-white/[0.06] transition-colors cursor-pointer group"
+                            className="flex flex-col p-3 md:p-5 bg-white/[0.03] border border-white/5 rounded-xl shadow-sm hover:bg-white/[0.06] transition-colors cursor-pointer group"
                           >
-                            <div className="flex justify-between items-start mb-4">
+                            <div className="flex justify-between items-start mb-2 md:mb-4">
                               <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                                 <Mail size={14} className="text-primary" />
                               </div>
@@ -1291,8 +1370,8 @@ export default function ProfilePage() {
                                 Active
                               </span>
                             </div>
-                            <h3 className="text-[13px] font-bold text-white/90 mb-1">{t.name}</h3>
-                            <p className="text-[10px] font-bold text-muted-foreground/60 line-clamp-3">
+                            <h3 className="text-xs md:text-[13px] font-bold text-white/90 mb-1">{t.name}</h3>
+                            <p className="text-[9px] md:text-[10px] font-bold text-muted-foreground/60 line-clamp-3">
                               {t.content_md ? t.content_md : 'No guidelines provided.'}
                             </p>
                           </div>
@@ -1309,7 +1388,52 @@ export default function ProfilePage() {
         </div>
 
         {/* Right-hand Threads Sidebar */}
-        <ThreadsSidebar />
+        <ThreadsSidebar isOpen={isRegistryOpen} setIsOpen={setIsRegistryOpen} />
+
+        {/* Sticky Mobile Bottom Navigation Bar */}
+        <div className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#111111]/90 backdrop-blur-lg border-t border-white/10 z-40 items-center justify-around px-1 pb-safe shadow-lg">
+          {[
+            { id: 'profile', label: 'Profile', icon: User },
+            { id: 'business', label: 'Business', icon: Building2 },
+            { id: 'tone', label: 'Emails', icon: Mail },
+            { id: 'usage', label: 'Usage', icon: Activity },
+            { id: 'subscription', label: 'Plans', icon: CreditCard },
+            { id: 'settings', label: 'Settings', icon: Settings }
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id && !isRegistryOpen;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setIsRegistryOpen(false);
+                  handleTabChange(tab.id);
+                }}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all",
+                  isActive 
+                    ? "text-primary scale-105" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon size={16} />
+                <span className="text-[8px] font-black uppercase tracking-wider scale-90">{tab.label}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setIsRegistryOpen(!isRegistryOpen)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all border-l border-white/5",
+              isRegistryOpen 
+                ? "text-primary scale-105" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <MessageSquare size={16} />
+            <span className="text-[8px] font-black uppercase tracking-wider scale-90">Threads</span>
+          </button>
+        </div>
 
       </div>
     </Layout>

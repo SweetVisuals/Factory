@@ -1,17 +1,7 @@
-import { fetchAIChatCompletion } from './ai-client.mjs';
-import { performDeepResearch } from './scraper.mjs';
+import { performDeterministicResearch } from './scraper_tools.mjs';
 import { executionQueue } from './execution_queue.mjs';
-
-/**
- * Custom error class for AI rate limit hits (HTTP 429 / groq model exhaustion).
- */
-export class AIRateLimitError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'AIRateLimitError';
-  }
-}
-
+import { fetchCrawl4AI } from './scraper.mjs';
+import { fetchAIChatCompletion } from './ai-client.mjs';
 /**
  * Normalizes a URL to ensure it starts with http:// or https://.
  */
@@ -56,160 +46,10 @@ function calculateResearchScore(parsed) {
 }
 
 /**
- * Compresses scraped raw text by removing repetitive boilerplate, whitespace, and noise
- * to minimize input tokens sent to the LLM.
- */
-function cleanScrapedNoise(text) {
-  if (!text) return '';
-  return text
-    .replace(/(cookie policy|privacy policy|terms of service|all rights reserved|agree to our cookies)/gi, '')
-    .replace(/\s+/g, ' ')
-    .substring(0, 3500); // Cap at 3,500 characters to keep input tokens low (~800 tokens)
-}
-
-/**
- * Build the token-optimized deep research AI prompt.
- */
-function buildResearchPrompt(companyName, rawWebsite, scrapedReport, campaignPitch, lead) {
-  const pitchContext = campaignPitch ? `Campaign Pitch: ${campaignPitch}\n` : '';
-  const leadContext = [
-    lead.industry ? `Ind: ${lead.industry}` : '',
-    lead.location ? `Loc: ${lead.location}` : '',
-    lead.title ? `Title: ${lead.title}` : '',
-    lead.year_founded ? `Year Founded: ${lead.year_founded}` : '',
-    lead.annual_revenue ? `Annual Revenue: ${lead.annual_revenue}` : '',
-    lead.company_size ? `Company Size: ${lead.company_size}` : '',
-  ].filter(Boolean).join(', ');
-
-  const optimizedScraped = cleanScrapedNoise(scrapedReport);
-
-  return `You are a business intelligence analyst. Extract FACTUAL data about "${companyName}" (${rawWebsite}) from the scraped text below. 
-${pitchContext}Known: ${leadContext}
-
-TEXT:
-${optimizedScraped}
-
-CRITICAL RULES:
-1. ONLY report facts you can verify from the text or the Known metadata line. Prioritize any Known values (like Year Founded, Annual Revenue, Company Size) directly for their respective JSON fields.
-2. Pain points must be REAL observable issues from their website/business (e.g., "Website has no SSL certificate", "No online booking system available", "No social media links found", "Outdated website design from early 2010s", "No blog or content marketing"). Do NOT generate product pitch ideas.
-3. Growth signals must be REAL evidence found in the text (e.g., "Hiring 3 new positions listed on site", "Opened second location in Manchester", "Won Best Agency Award 2024", "Recently rebranded"). Do NOT invent growth signals.
-4. personalised_detail must be a FACTUAL observation about their specific business found in the text (e.g., "specialises in commercial property in Edinburgh", "family-run since 1985", "recently launched a new lettings division"). It must describe THEM, not something we could sell them.
-5. If you genuinely cannot find data for a field from the text or Known line, use an empty array [] or null. Do NOT fabricate data. A maximum of 2 fields may be empty.
-6. For fields not in the text or Known line, make CONSERVATIVE logical deductions based on their business type (e.g., a local estate agent likely uses Rightmove/Zoopla, targets local property owners, has 1-20 employees).
-
-Output JSON ONLY (no markdown blocks):
-{
-  "company_description": "2-3 factual sentences about what they do based on the text.",
-  "services_offered": ["service1", "service2"],
-  "key_people": [{"name": "Name", "title": "Title", "linkedin": "URL or null"}],
-  "pain_points": [{"area": "Observable Issue Area", "description": "Specific factual problem you can see from their site/data", "severity": "high|medium|low"}],
-  "growth_signals": [{"type": "hiring|expansion|award|funding|new_product|partnership", "detail": "Specific evidence from the text"}],
-  "target_market": "Their target audience based on their services",
-  "competitive_advantage": "What differentiates them based on what the text shows",
-  "company_size": "Employee count range or null",
-  "year_founded": "Year or null",
-  "annual_revenue": "Revenue estimate or null",
-  "tech_stack": ["tech1", "tech2"],
-  "social_presence": {"google_rating": 4.5, "review_count": 100, "facebook_url": "url", "instagram_url": "url", "twitter_url": "url", "linkedin_url": "url"},
-  "recent_news": [{"headline": "Actual news headline from text", "date": "date if found"}],
-  "personalised_detail": "A specific factual observation about THIS company from the text. Must describe them, not a pitch idea.",
-  "quick_fact": "1 verified sentence from the text about this company."
-}`;
-}
-
-/**
- * Parse the AI response, with fallback handling for malformed JSON.
- */
-function parseAIResponse(contentText, log) {
-  // Try direct JSON parse
-  try {
-    return JSON.parse(contentText);
-  } catch (e) {
-    log(`[Research Helper] Direct JSON parse failed, attempting extraction...`);
-  }
-
-  // Try extracting JSON from markdown code blocks
-  const jsonBlockMatch = contentText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (jsonBlockMatch) {
-    try {
-      return JSON.parse(jsonBlockMatch[1].trim());
-    } catch (e) {
-      log(`[Research Helper] Code block JSON parse failed.`);
-    }
-  }
-
-  // Try finding JSON object in the text
-  const jsonObjMatch = contentText.match(/\{[\s\S]*\}/);
-  if (jsonObjMatch) {
-    try {
-      return JSON.parse(jsonObjMatch[0]);
-    } catch (e) {
-      log(`[Research Helper] Extracted JSON parse failed.`);
-    }
-  }
-
-  return null;
-}
-
-/**
- * Sanitize and validate parsed research data.
- */
-function sanitizeResearchData(parsed) {
-  const ensureArray = (val) => Array.isArray(val) ? val : [];
-  const ensureString = (val) => (typeof val === 'string' && val.trim()) ? val.trim() : null;
-  const ensureObject = (val) => (val && typeof val === 'object' && !Array.isArray(val)) ? val : {};
-
-  return {
-    company_description: ensureString(parsed.company_description),
-    services_offered: ensureArray(parsed.services_offered).filter(s => typeof s === 'string' && s.trim()).slice(0, 20),
-    key_people: ensureArray(parsed.key_people).filter(p => p && p.name).map(p => ({
-      name: String(p.name || '').trim(),
-      title: String(p.title || '').trim(),
-      linkedin: ensureString(p.linkedin)
-    })).slice(0, 10),
-    pain_points: ensureArray(parsed.pain_points).filter(p => p && p.area).map(p => ({
-      area: String(p.area || '').trim(),
-      description: String(p.description || '').trim(),
-      severity: ['high', 'medium', 'low'].includes(p.severity) ? p.severity : 'medium'
-    })).slice(0, 8),
-    growth_signals: ensureArray(parsed.growth_signals).filter(g => g && g.detail).map(g => ({
-      type: String(g.type || 'other').trim(),
-      detail: String(g.detail || '').trim(),
-      date: ensureString(g.date)
-    })).slice(0, 10),
-    target_market: ensureString(parsed.target_market),
-    competitive_advantage: ensureString(parsed.competitive_advantage),
-    company_size: ensureString(parsed.company_size),
-    year_founded: ensureString(parsed.year_founded),
-    annual_revenue: ensureString(parsed.annual_revenue),
-    tech_stack: ensureArray(parsed.tech_stack).filter(t => typeof t === 'string' && t.trim()).slice(0, 15),
-    social_presence: (() => {
-      const sp = ensureObject(parsed.social_presence);
-      return {
-        google_rating: typeof sp.google_rating === 'number' ? sp.google_rating : null,
-        review_count: typeof sp.review_count === 'number' ? sp.review_count : null,
-        facebook_url: ensureString(sp.facebook_url),
-        instagram_url: ensureString(sp.instagram_url),
-        twitter_url: ensureString(sp.twitter_url),
-        linkedin_url: ensureString(sp.linkedin_url),
-      };
-    })(),
-    recent_news: ensureArray(parsed.recent_news).filter(n => n && n.headline).map(n => ({
-      headline: String(n.headline || '').trim(),
-      date: ensureString(n.date),
-      source: ensureString(n.source)
-    })).slice(0, 10),
-    personalised_detail: ensureString(parsed.personalised_detail) || 'work',
-    quick_fact: ensureString(parsed.quick_fact) || 'No specific details available.',
-  };
-}
-
-/**
  * Unified deep research function that:
- * 1. Scrapes the company website (via performDeepResearch in scraper.mjs)
- * 2. Processes the data with Gemini via fetchAIChatCompletion using comprehensive extraction prompt.
- * 3. Returns structured research data with quality scoring.
- * 4. Preserves backward compatibility with old summary format.
+ * 1. Scrapes the company website using Crawl4AI (token-efficient markdown)
+ * 2. Uses AI to extract verified insights and pain points from the clean markdown.
+ * 3. Falls back to deterministic extraction if AI fails.
  */
 export async function researchAndSummarizeLead(lead, log = console.log, campaignPitch = '') {
   return executionQueue.enqueue(async () => {
@@ -217,166 +57,183 @@ export async function researchAndSummarizeLead(lead, log = console.log, campaign
     const rawWebsite = lead.website || '';
     const normalizedWebsite = normalizeUrl(rawWebsite);
 
-    log(`[Research Helper] Starting deep research for ${companyName} (${rawWebsite})...`);
+    log(`[Research Helper] Starting AI deep research for ${companyName} (${rawWebsite})...`);
 
-    let scrapedReport = '';
+    let websiteContent = '';
+    let usedCrawl4AI = false;
+    let parsed = {};
+
     if (normalizedWebsite) {
       try {
-        log(`[Research Helper] Scraping website: ${normalizedWebsite}`);
-        scrapedReport = await performDeepResearch(companyName, normalizedWebsite);
+        log(`[Research Helper] Scraping website: ${normalizedWebsite} (Crawl4AI)`);
+        websiteContent = await fetchCrawl4AI(normalizedWebsite, log);
+        if (websiteContent) {
+           usedCrawl4AI = true;
+           // Limit to 15,000 chars to be very token efficient (~3-4k tokens max)
+           websiteContent = websiteContent.substring(0, 15000);
+        }
       } catch (e) {
-        log(`[Research Helper] Website scraping failed: ${e.message}`);
-        scrapedReport = `Failed to scrape website: ${e.message}`;
+        log(`[Research Helper] Crawl4AI failed, falling back to Camoufox...`);
       }
+      
+      // Deterministic scrape to get basic JSON and socials/Google Maps info
+      try {
+        const scrapedJsonStr = await performDeterministicResearch(companyName, normalizedWebsite);
+        parsed = JSON.parse(scrapedJsonStr) || {};
+        if (!usedCrawl4AI) {
+           websiteContent = `Extracted Text: ${JSON.stringify(parsed.website_data || parsed).substring(0, 10000)}`;
+        }
+      } catch(e) {}
     } else {
       log(`[Research Helper] No website URL provided for ${companyName}.`);
-      scrapedReport = `No website URL provided.`;
     }
 
-    const prompt = buildResearchPrompt(companyName, rawWebsite, scrapedReport, campaignPitch, lead);
+    if (!websiteContent && !parsed.website_data) {
+        return { summary: `ERROR: No website content found.`, score: 0, data: null, error: 'No website content found.' };
+    }
 
+    // Prepare token-efficient AI prompt
+    const systemPrompt = `You are an expert sales researcher. You are researching a company named "${companyName}".
+Extract verified information based ONLY on the provided website content and review snippets. 
+Be harsh, realistic, and direct. Do not sugarcoat or exaggerate any findings. ONLY output verified facts.
+Output a strict JSON object with the following keys:
+- company_description: A clear, concise 2-3 sentence overview of what the company does.
+- services_offered: Array of strings (max 5 core services).
+- key_people: Array of strings (names and titles if found).
+- pain_points: Array of objects { area: string, description: string, severity: 'high' | 'medium' }. Focus heavily on bad reviews or legacy indicators.
+- growth_signals: Array of objects { type: string, detail: string }. E.g. hiring, expanding.
+- tech_stack: Array of strings.
+- target_market: String (who they sell to).
+- competitive_advantage: String (what makes them unique).
+- company_size: String (e.g. "Small", "10-50 employees").
+- year_founded: String (if found).
+- annual_revenue: String (if found).
+
+Website Markdown Data (Truncated for efficiency):
+${websiteContent}
+
+Known Bad Reviews / External Data:
+${JSON.stringify(parsed.bad_reviews || [])}
+${JSON.stringify(parsed.pain_points || [])}
+`;
+
+    let aiParsed = {};
     try {
-      if (process.env.USE_AI_PERSONALIZATION !== 'true') {
-         throw new Error('AI processing disabled by user configuration');
-      }
+        const aiResponse = await fetchAIChatCompletion({
+           messages: [{ role: 'system', content: systemPrompt }],
+           temperature: 0.1,
+           response_format: { type: 'json_object' },
+           model: 'deepseek-v4-flash',
+           max_tokens: 1500
+        }, log);
 
-      log(`[Research Helper] Running AI extraction...`);
-      const completion = await fetchAIChatCompletion(prompt);
-      const parsed = parseAIResponse(completion, log);
-
-      if (parsed) {
-        const sanitized = sanitizeResearchData(parsed);
-        const score = calculateResearchScore(sanitized);
-
-        const detail = sanitized.personalised_detail;
-        const fact = sanitized.quick_fact;
-        const summaryFormatted = `## ⚡ Personalised Detail\n${detail}\n\n## 🔬 Quick Fact\n${fact}`;
-
-        log(`[Research Helper] ✅ Deep research completed via AI. Score: ${score}/100.`);
-
-        return {
-          summary: summaryFormatted,
-          status: score >= 30 ? 'completed' : 'incomplete',
-          structured: sanitized,
-          research_score: score,
-          research_data_raw: scrapedReport ? scrapedReport.substring(0, 50000) : ''
+        aiParsed = JSON.parse(aiResponse.choices[0].message.content);
+        log(`[Research Helper] AI successfully extracted insights.`);
+    } catch(e) {
+        log(`[Research Helper] AI Extraction Failed: ${e.message}. Using deterministic fallback.`);
+        aiParsed = {
+           company_description: parsed.website_data?.description || '',
+           services_offered: parsed.services || [],
+           pain_points: parsed.pain_points || [],
+           growth_signals: parsed.growth_signals || [],
+           tech_stack: parsed.tech_stack || []
         };
-      } else {
-        throw new Error('AI response structure invalid or empty.');
-      }
-    } catch (err) {
-      const isRateLimit = err.message.toLowerCase().includes('rate limit') || 
-                          err.message.toLowerCase().includes('429') || 
-                          err.message.toLowerCase().includes('exhausted') ||
-                          err.message.toLowerCase().includes('exceeded');
-      if (isRateLimit) {
-        log(`[Research Helper] 🚨 Rate limit detected: ${err.message}`);
-        throw new AIRateLimitError(`AI rate limit hit: ${err.message}`);
-      }
-      
-      log(`[Research Helper] AI processing bypassed or failed (${err.message}). Running High-Quality Regex Extractor...`);
-      
-      // Basic rule-based extraction from raw scraped text
-      const text = scrapedReport || '';
-      
-      // Extract emails
-      const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
-      const emails = [...new Set((text.match(emailRegex) || []).map(e => e.toLowerCase()))];
-      
-      // Extract phones (basic UK/International formats)
-      const phoneRegex = /(?:(?:\+44\s?|0)(?:\d\s?){9,10})/g;
-      const phones = [...new Set(text.match(phoneRegex) || [])];
-      
-      // Extract Socials
-      const fbRegex = /https?:\/\/(?:www\.)?facebook\.com\/[^\s"']+/i;
-      const igRegex = /https?:\/\/(?:www\.)?instagram\.com\/[^\s"']+/i;
-      const twRegex = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/[^\s"']+/i;
-      const liRegex = /https?:\/\/(?:www\.)?linkedin\.com\/(?:company|in)\/[^\s"']+/i;
-      
-      const facebook = (text.match(fbRegex) || [])[0] || null;
-      const instagram = (text.match(igRegex) || [])[0] || null;
-      const twitter = (text.match(twRegex) || [])[0] || null;
-      const linkedin = (text.match(liRegex) || [])[0] || null;
-      
-      // Clean and extract a description (first readable paragraph)
-      let description = '';
-      const paragraphs = text.split(/\n{2,}/);
-      for (const p of paragraphs) {
-        const cleaned = p.trim().replace(/\s+/g, ' ');
-        // Ignore short navigation links, cookie banners, etc.
-        if (cleaned.length > 80 && !/cookie|rights reserved/i.test(cleaned)) {
-          description = cleaned.substring(0, 300) + (cleaned.length > 300 ? '...' : '');
-          break;
-        }
-      }
-
-      if (!description) {
-         description = `${companyName} is a business located at ${lead.location || 'the UK'}.`;
-      }
-      
-      // Enhanced Heuristics
-      
-      // 1. Year Founded
-      const yearMatch = text.match(/(?:established|est\.?|since|founded(?:\s+in)?)\s+((?:18|19|20)\d{2})/i);
-      const year_founded = yearMatch ? yearMatch[1] : null;
-      
-      // 2. Company Size
-      const sizeMatch = text.match(/(?:we have|team of|employs)\s+((?:over\s+)?\d+\+?(?:\s+to\s+\d+)?)\s+(?:people|employees|staff|professionals|experts)/i);
-      const company_size = sizeMatch ? sizeMatch[1] : null;
-      
-      // 3. Tech Stack (basic keywords)
-      const commonTech = ['WordPress', 'Shopify', 'Wix', 'Squarespace', 'React', 'Angular', 'Vue', 'Stripe', 'PayPal', 'Mailchimp', 'HubSpot', 'Salesforce', 'Google Analytics'];
-      const tech_stack = commonTech.filter(tech => new RegExp(`\\b${tech}\\b`, 'i').test(text));
-      
-      // 4. Services Offered
-      const services = [];
-      const serviceMatch = text.match(/(?:our services include|we offer|services?:)([\s\S]{10,100}?)(?:\n\n|\.|$)/i);
-      if (serviceMatch && serviceMatch[1]) {
-         const foundServices = serviceMatch[1].split(/(?:,|and|\n)/).map(s => s.trim().replace(/^[•*-]\s*/, '')).filter(s => s.length > 3 && s.length < 50);
-         services.push(...foundServices);
-      }
-      if (services.length === 0) services.push(`${lead.industry || 'Business'} Services`);
-      
-      // 5. Key People
-      const key_people = [];
-      const personMatch = text.match(/(?:ceo|founder|director|manager|secretary|owner)[\s:]+([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})/i);
-      if (personMatch && personMatch[1]) {
-          key_people.push({ name: personMatch[1].trim(), title: "Key Contact" });
-      }
-
-      // We still use generic fallbacks for the highly subjective AI fields, using correct schema keys
-      const defaultParsed = {
-        company_description: description,
-        social_presence: {
-           facebook_url: facebook,
-           instagram_url: instagram,
-           twitter_url: twitter,
-           linkedin_url: linkedin
-        },
-        target_market: lead.niche || lead.industry || "Local consumers and businesses",
-        competitive_advantage: "Established experience and local presence",
-        services_offered: services.slice(0, 5),
-        pain_points: [],
-        key_people: key_people,
-        growth_signals: [],
-        tech_stack: tech_stack.slice(0, 5),
-        recent_news: [],
-        company_size: company_size,
-        year_founded: year_founded,
-        annual_revenue: null,
-        personalised_detail: description.substring(0, 100) + '...',
-        quick_fact: emails.length > 0 ? `Contact email found: ${emails[0]}` : (phones.length > 0 ? `Contact phone found: ${phones[0]}` : "Active online presence")
-      };
-
-      const markdownSummary = `## ⚡ Personalised Detail\n${defaultParsed.personalised_detail}\n\n## 🔬 Quick Fact\n${defaultParsed.quick_fact}`;
-
-      return {
-        summary: markdownSummary,
-        status: 'completed',
-        structured: defaultParsed,
-        research_score: 50, // Decent score since we extracted real data
-        research_data_raw: scrapedReport ? scrapedReport.substring(0, 50000) : ''
-      };
     }
-  }, `research-lead-${lead.id || lead.email || 'unknown'}`);
+
+    const sanitized = {
+        company_description: aiParsed.company_description || '',
+        services_offered: aiParsed.services_offered || [],
+        key_people: aiParsed.key_people || [],
+        pain_points: [
+            ...(aiParsed.pain_points || []),
+            ...(parsed.bad_reviews || []).map(br => ({
+                area: 'External Review Feedback',
+                description: br,
+                severity: 'high'
+            }))
+        ],
+        growth_signals: aiParsed.growth_signals || [],
+        target_market: aiParsed.target_market || '',
+        competitive_advantage: aiParsed.competitive_advantage || '',
+        company_size: aiParsed.company_size || '',
+        year_founded: aiParsed.year_founded || '',
+        annual_revenue: aiParsed.annual_revenue || '',
+        tech_stack: aiParsed.tech_stack || [],
+        social_presence: {
+            google_rating: parsed.google_data?.rating ? parseFloat(parsed.google_data.rating) : null,
+            review_count: parsed.google_data?.reviews ? parseInt(parsed.google_data.reviews.replace(/,/g, '')) : null,
+            facebook_url: (parsed.website_data?.socials || []).find(s => typeof s === 'string' && s.includes('facebook')),
+            instagram_url: (parsed.website_data?.socials || []).find(s => typeof s === 'string' && s.includes('instagram')),
+            twitter_url: (parsed.website_data?.socials || []).find(s => typeof s === 'string' && s.includes('twitter')),
+            linkedin_url: (parsed.website_data?.socials || []).find(s => typeof s === 'string' && s.includes('linkedin')) || parsed.linkedin_links?.[0],
+        },
+        recent_news: (parsed.news_snippets || []).map(n => ({ headline: n, date: null, source: 'Google News' })),
+        // Include raw bad reviews on the top level for easy DB insertion later
+        bad_reviews: parsed.bad_reviews || []
+    };
+
+    const score = calculateResearchScore(sanitized);
+    
+    let summaryFormatted = ``;
+    
+    if (sanitized.company_description) {
+        summaryFormatted += `## 🏢 Company Overview\n${sanitized.company_description}\n\n`;
+    }
+    
+    if (sanitized.pain_points && sanitized.pain_points.length > 0) {
+        summaryFormatted += `## 🚨 Bleeding Business Signals (Pain Points & Reviews)\n`;
+        sanitized.pain_points.forEach(p => {
+            summaryFormatted += `- **${p.area}**: ${p.description}\n`;
+        });
+        summaryFormatted += `\n`;
+    }
+    
+    if (sanitized.tech_stack && sanitized.tech_stack.length > 0) {
+        summaryFormatted += `## 💻 Tech Stack\n- ${sanitized.tech_stack.join('\n- ')}\n\n`;
+    }
+    
+    if (sanitized.social_presence && (sanitized.social_presence.google_rating || sanitized.social_presence.facebook_url)) {
+        summaryFormatted += `## 🌐 Reputation & Social\n`;
+        if (sanitized.social_presence.google_rating) {
+            summaryFormatted += `- **Rating**: ${sanitized.social_presence.google_rating} Stars (${sanitized.social_presence.review_count || 0} reviews)\n`;
+        }
+        if (sanitized.social_presence.facebook_url) summaryFormatted += `- **Facebook**: Found\n`;
+        if (sanitized.social_presence.instagram_url) summaryFormatted += `- **Instagram**: Found\n`;
+        if (sanitized.social_presence.linkedin_url) summaryFormatted += `- **LinkedIn**: Found\n`;
+        summaryFormatted += `\n`;
+    }
+    
+    if (sanitized.recent_news && sanitized.recent_news.length > 0) {
+        summaryFormatted += `## 📰 Recent News\n`;
+        sanitized.recent_news.forEach(n => {
+            summaryFormatted += `- ${n.headline}\n`;
+        });
+        summaryFormatted += `\n`;
+    }
+
+    log(`[Research Helper] ✅ Deterministic research completed. Score: ${score}/100.`);
+
+    return {
+      summary: summaryFormatted,
+      status: 'completed',
+      structured: sanitized,
+      research_score: score,
+      research_data_raw: scrapedJsonStr
+    };
+  }, 'researchAndSummarizeLead');
+}
+
+/**
+ * Legacy wrapper to prevent API crash when called from older scraper code.
+ */
+export async function generateStructuredResearchFromText(aggregatedText, companyName, url, leadData, log, notesContext) {
+  // Delegate to the new deterministic method
+  return await researchAndSummarizeLead({ company: companyName, website: url }, log, '');
+}
+
+export class AIRateLimitError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AIRateLimitError';
+  }
 }

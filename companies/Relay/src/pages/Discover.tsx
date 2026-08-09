@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, CheckCircle2, 
   XCircle, HelpCircle, Activity, Loader2, Sparkles, Plus, X, ArrowUpRight,
   Globe, Linkedin, Phone, Building2, MapPin, Briefcase, ArrowUpDown, ArrowUp, ArrowDown,
-  Copy, ExternalLink, ChevronDown, Hash, Filter, Facebook, Instagram, Twitter, BrainCircuit
+  Copy, ExternalLink, ChevronDown, Hash, Filter, Facebook, Instagram, Twitter, BrainCircuit, Mail
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { LeadIntelligenceDrawer } from '../components/lead-scraper/LeadIntelligenceDrawer';
@@ -456,137 +456,135 @@ const Discover: React.FC = () => {
 
           {/* Sidebar Form */}
           <div className={`
-            absolute lg:relative z-50 lg:z-0
-            inset-y-0 left-0
-            w-[320px] lg:w-[420px] shrink-0
-            bg-[#111111] lg:bg-transparent
+            fixed lg:relative z-50 lg:z-0
+            inset-0 lg:inset-auto lg:inset-y-0 lg:left-0
+            w-full lg:w-[420px] h-screen lg:h-auto shrink-0
+            bg-[#0a0a0a] lg:bg-transparent
             border-r border-white/5
             transform transition-transform duration-300 ease-in-out
-            ${showMobileFilters ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            ${showMobileFilters ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 lg:translate-x-0 lg:opacity-100'}
             flex flex-col
           `}>
             <div className="flex items-center justify-between p-4 border-b border-white/5 lg:hidden">
               <h2 className="text-sm font-bold text-white uppercase tracking-wider">Filters</h2>
               <button onClick={() => setShowMobileFilters(false)} className="p-2 text-white/50 hover:text-white"><X size={18} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-5 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-3.5 hide-scrollbar">
               
-              {/* Category: Search & Identity */}
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+              {/* Category: Search */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 space-y-3">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                   <Search className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">General Search</span>
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Search</span>
                 </div>
                 
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Global Search</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Keyword</label>
                   <input
                     type="text"
                     placeholder="Name, email, company..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Role / Job Title</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Role</label>
                   <input
                     type="text"
                     placeholder="e.g. CEO, Director"
                     value={titleFilter}
                     onChange={e => setTitleFilter(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
                   />
                 </div>
               </div>
 
-              {/* Category: Location & Proximity (Radius) */}
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+              {/* Category: Location */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 space-y-3">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                   <MapPin className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Location & Proximity</span>
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Location</span>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Target Area / Town</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">City</label>
                   <input
                     type="text"
                     placeholder="e.g. London, Manchester"
                     value={locationFilter}
                     onChange={e => setLocationFilter(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Base Point</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Near</label>
                     <input
                       type="text"
                       placeholder="My Location"
                       value={baseLocation}
                       onChange={e => setBaseLocation(e.target.value)}
-                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                      className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Radius (Miles)</label>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Distance</label>
                     <select
                       value={locationRadius}
                       onChange={e => setLocationRadius(e.target.value)}
-                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                      className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
                     >
-                      <option value="5">5 Miles</option>
-                      <option value="10">10 Miles</option>
-                      <option value="25">25 Miles</option>
-                      <option value="50">50 Miles</option>
-                      <option value="100">100 Miles</option>
+                      <option className="bg-[#111]" value="5">5 Miles</option>
+                      <option className="bg-[#111]" value="10">10 Miles</option>
+                      <option className="bg-[#111]" value="25">25 Miles</option>
+                      <option className="bg-[#111]" value="50">50 Miles</option>
+                      <option className="bg-[#111]" value="100">100 Miles</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* Category: Apollo Financials & Scope */}
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+              {/* Category: Company */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 space-y-3">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                   <Building2 className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Apollo Scope</span>
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Company</span>
                 </div>
 
-                {/* Company Name */}
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Specific Company</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Company Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Apple, Stripe"
                     value={companyFilter}
                     onChange={e => setCompanyFilter(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
                   />
                 </div>
 
-                {/* Company Size */}
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Employee Count</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Size</label>
                   <select
                     value={companySizeFilter}
                     onChange={e => setCompanySizeFilter(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
                   >
-                    <option value="all">Any Size</option>
-                    <option value="1-10 employees">Micro-Team (1-10)</option>
-                    <option value="11-50 employees">Small Office (11-50)</option>
-                    <option value="51-250 employees">Mid-Market (51-250)</option>
-                    <option value="Over 250 employees">Enterprise (250+)</option>
+                    <option className="bg-[#111]" value="all">Any Size</option>
+                    <option className="bg-[#111]" value="1-10 employees">1-10 employees</option>
+                    <option className="bg-[#111]" value="11-50 employees">11-50 employees</option>
+                    <option className="bg-[#111]" value="51-250 employees">51-250 employees</option>
+                    <option className="bg-[#111]" value="Over 250 employees">250+ employees</option>
                   </select>
                 </div>
 
                 {/* Revenue Range Slider */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <div className="flex justify-between items-center text-[9px] font-black text-white/30 uppercase tracking-widest">
-                    <span>Min Revenue Bracket</span>
-                    <span className="text-primary font-mono lowercase">
+                    <span>Revenue</span>
+                    <span className="text-[#10b981] font-mono lowercase">
                       {(() => {
                         if (minRevenue === 0) return 'any';
                         if (minRevenue === 1) return '<£632k';
@@ -602,15 +600,15 @@ const Discover: React.FC = () => {
                     max="4"
                     value={minRevenue}
                     onChange={e => setMinRevenue(parseInt(e.target.value))}
-                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#10b981]"
                   />
                 </div>
 
                 {/* Founding Year Limits */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <div className="flex justify-between items-center text-[9px] font-black text-white/30 uppercase tracking-widest">
-                    <span>Year Founded</span>
-                    <span className="text-primary font-mono">{yearFoundedMin} - {yearFoundedMax}</span>
+                    <span>Founded</span>
+                    <span className="text-[#10b981] font-mono">{yearFoundedMin} - {yearFoundedMax}</span>
                   </div>
                   <div className="flex gap-2">
                     <input
@@ -619,7 +617,7 @@ const Discover: React.FC = () => {
                       max="2026"
                       value={yearFoundedMin}
                       onChange={e => setYearFoundedMin(parseInt(e.target.value))}
-                      className="w-1/2 px-2.5 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-mono text-center text-white"
+                      className="w-1/2 px-2.5 py-1 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-mono text-center text-white"
                     />
                     <input
                       type="number"
@@ -627,117 +625,110 @@ const Discover: React.FC = () => {
                       max="2026"
                       value={yearFoundedMax}
                       onChange={e => setYearFoundedMax(parseInt(e.target.value))}
-                      className="w-1/2 px-2.5 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-mono text-center text-white"
+                      className="w-1/2 px-2.5 py-1 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-mono text-center text-white"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Category: Tech Stack matchers */}
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+              {/* Category: Tech */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 space-y-3">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                   <BrainCircuit className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Tech Stack</span>
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Technologies</span>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Used Technologies</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Tech Used</label>
                   <input
                     type="text"
                     placeholder="e.g. WordPress, Shopify"
                     value={techStackSearch}
                     onChange={e => setTechStackSearch(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
+                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
                   />
                 </div>
               </div>
 
-              {/* Category: Verification & Social Channels */}
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+              {/* Category: Contact */}
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 space-y-3">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                   <Users className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Contact Checks</span>
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Status</span>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Verification Status</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest">Email Status</label>
                   <select
                     value={statusFilter}
                     onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
+                    className="w-full px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-medium text-white focus:outline-none focus:border-primary/40 cursor-pointer appearance-none"
                   >
-                    <option value="all">Any Status</option>
-                    <option value="valid">Valid Emails</option>
-                    <option value="catch_all">Catch-all Domains</option>
-                    <option value="invalid">Invalid Emails</option>
-                    <option value="unverified">Unverified</option>
+                    <option className="bg-[#111]" value="all">Any Status</option>
+                    <option className="bg-[#111]" value="valid">Valid Emails</option>
+                    <option className="bg-[#111]" value="catch_all">Catch-all Domains</option>
+                    <option className="bg-[#111]" value="invalid">Invalid Emails</option>
+                    <option className="bg-[#111]" value="unverified">Unverified</option>
                   </select>
                 </div>
 
                 {/* Social media presence switches */}
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-2">Required Social Presence</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-1">Social Links</label>
                   
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-white/70 flex items-center gap-1.5"><Facebook size={12} className="text-blue-500" /> Facebook</span>
-                      <button
-                        onClick={() => setHasFacebook(!hasFacebook)}
-                        className={cn("relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200", hasFacebook ? "bg-primary" : "bg-white/10")}
-                      >
-                        <span className={cn("pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white transition duration-200", hasFacebook ? "translate-x-3" : "translate-x-0")} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-white/70 flex items-center gap-1.5"><Instagram size={12} className="text-pink-500" /> Instagram</span>
-                      <button
-                        onClick={() => setHasInstagram(!hasInstagram)}
-                        className={cn("relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200", hasInstagram ? "bg-primary" : "bg-white/10")}
-                      >
-                        <span className={cn("pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white transition duration-200", hasInstagram ? "translate-x-3" : "translate-x-0")} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-white/70 flex items-center gap-1.5"><Twitter size={12} className="text-sky-500" /> Twitter</span>
-                      <button
-                        onClick={() => setHasTwitter(!hasTwitter)}
-                        className={cn("relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200", hasTwitter ? "bg-primary" : "bg-white/10")}
-                      >
-                        <span className={cn("pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white transition duration-200", hasTwitter ? "translate-x-3" : "translate-x-0")} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-white/70 flex items-center gap-1.5"><Linkedin size={12} className="text-blue-400" /> LinkedIn</span>
-                      <button
-                        onClick={() => setHasLinkedin(!hasLinkedin)}
-                        className={cn("relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200", hasLinkedin ? "bg-primary" : "bg-white/10")}
-                      >
-                        <span className={cn("pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white transition duration-200", hasLinkedin ? "translate-x-3" : "translate-x-0")} />
-                      </button>
-                    </div>
+                  <div className="flex gap-1.5">
+                    {[
+                      { id: 'linkedin', icon: Linkedin, active: hasLinkedin, set: setHasLinkedin, label: 'LI', color: 'text-blue-400' },
+                      { id: 'twitter', icon: Twitter, active: hasTwitter, set: setHasTwitter, label: 'TW', color: 'text-sky-500' },
+                      { id: 'facebook', icon: Facebook, active: hasFacebook, set: setHasFacebook, label: 'FB', color: 'text-blue-500' },
+                      { id: 'instagram', icon: Instagram, active: hasInstagram, set: setHasInstagram, label: 'IG', color: 'text-pink-500' },
+                    ].map(item => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => item.set(!item.active)}
+                          className={cn(
+                            "flex-1 py-1 rounded-lg border text-xs font-medium flex items-center justify-center gap-1 transition-all active:scale-95",
+                            item.active 
+                              ? "bg-[#10b981]/20 border-[#10b981]/40 text-[#10b981]" 
+                              : "bg-white/[0.02] border-white/5 text-neutral-400 hover:text-white hover:border-white/10"
+                          )}
+                          title={item.label}
+                        >
+                          <Icon size={11} className={item.color} />
+                          <span className="text-[9px] font-bold">{item.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
               {/* Requirement: Full profile block */}
-              <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+              <div className="p-3 bg-white/[0.01] border border-white/5 rounded-xl">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Require Full Profile</span>
+                  <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest font-sans">Must have details</span>
                   <button
                     onClick={() => setRequireFullProfile(!requireFullProfile)}
-                    className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 ease-in-out", requireFullProfile ? "bg-primary" : "bg-white/10")}
+                    className={cn(
+                      "relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none p-0.5",
+                      requireFullProfile ? "bg-[#10b981]" : "bg-white/10"
+                    )}
                   >
-                    <span className={cn("pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition duration-200 ease-in-out", requireFullProfile ? "translate-x-4" : "translate-x-0")} />
+                    <span 
+                      className={cn(
+                        "pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow transition duration-200 ease-in-out",
+                        requireFullProfile ? "translate-x-3" : "translate-x-0"
+                      )} 
+                    />
                   </button>
                 </div>
-                <p className="text-[9px] text-white/30 mt-2 font-medium">Hides leads missing name, email, company, or location, and hides bounces by default.</p>
+                <p className="text-[9px] text-white/30 mt-1 font-medium">Hides leads missing name, email, company, or location, and hides bounces by default.</p>
               </div>
 
               {activeFilterCount > 0 && (
-                <button onClick={clearAllFilters} className="w-full flex justify-center items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white/70 hover:text-white bg-white/[0.03] border border-white/5 hover:border-white/20 transition-all mt-4">
+                <button onClick={clearAllFilters} className="w-full flex justify-center items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-white/70 hover:text-white bg-white/[0.03] border border-white/5 hover:border-white/20 transition-all mt-2">
                   <X size={14} /> Clear {activeFilterCount} Filters
                 </button>
               )}
@@ -751,17 +742,27 @@ const Discover: React.FC = () => {
                   onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
                   className="py-1 px-2 bg-transparent border-none text-xs font-bold text-white focus:outline-none cursor-pointer text-right appearance-none"
                 >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                  <option className="bg-[#111]" value={25}>25</option>
+                  <option className="bg-[#111]" value={50}>50</option>
+                  <option className="bg-[#111]" value={100}>100</option>
                 </select>
               </div>
+            </div>
+
+            {/* Mobile Apply Button */}
+            <div className="p-4 border-t border-white/5 bg-[#0e0e0e] lg:hidden shrink-0">
+              <button
+                onClick={() => setShowMobileFilters(false)}
+                className="w-full py-3 bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest hover:scale-[1.01] active:scale-[0.99] transition-all rounded-lg"
+              >
+                Apply & View Results
+              </button>
             </div>
           </div>
 
           {/* Data Table Column */}
           <div className="flex-1 flex flex-col min-w-0 bg-[#0a0a0a]">
-            <div className="flex-1 overflow-auto relative custom-scrollbar">
+            <div className="flex-1 overflow-auto relative hide-scrollbar">
               {loading ? (
                 <div className="flex flex-col items-center justify-center h-full">
                   <Loader2 className="w-5 h-5 animate-spin text-primary mb-2" />
@@ -774,7 +775,8 @@ const Discover: React.FC = () => {
                   <button onClick={clearAllFilters} className="mt-4 text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider">Clear Filters</button>
                 </div>
               ) : (
-                <table className="w-full min-w-[1000px] text-left text-[13px] border-collapse">
+                <>
+                  <table className="hidden md:table w-full min-w-[1000px] text-left text-[13px] border-collapse">
                   <thead className="bg-[#111] sticky top-0 z-10 border-b border-white/5 shadow-md">
                     <tr>
                       <th className="pl-6 pr-2 py-4 w-10">
@@ -782,14 +784,14 @@ const Discover: React.FC = () => {
                           <CustomCheckbox checked={selectedLeadIds.length === leads.length && leads.length > 0} onChange={() => {}} />
                         </div>
                       </th>
-                      <th onClick={() => handleSort('name')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
-                        <div className="flex items-center gap-1.5">Contact <SortIcon field="name" /></div>
-                      </th>
                       <th onClick={() => handleSort('company')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
                         <div className="flex items-center gap-1.5">Company <SortIcon field="company" /></div>
                       </th>
                       <th onClick={() => handleSort('email')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
                         <div className="flex items-center gap-1.5">Email <SortIcon field="email" /></div>
+                      </th>
+                      <th className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest select-none">
+                        Phone
                       </th>
                       <th onClick={() => handleSort('location')} className="px-3 py-4 text-[10px] font-bold text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/60 transition-colors select-none">
                         <div className="flex items-center gap-1.5">Location <SortIcon field="location" /></div>
@@ -827,18 +829,14 @@ const Discover: React.FC = () => {
                                     }}
                                   />
                                 ) : (
-                                  (lead.name || lead.company || '?')[0]
+                                  (lead.company || '?')[0]
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <div className="font-semibold text-white truncate max-w-[180px]">{lead.name || 'Unknown'}</div>
-                                <div className="text-[11px] text-white/30 truncate max-w-[180px]">{lead.title || '—'}</div>
+                                <div className="font-semibold text-white truncate max-w-[180px]">{lead.company || 'Unknown'}</div>
+                                <div className="text-[11px] text-white/30 truncate max-w-[180px]">{lead.industry || '—'}</div>
                               </div>
                             </div>
-                          </td>
-                          <td className="px-3 py-3">
-                            <div className="font-medium text-white/80 truncate max-w-[160px]">{lead.company || '—'}</div>
-                            <div className="text-[11px] text-white/25 truncate max-w-[160px]">{lead.industry || '—'}</div>
                           </td>
                           <td className="px-3 py-3">
                             <div className="flex items-center gap-2 group/email">
@@ -847,6 +845,11 @@ const Discover: React.FC = () => {
                                 <Copy className="w-3 h-3" />
                               </button>
                             </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="font-mono text-[12px] text-white/70">
+                              {lead.phone ? lead.phone.replace(/[\n\r\t]/g, '').trim() : '—'}
+                            </span>
                           </td>
                           <td className="px-3 py-3">
                             <span className="text-white/40 text-xs">{lead.location || '—'}</span>
@@ -919,7 +922,90 @@ const Discover: React.FC = () => {
                     })}
                   </tbody>
                 </table>
-              )}
+
+                {/* Mobile View: Compressed lead list (thin rows, company and email only) */}
+                <div className="md:hidden divide-y divide-white/5 bg-[#0a0a0a] w-full">
+                  {leads.map((lead) => {
+                    const isSelected = selectedLeadIds.includes(lead.id);
+                    return (
+                      <div
+                        key={lead.id}
+                        onClick={(e) => handleOpenLeadPanel(e, lead)}
+                        className={cn(
+                          "flex items-center justify-between px-4 py-2 hover:bg-white/[0.02] cursor-pointer transition-colors active:bg-white/[0.04]",
+                          isSelected && "bg-primary/[0.04]"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {/* Row Selector Checkbox */}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectRow(lead.id);
+                            }}
+                            className="py-1 shrink-0"
+                          >
+                            <CustomCheckbox checked={isSelected} onChange={() => {}} />
+                          </div>
+
+                          {/* Company info with icon */}
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-6 h-6 rounded bg-white/[0.04] border border-white/5 flex items-center justify-center shrink-0 overflow-hidden">
+                              {lead.website ? (
+                                <img 
+                                  src={`https://www.google.com/s2/favicons?domain=${lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}&sz=64`} 
+                                  alt="" 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = `https://www.google.com/s2/favicons?domain=example.com&sz=64`; // fallback
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-[10px] font-bold text-white/40">{(lead.company || '?')[0]}</span>
+                              )}
+                            </div>
+                            <span className="font-bold text-white text-[13px] truncate">{lead.company || 'Unknown'}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions (Email / Phone) */}
+                        <div className="flex items-center gap-1.5 shrink-0 ml-3">
+                          {lead.phone && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(lead.phone!);
+                                toast({ title: 'Copied', description: lead.phone });
+                              }}
+                              className="w-7 h-7 rounded bg-white/[0.04] flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5"
+                              title="Copy Phone"
+                            >
+                              <Phone size={11} />
+                            </button>
+                          )}
+                          {lead.email && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(lead.email);
+                                toast({ title: 'Copied', description: lead.email });
+                              }}
+                              className="w-7 h-7 rounded bg-white/[0.04] flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5"
+                              title="Copy Email"
+                            >
+                              <Mail size={11} />
+                            </button>
+                          )}
+                          <button className="w-7 h-7 rounded flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20 transition-all">
+                            <ChevronRight size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
             </div>
 
             {/* Pagination Footer */}

@@ -103,6 +103,7 @@ async function runResearchCron() {
             updatePayload.key_people = s.key_people && s.key_people.length > 0 ? s.key_people : [];
             updatePayload.tech_stack = s.tech_stack && s.tech_stack.length > 0 ? s.tech_stack : [];
             updatePayload.pain_points = s.pain_points && s.pain_points.length > 0 ? s.pain_points : [];
+            updatePayload.bad_reviews = s.bad_reviews && s.bad_reviews.length > 0 ? s.bad_reviews : [];
             updatePayload.recent_news = s.recent_news && s.recent_news.length > 0 ? s.recent_news : [];
             updatePayload.social_presence = s.social_presence || {};
             updatePayload.services_offered = s.services_offered && s.services_offered.length > 0 ? s.services_offered : [];

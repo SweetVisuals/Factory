@@ -4,7 +4,7 @@ const conn = new Client();
 conn.on('ready', () => {
   console.log('Connected to Hetzner. Running DB migration...');
   
-  const cmd = `docker exec supabase-db psql -U postgres -d postgres -c "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS aims_md TEXT;" -c "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS objectives_md TEXT;"`;
+  const cmd = `docker ps -a`;
 
   conn.exec(cmd, (err, stream) => {
     if (err) throw err;

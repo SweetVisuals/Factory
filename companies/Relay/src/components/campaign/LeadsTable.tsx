@@ -5,7 +5,7 @@ import {
   ExternalLink, Facebook, Instagram, Twitter, FileText,
   CheckCircle2, AlertTriangle, BrainCircuit, ChevronDown, ChevronUp,
   Database, Activity, Target, RefreshCw, MoreVertical, Layers,
-  Copy, Globe
+  Copy, Globe, Phone
 } from 'lucide-react';
 import { Lead } from '@/types';
 import { LeadUploader } from './leads/LeadUploader';
@@ -55,6 +55,7 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<Lead | null>(null);
+  const [showBleedingOnly, setShowBleedingOnly] = useState(false);
 
   React.useEffect(() => {
     loadLeads();
@@ -288,11 +289,16 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
     }
   });
 
-  const filteredLeads = tabFilteredLeads.filter((lead) =>
-    Object.values(lead).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase())) ||
-    lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.website?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLeads = tabFilteredLeads.filter((lead) => {
+    const matchesSearch = Object.values(lead).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase())) ||
+      lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.website?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    if (showBleedingOnly) {
+      return matchesSearch && lead.bad_reviews && lead.bad_reviews.length > 0;
+    }
+    return matchesSearch;
+  });
 
   const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -540,8 +546,8 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
       <div className="bg-card border border-border shadow-sm rounded-b-2xl overflow-hidden -mt-4 pt-4">
         <LeadUploader onUpload={handleUploadLeads} />
         
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="min-w-full border-none ">
+        <div className="overflow-x-auto hide-scrollbar">
+          <table className="min-w-full border-none hidden md:table">
             <thead>
                 <tr className="bg-muted/20 border-b border-border">
                   <th className="pl-6 pr-4 py-3 text-left w-16">
@@ -550,10 +556,11 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Contact</th>
                   <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Company</th>
                   <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Phone</th>
                   <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Reputation</th>
                   <th className="px-4 py-3 text-right pr-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
@@ -595,30 +602,16 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                               {lead.status === 'bounced' ? <XCircle size={14} /> : lead.website ? (
                                 <img src={`https://www.google.com/s2/favicons?domain=${lead.website}&sz=64`} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
                               ) : null}
-                              <span className={lead.website ? "hidden" : ""}>{(lead.name || lead.email).charAt(0).toUpperCase()}</span>
+                              <span className={lead.website ? "hidden" : ""}>{(lead.company || '?').charAt(0).toUpperCase()}</span>
                             </div>
                             {lead.status === 'bounced' && (
                               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card animate-pulse" />
                             )}
                           </div>
-                          <div className="space-y-0.5 min-w-[120px]">
-                            <div className={cn(
-                              "text-xs font-bold transition-colors truncate",
-                              lead.status === 'bounced' ? "text-red-500" : "text-foreground group-hover/row:text-primary"
-                            )}>
-                              {lead.name || 'Unknown Lead'}
-                            </div>
-                            <div className={cn(
-                              "text-[10px] font-medium truncate",
-                              lead.status === 'bounced' ? "text-red-400/70 line-through" : "text-muted-foreground"
-                            )}>{lead.email}</div>
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-semibold text-foreground truncate max-w-[160px]">{lead.company || 'Direct'}</div>
+                            <div className="text-[10px] font-medium text-muted-foreground truncate max-w-[160px]">{lead.title || 'No Title'}</div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="space-y-0.5">
-                          <div className="text-xs font-semibold text-foreground truncate max-w-[160px]">{lead.company || 'Direct'}</div>
-                          <div className="text-[10px] font-medium text-muted-foreground truncate max-w-[160px]">{lead.title || 'No Title'}</div>
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
@@ -630,7 +623,25 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
+                        <span className="font-mono text-xs text-foreground">
+                          {lead.phone ? lead.phone.replace(/[\n\r\t]/g, '').trim() : '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
                         <div className="text-xs font-semibold text-foreground truncate max-w-[120px]">{lead.location || 'Remote'}</div>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex flex-col gap-0.5">
+                          {lead.review_count !== undefined && lead.review_count !== null ? (
+                             lead.bad_reviews && lead.bad_reviews.length > 0 ? (
+                                <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded w-max flex items-center gap-1"><AlertTriangle size={10} /> Bleeding ({lead.bad_reviews.length})</span>
+                             ) : (
+                                <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded w-max flex items-center gap-1"><CheckCircle2 size={10} /> Clean ({lead.review_count})</span>
+                             )
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground italic">Pending Scan</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-2.5 text-right pr-6">
                         <div className="flex items-center justify-end gap-1.5">
@@ -676,6 +687,74 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
               )}
             </tbody>
           </table>
+
+          {/* Mobile View: Compressed lead list (thin rows, company, email, phone) */}
+          <div className="md:hidden divide-y divide-border bg-card w-full">
+            {currentLeads.length === 0 ? (
+              <div className="px-6 py-16 text-center text-muted-foreground flex flex-col items-center justify-center space-y-3">
+                <Layers size={36} className="opacity-40" />
+                <p className="text-xs font-semibold">No leads found.</p>
+              </div>
+            ) : (
+              currentLeads.map((lead) => {
+                const isSelected = selectedLeads.has(lead.id);
+                return (
+                  <div
+                    key={lead.id}
+                    onClick={(e) => { e.stopPropagation(); handleOpenLeadDrawer(lead); }}
+                    className={cn(
+                      "flex items-center justify-between px-4 py-2 hover:bg-muted/50 cursor-pointer transition-colors active:bg-muted/80",
+                      isSelected && "bg-primary/5",
+                      lead.status === 'bounced' && "bg-red-500/5 hover:bg-red-500/10"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        onClick={(e) => { e.stopPropagation(); handleSelectOne(lead.id); }}
+                        className="py-1 shrink-0"
+                      >
+                        <CustomCheckbox checked={isSelected} onChange={() => {}} />
+                      </div>
+
+                      <div className="w-8 h-8 rounded-lg bg-muted border border-border/50 flex items-center justify-center shrink-0 overflow-hidden">
+                        {lead.website ? (
+                          <img 
+                            src={`https://www.google.com/s2/favicons?domain=${lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}&sz=64`} 
+                            alt={lead.company || lead.name || ''} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://www.google.com/s2/favicons?domain=example.com&sz=64`;
+                            }}
+                          />
+                        ) : (
+                          <span className="text-[10px] font-black text-muted-foreground uppercase">
+                            {(lead.company || lead.name || '?')[0]}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-foreground truncate text-[13px]">
+                          {lead.company || lead.name || 'Unknown'}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 truncate">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{lead.email || 'No email'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleOpenLeadDrawer(lead); }}
+                      className="ml-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 border bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50 shrink-0"
+                    >
+                      View <ChevronRight size={10} />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* Pagination */}
@@ -703,6 +782,19 @@ const LeadsTable: React.FC<Props> = ({ campaignId, refreshTrigger }) => {
                 <ChevronRight size={18} />
               </Button>
             </div>
+            
+            <button
+              onClick={() => { setShowBleedingOnly(!showBleedingOnly); setCurrentPage(1); }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                showBleedingOnly 
+                  ? "bg-red-500/10 text-red-500 border-red-500/20" 
+                  : "bg-muted text-muted-foreground border-transparent hover:bg-red-500/5 hover:text-red-400"
+              )}
+              title="Show Bleeding Businesses"
+            >
+              <AlertTriangle size={12} /> Bleeding
+            </button>
           </div>
         )}
       </div>

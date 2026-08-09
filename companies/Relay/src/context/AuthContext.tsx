@@ -24,12 +24,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkOnboardingStatus = async (userId: string) => {
     try {
-      const { count } = await supabase
+      const { data, error } = await supabase
         .from('account_settings')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
+        .select('show_onboarding')
+        .eq('user_id', userId)
+        .maybeSingle();
       
-      setNeedsOnboarding(count === 0);
+      if (error) throw error;
+      
+      if (!data) {
+        setNeedsOnboarding(true);
+      } else {
+        setNeedsOnboarding(!!data.show_onboarding);
+      }
     } catch (e) {
       console.error('Error checking onboarding status:', e);
     }

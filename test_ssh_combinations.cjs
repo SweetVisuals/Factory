@@ -16,12 +16,10 @@ function tryAuth(username, password) {
   });
 }
 
-tryAuth('root', 'Longlonglong1!');
-tryAuth('admin', 'Longlonglong1!');
-tryAuth('ubuntu', 'Longlonglong1!');
-tryAuth('relay', 'Longlonglong1!');
-
-tryAuth('admin', 'HjuxsmxFic3r');
-tryAuth('ubuntu', 'HjuxsmxFic3r');
-tryAuth('relay', 'HjuxsmxFic3r');
+tryAuth('root', '4ULxwjLbbKxM');
+tryAuth('root', 'pX7RhhitWfMi');
+tryAuth('root', 'fkCJkaNmVnpW');
+tryAuth('root', 'UPCWbqAvcAnW');
+tryAuth('root', 'mjaXRVMmbMwC7xCbcLCE');
+tryAuth('root', 'mjaXRVMmbMwC7xCbcLCE123');
 

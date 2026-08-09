@@ -68,7 +68,7 @@ app.post('/api/scrape-task', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.WORKER_PORT || 3005;
 app.listen(PORT, () => {
   console.log(`[Worker] Scraper API listening on port ${PORT}`);
   console.log(`[Worker] Proxy configuration: ${process.env.HTTP_PROXY ? 'ENABLED' : 'DISABLED'}`);

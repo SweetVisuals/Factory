@@ -24,6 +24,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   
   const [showNoCampaignDialog, setShowNoCampaignDialog] = useState(false);
   const [showGuestDialog, setShowGuestDialog] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const checkRateLimit = () => {
@@ -266,9 +267,9 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
   return (
     <>
     <header className="sticky top-0 z-[100] w-full bg-[#111111] border-b border-white/5 text-foreground shadow-sm">
-      <div className="flex h-[58px] items-center px-4 gap-4 md:gap-6 select-none">
+      <div className="flex h-[72px] md:h-[58px] items-center px-4 gap-4 md:gap-6 select-none">
         {/* Brand */}
-        <div className="flex items-center gap-3 font-bold cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/dashboard')}>
+        <div className="flex items-center gap-3 font-bold cursor-pointer hover:opacity-80 transition-opacity mt-2 md:mt-0" onClick={() => navigate('/dashboard')}>
           <Logo iconOnly={false} />
         </div>
         
@@ -295,7 +296,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
         <div className="flex items-center ml-auto gap-4">
           {/* Tray Item: Limits */}
           <div 
-            className="flex items-center gap-2 transition-all text-xs select-none mr-2"
+            className="hidden md:flex items-center gap-2 transition-all text-xs select-none mr-2"
             title={isLimited ? "AI Engine Cooldown Active" : "AI Engine Cooldown & Rate Limits"}
           >
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Limits</span>
@@ -314,7 +315,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           {user && (
             <div 
               onClick={() => navigate('/profile?tab=usage')}
-              className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/5 transition-all text-xs"
+              className="hidden md:flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 cursor-pointer hover:bg-white/5 transition-all text-xs"
               title="View System Usage"
             >
               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Usage</span>
@@ -339,7 +340,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
           {/* Engine Controls */}
           {user && (
             <>
-              <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/5">
+              <div className="hidden md:flex items-center bg-black/40 rounded-lg p-1 border border-white/5">
                 <button 
                   onClick={() => toggleEngine('active')}
                   className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5", !isPaused ? "bg-emerald-500/20 text-emerald-400" : "text-foreground/40 hover:text-white")}
@@ -354,7 +355,7 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
                 </button>
               </div>
 
-              <div className="h-6 w-px bg-white/10" />
+              <div className="hidden md:block h-6 w-px bg-white/10" />
 
               {/* Notifications Center */}
               <div className="relative">
@@ -433,43 +434,175 @@ const Navigation = ({ onToggleChat, isChatExpanded }: { onToggleChat?: () => voi
 
           <div className="flex items-center gap-1">
             {user ? (
-              <button onClick={signOut} className="p-2 text-foreground/50 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors" title="Sign Out">
+              <button onClick={signOut} className="hidden md:block p-2 text-foreground/50 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors" title="Sign Out">
                 <LogOut size={16} />
               </button>
             ) : (
-              <button onClick={() => navigate('/profile')} className="p-2 text-foreground/50 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-md transition-colors" title="Sign In">
+              <button onClick={() => navigate('/profile')} className="hidden md:block p-2 text-foreground/50 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-md transition-colors" title="Sign In">
                 <LogIn size={16} />
               </button>
             )}
+
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 text-foreground/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              title="Open Menu"
+            >
+              <Menu size={18} />
+            </button>
           </div>
         </div>
       </div>
     </header>
 
-    {/* Mobile Bottom Tab Bar */}
-    <nav className="md:hidden fixed bottom-0 inset-x-0 bg-[#111111] border-t border-white/5 z-[100] px-2 py-2 pb-safe flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
-      {navItems.slice(0, 5).map(item => {
-        const active = isActive(item.path) || (location.pathname.startsWith(item.path) && item.path !== '/dashboard');
-        return (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300 min-w-[60px]",
-              active ? "text-primary" : "text-foreground/40 hover:text-white"
-            )}
+    {/* Full-screen Expandable Mobile Sidebar */}
+    {isMobileMenuOpen && (
+      <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md md:hidden flex flex-col animate-in fade-in slide-in-from-right duration-300">
+        {/* Sidebar Header */}
+        <div className="flex h-[58px] items-center justify-between px-4 border-b border-white/5">
+          <Logo iconOnly={false} />
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-2 text-foreground/50 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
           >
-            <div className={cn(
-              "p-1.5 rounded-lg transition-colors",
-              active ? "bg-primary/20" : "bg-transparent"
-            )}>
-              <item.icon size={18} className={cn(active && "fill-primary/20")} />
-            </div>
-            <span className="text-[9px] font-bold tracking-wider">{item.name}</span>
+            <X size={20} />
           </button>
-        );
-      })}
-    </nav>
+        </div>
+
+        {/* Sidebar Content */}
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col justify-between">
+          {/* Navigation Links */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-3 mb-1">Navigation</span>
+            {navItems.map(item => {
+              const active = isActive(item.path) || (location.pathname.startsWith(item.path) && item.path !== '/dashboard');
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all w-full text-left",
+                    active 
+                      ? "bg-primary/20 text-primary" 
+                      : "text-foreground/75 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <item.icon size={18} />
+                  {item.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bottom Container aligned to bottom */}
+          <div className="flex flex-col gap-4 mt-8">
+            
+            {/* System Metrics (Limits & Usage) */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-3">System Settings</span>
+              
+              {/* Limits Badge */}
+              <div className="flex items-center gap-2 px-3 py-1 text-xs select-none">
+                <span className="relative flex h-2 w-2">
+                  <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", isLimited ? "bg-red-400" : "bg-emerald-400")}></span>
+                  <span className={cn("relative inline-flex rounded-full h-2 w-2", isLimited ? "bg-red-500" : "bg-emerald-500")}></span>
+                </span>
+                <span className="font-bold text-white">Limits</span>
+              </div>
+
+              {/* Usage Tracker */}
+              {user && (
+                <div 
+                  onClick={() => {
+                    navigate('/profile?tab=usage');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex flex-col gap-2 bg-black/40 p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 transition-all"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-white">System Usage</span>
+                    {(() => {
+                      const quotaLimit = isAdmin ? 10000 : (planType === 'free' ? 2500 : 10000);
+                      const usagePct = Math.min(100, Math.round((leadsCount / quotaLimit) * 100));
+                      return (
+                        <span className="font-mono text-[10px] font-bold text-emerald-400">
+                          {leadsCount} / {quotaLimit} ({usagePct}%)
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  {(() => {
+                    const quotaLimit = isAdmin ? 10000 : (planType === 'free' ? 2500 : 10000);
+                    const usagePct = Math.min(100, Math.round((leadsCount / quotaLimit) * 100));
+                    return (
+                      <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${usagePct}%` }} />
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <div className="h-px bg-white/5" />
+
+            {/* Engine Status & Control */}
+            {user && (
+              <div className="flex flex-col gap-3">
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-3">Engine Status</span>
+                <div className="flex items-center justify-between bg-[#111] rounded-xl p-2 border border-white/5">
+                  <button 
+                    onClick={() => toggleEngine('active')}
+                    className={cn("flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2", !isPaused ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "text-foreground/50 hover:text-white")}
+                  >
+                    <Zap size={14} className={cn(!isPaused && "fill-white")} /> Running
+                  </button>
+                  <button 
+                    onClick={() => toggleEngine('paused')}
+                    className={cn("flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2", isPaused ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "text-foreground/50 hover:text-white")}
+                  >
+                    <div className={cn("w-2 h-2 rounded-full", isPaused ? "bg-white" : "bg-foreground/50")} /> Paused
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Session Action */}
+            {user ? (
+              <button 
+                onClick={() => {
+                  signOut();
+                  setIsMobileMenuOpen(false);
+                }} 
+                className="flex items-center justify-center gap-2 w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl text-sm font-bold border border-red-500/20 transition-all"
+              >
+                <LogOut size={16} /> Sign Out
+              </button>
+            ) : (
+              <button 
+                onClick={() => {
+                  navigate('/profile');
+                  setIsMobileMenuOpen(false);
+                }} 
+                className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 text-black hover:bg-emerald-400 rounded-xl text-sm font-bold transition-all"
+              >
+                <LogIn size={16} /> Sign In
+              </button>
+            )}
+
+            {/* ColdSpark Logo */}
+            <div className="flex items-center justify-center gap-2 pt-2 opacity-50 select-none">
+              <Zap size={16} className="text-primary animate-pulse" />
+              <span className="text-sm font-bold text-foreground tracking-tight">ColdSpark</span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* No Campaign Dialog */}
     <Dialog open={showNoCampaignDialog} onOpenChange={setShowNoCampaignDialog}>

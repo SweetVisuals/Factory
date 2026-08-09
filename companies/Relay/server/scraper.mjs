@@ -3,10 +3,91 @@ import { exec } from 'child_process';
 import util from 'util';
 import { validateEmail } from './email-validation.mjs';
 import { fetchAIChatCompletion } from './ai-client.mjs';
+import { generateStructuredResearchFromText } from './research_helper.mjs';
 
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 const execPromise = util.promisify(exec);
+
+/**
+ * Safely close a Playwright/Camoufox browser with a timeout.
+ * If browser.close() hangs (e.g. zombie process), forcefully kill the browser process.
+ * This prevents the recurring issue where zombie camoufox processes permanently block
+ * the activeScrapes concurrency counter.
+ */
+export async function safeBrowserClose(browser, timeoutMs = 10000) {
+  cleanupTmpProfiles();
+  if (!browser) return;
+  let browserPid;
+  try {
+    // Playwright/Camoufox exposes the browser process
+    browserPid = browser.process?.()?.pid;
+  } catch (e) { /* ignore */ }
+
+  try {
+    await Promise.race([
+      browser.close(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('browser.close() timed out')), timeoutMs)
+      )
+    ]);
+  } catch (err) {
+    console.error(`[Scraper] browser.close() failed or timed out: ${err.message}. Force-killing process...`);
+    try {
+      // Find all camoufox-bin processes that are children of the current Node process and kill them
+      const { execSync } = await import('child_process');
+      const pid = process.pid;
+      // Get all processes where PPID is our PID
+      const output = execSync(`ps -o pid= -o ppid= -o comm= | awk '$2 == ${pid} && /camoufox/ {print $1}'`).toString().trim();
+      if (output) {
+        const pidsToKill = output.split('\n').map(p => p.trim()).filter(Boolean);
+        for (const p of pidsToKill) {
+          try {
+            process.kill(parseInt(p, 10), 'SIGKILL');
+            console.log(`[Scraper] Force-killed zombie child Camoufox PID ${p}`);
+          } catch(e) { }
+        }
+      } else {
+        console.error(`[Scraper] Could not find child Camoufox processes to force-kill.`);
+      }
+    } catch (killErr) {
+      console.error(`[Scraper] Error while trying to force-kill child Camoufox processes: ${killErr.message}`);
+    }
+  }
+}
+
+export function formatLocation(loc, fallback = '') {
+    let cleaned = (loc || fallback || '').trim();
+    if (!cleaned) return '';
+    cleaned = cleaned.replace(/^[\s📍]+/, '').trim();
+    return cleaned ? ` ${cleaned}` : '';
+}
+
+export function formatPhoneNumber(phone) {
+    if (!phone) return '';
+    let cleaned = phone.replace(/[^\d+]/g, '');
+
+    if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
+    else if (cleaned.startsWith('0')) cleaned = '+44' + cleaned.slice(1);
+    else if (cleaned.startsWith('44')) cleaned = '+' + cleaned;
+    else if (!cleaned.startsWith('+') && cleaned.length >= 9) cleaned = '+44' + cleaned;
+
+    if (cleaned.startsWith('+44')) {
+        let core = cleaned.slice(3);
+        if (core.length === 10) {
+            if (core.startsWith('2')) {
+                return `+44 ${core.slice(0, 2)} ${core.slice(2, 6)} ${core.slice(6)}`;
+            } else if (core.startsWith('3') || core.startsWith('8') || core.startsWith('11') || /^1[2-9]1/.test(core)) {
+                return `+44 ${core.slice(0, 3)} ${core.slice(3, 6)} ${core.slice(6)}`;
+            } else {
+                return `+44 ${core.slice(0, 4)} ${core.slice(4)}`;
+            }
+        }
+        return `+44 ${core}`;
+    }
+
+    return cleaned;
+}
 
 export function detectTechStackFromHtml(html) {
     if (!html) return [];
@@ -119,25 +200,35 @@ async function autoScroll(page) {
 // Helper to block unnecessary resources and save memory/bandwidth
 async function applyResourceBlocker(page) {
     try {
-        await page.setRequestInterception(true);
-        page.on('request', (request) => {
-            const resourceType = request.resourceType();
-            const url = request.url().toLowerCase();
-            
-            // Block images, media, fonts, and tracking scripts
-            if (['image', 'media', 'font', 'texttrack', 'object', 'beacon', 'csp_report', 'imageset'].includes(resourceType) ||
-                url.includes('google-analytics') || 
-                url.includes('analytics') || 
-                url.includes('facebook.com') || 
-                url.includes('doubleclick') || 
-                url.includes('pixel') || 
-                url.includes('hotjar') || 
-                url.includes('adsystem')) {
-                request.abort();
-            } else {
-                request.continue();
-            }
-        });
+        const shouldBlock = (url, resourceType) => {
+            url = url.toLowerCase();
+            return ['image', 'media', 'font', 'texttrack', 'object', 'beacon', 'csp_report', 'imageset'].includes(resourceType) ||
+                url.includes('google-analytics') || url.includes('analytics') || 
+                url.includes('facebook.com') || url.includes('doubleclick') || 
+                url.includes('pixel') || url.includes('hotjar') || url.includes('adsystem');
+        };
+
+        if (page.setRequestInterception) {
+            // Puppeteer
+            await page.setRequestInterception(true);
+            page.on('request', (request) => {
+                if (shouldBlock(request.url(), request.resourceType())) {
+                    request.abort();
+                } else {
+                    request.continue();
+                }
+            });
+        } else if (page.route) {
+            // Playwright / Camoufox
+            await page.route('**/*', (route) => {
+                const request = route.request();
+                if (shouldBlock(request.url(), request.resourceType())) {
+                    route.abort();
+                } else {
+                    route.continue();
+                }
+            });
+        }
     } catch (e) {
         console.error('Resource blocker setup failed:', e.message);
     }
@@ -209,157 +300,32 @@ function cleanupTmpProfiles() {
 }
 
 // Helper to setup browser consistently — lightweight mode
-async function setupBrowser(log, options = {}) {
-    let browser;
-    let puppeteer;
-    let profileDir = null;
-
-    // Clean up old profiles before launching a new one
-    cleanupTmpProfiles();
-
-    const isMaps = options.isMaps || false;
-    const chromeArgs = [...LIGHTWEIGHT_CHROME_ARGS];
-    if (isMaps) {
-        // Remove image disabling for Google Maps as it breaks the layout rendering
-        const idx = chromeArgs.indexOf('--blink-settings=imagesEnabled=false');
-        if (idx > -1) {
-            chromeArgs.splice(idx, 1);
-        }
-    }
-
-    if (process.env.HTTP_PROXY) {
-        chromeArgs.push(`--proxy-server=${process.env.HTTP_PROXY}`);
-        if (log) log(`Using Proxy Server: ${process.env.HTTP_PROXY}`);
-    }
-
+export async function setupBrowser(log, options = {}) {
+    if (log) log('[Camoufox Engine] Initializing stealth anti-detection browser...');
     try {
-        const pExtra = await import('puppeteer-extra');
-        puppeteer = pExtra.default || pExtra;
-        try {
-            const StealthPlugin = await import('puppeteer-extra-plugin-stealth');
-            puppeteer.use((StealthPlugin.default || StealthPlugin)());
-        } catch (stealthErr) {}
-    } catch (e) {
-        try {
-            const p = await import('puppeteer');
-            puppeteer = p.default || p;
-        } catch (e2) {
-            if (log) log('Failed to load puppeteer. Ensure it is installed.');
-            throw new Error('Puppeteer dependency missing');
-        }
-    }
-
-    if (process.env.BROWSER_WS_ENDPOINT) {
-        if (log) log(`Connecting to remote browser: ${process.env.BROWSER_WS_ENDPOINT}`);
-        browser = await puppeteer.connect({
-            browserWSEndpoint: process.env.BROWSER_WS_ENDPOINT,
-        });
-        return { browser, puppeteer };
-    }
-
-    const isWindows = process.platform === 'win32';
-
-    if (isWindows) {
-        if (log) log('Running locally on Windows. Launching lightweight Chrome...');
-        const uniqueId = `profile_std_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-        profileDir = `./tmp/${uniqueId}`;
+        const { Camoufox } = await import('camoufox-js');
+        const browser = await Camoufox({ headless: true });
         
-        // Ensure tmp dir exists
-        if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp', { recursive: true });
-
-        try {
-            browser = await puppeteer.launch({
-                headless: "new",
-                userDataDir: profileDir,
-                args: chromeArgs
-            });
-        } catch (e) {
-            if (log) log(`Standard launch failed: ${e.message}. Attempting to find local Chrome...`);
-            
-            const commonPaths = [
-                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-                `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`
-            ];
-
-            for (const p of commonPaths) {
-                try {
-                    if (fs.existsSync(p)) {
-                        if (log) log(`Found Chrome at: ${p}. Launching lightweight...`);
-                        browser = await puppeteer.launch({
-                            executablePath: p,
-                            headless: "new",
-                            userDataDir: profileDir,
-                            args: chromeArgs
-                        });
-                        break;
-                    }
-                } catch (err) {}
+        // Add Puppeteer backward-compatibility shims to prevent legacy scraper crashes
+        const origNewPage = browser.newPage.bind(browser);
+        browser.newPage = async (...args) => {
+            const page = await origNewPage(...args);
+            if (!page.setUserAgent) {
+                page.setUserAgent = async () => {}; // No-op: Camoufox auto-spoofs fingerprint at C++ level
             }
-        }
-
-        if (!browser) {
-            if (log) log('CRITICAL: Could not find or launch Chrome on Windows.');
-            throw new Error('Chrome launch failed');
-        }
-
-        return { browser, puppeteer, profileDir };
-    } else {
-        if (log) log('Running on Linux (Server environment). Attempting to use @sparticuz/chromium or standard puppeteer.');
-        const os = await import('os');
-        const path = await import('path');
-
-        // Use a fixed path relative to the app directory instead of recursively modifying HOME
-        const localTmp = path.resolve(process.cwd(), './tmp/.local_chrome');
-        if (!fs.existsSync(localTmp)) { fs.mkdirSync(localTmp, { recursive: true }); }
-
-        process.env.TMPDIR = localTmp;
-        // Only set HOME for puppeteer's child processes, don't override the Node process HOME
-        const envWithHome = { ...process.env, HOME: localTmp };
-
-        try {
-            const sparticuzModule = await import('@sparticuz/chromium');
-            const sparticuz = sparticuzModule.default || sparticuzModule;
-            const pCore = await import('puppeteer-core');
-            const puppeteerCore = pCore.default || pCore;
-
-            const executablePath = await sparticuz.executablePath();
-            const args = [...sparticuz.args, ...chromeArgs];
-
-            browser = await puppeteerCore.launch({
-                args: args,
-                executablePath: executablePath,
-                headless: "new",
-                ignoreHTTPSErrors: true,
-                env: envWithHome
-            });
-            if (log) log('Successfully launched using @sparticuz/chromium.');
-            return { browser, puppeteer: puppeteerCore, profileDir: null };
-        } catch (e) {
-            if (log) log(`Sparticuz failed/missing: ${e.message}. Falling back to standard puppeteer.`);
-            const uniqueId = `profile_linux_${Date.now()}`;
-            profileDir = `./tmp/${uniqueId}`;
-            if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp', { recursive: true });
-
-            const launchConfig = {
-                headless: "new",
-                args: chromeArgs,
-                userDataDir: profileDir,
-                env: envWithHome
-            };
-            
-            if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-                launchConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-            } else {
-                // Let Puppeteer use its bundled Chromium instead of hardcoding /usr/bin/ paths
-                // that might be broken symlinks or missing dependencies.
-                if (log) log('Using Puppeteer bundled browser.');
+            if (!page.setViewport && page.setViewportSize) {
+                page.setViewport = async (opts) => page.setViewportSize(opts);
             }
-            
-            browser = await puppeteer.launch(launchConfig);
+            try {
+                await applyResourceBlocker(page);
+            } catch (e) { /* ignore */ }
+            return page;
+        };
 
-            return { browser, puppeteer, profileDir };
-        }
+        return { browser, profileDir: null };
+    } catch (err) {
+        if (log) log(`[Camoufox Error] Failed to start Camoufox: ${err.message}`);
+        throw err;
     }
 }
 
@@ -369,18 +335,25 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
     log(`Starting Native Google Maps Scraper for: ${query} (Target: ${limit})`);
     
     let leads = [];
-    let setup;
     let browser;
     try {
-        setup = await setupBrowser(log, { isMaps: true });
-        browser = setup.browser;
+        const { Camoufox } = await import('camoufox-js');
+        browser = await Camoufox({ headless: true });
         const page = await browser.newPage();
-        await page.setViewport({ width: 1280, height: 800 });
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        await applyResourceBlocker(page);
+        try {
+            if (page.setViewportSize) {
+                await page.setViewportSize({ width: 1280, height: 800 });
+            } else if (page.setViewport) {
+                await page.setViewport({ width: 1280, height: 800 });
+            }
+        } catch (e) {
+            log(`[Scraper] Warning: Could not set viewport size: ${e.message}`);
+        }
 
         const url = `https://www.google.com/maps/search/${encodeURIComponent(query)}?hl=en`;
         log(`Navigating to Google Maps: ${url}`);
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
 
         try {
             const consentBtn = await page.$('form[action*="consent"] button');
@@ -451,36 +424,127 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
 
             log(`Clicking ${name} to get details...`);
             try {
-                await page.goto(place.url, { waitUntil: 'networkidle2', timeout: 15000 });
+                await page.goto(place.url, { waitUntil: 'networkidle', timeout: 15000 });
                 await new Promise(r => setTimeout(r, 4000));
             } catch (navErr) {
                 log(`Navigation timeout for ${name}, trying to extract anyway...`);
             }
 
-            const details = await page.evaluate(() => {
-                const addressBtn = document.querySelector('button[data-item-id="address"]');
-                const websiteBtn = document.querySelector('a[data-item-id="authority"]');
-                const phoneBtn = document.querySelector('button[data-item-id^="phone:tel:"]');
+            const details = await page.evaluate(async () => {
+                // 1. EXTRACT OVERVIEW & STATIC DATA FIRST BEFORE CLICKING OTHER TABS
+                const addressBtn = document.querySelector('button[data-item-id="address"]') || document.querySelector('button[aria-label*="Address"]');
+                let address = '';
+                if (addressBtn) {
+                    const aria = addressBtn.getAttribute('aria-label') || '';
+                    if (aria && aria.toLowerCase().includes('address:')) {
+                        address = aria.replace(/^[^:]*Address:\s*/i, '').trim();
+                    } else {
+                        address = addressBtn.innerText.replace(/^.*\n/, '').trim();
+                    }
+                }
+                if (!address) {
+                    const textElements = Array.from(document.querySelectorAll('div, span, button')).filter(el => el.getAttribute('aria-label') && el.getAttribute('aria-label').includes('Address:'));
+                    if (textElements.length > 0) {
+                        address = textElements[0].getAttribute('aria-label').replace(/^[^:]*Address:\s*/i, '').trim();
+                    }
+                }
+
+                const websiteBtn = document.querySelector('a[data-item-id="authority"]') || document.querySelector('a[data-tooltip="Open website"]');
+                const phoneBtn = document.querySelector('button[data-item-id^="phone:tel:"]') || document.querySelector('button[aria-label*="Phone"]');
+                let phone = '';
+                if (phoneBtn) {
+                    const ariaPhone = phoneBtn.getAttribute('aria-label') || '';
+                    if (ariaPhone.toLowerCase().includes('phone:')) {
+                        phone = ariaPhone.replace(/^[^:]*Phone:\s*/i, '').trim();
+                    } else {
+                        phone = phoneBtn.innerText.replace(/^.*\n/, '').trim();
+                    }
+                }
+
                 const categoryBtn = document.querySelector('button[jsaction*="pane.rating.category"]') || document.querySelector('span[class*="fontBodyMedium"] button') || document.querySelector('button[data-item-id="category"]');
+                const category = categoryBtn ? categoryBtn.innerText.trim() : '';
+
+                // 2. NOW SWITCH TO REVIEWS TAB & EXTRACT REVIEWS
+                let review_count = 0;
+                let rating = null;
+                let bad_reviews = [];
+                try {
+                    const reviewCountBtn = document.querySelector('button[jsaction*="pane.rating.moreReviews"]') || document.querySelector('button[aria-label*="reviews"]');
+                    if (reviewCountBtn) {
+                        const text = reviewCountBtn.innerText || reviewCountBtn.getAttribute('aria-label') || '';
+                        const match = text.match(/([\d,]+)\s+reviews/i);
+                        if (match) review_count = parseInt(match[1].replace(/,/g, ''), 10);
+                    }
+                    
+                    const ratingBtn = document.querySelector('span[aria-label*="stars"]') || document.querySelector('span.ceNzKf') || document.querySelector('div.F7nice span');
+                    if (ratingBtn) {
+                        const text = ratingBtn.getAttribute('aria-label') || ratingBtn.innerText || '';
+                        const match = text.match(/([\d\.]+)\s*stars?/i) || text.match(/^([\d\.]+)/);
+                        if (match) rating = parseFloat(match[1]);
+                    }
+                    
+                    const reviewsTab = Array.from(document.querySelectorAll('button')).find(el => el.innerText.includes('Reviews') && el.getAttribute('data-item-id') === 'review') || document.querySelector('button[data-item-id="review"]');
+                    if (reviewsTab) {
+                        reviewsTab.click();
+                        await new Promise(r => setTimeout(r, 2000));
+                        
+                        const sortBtn = document.querySelector('button[data-value="Sort"]') || document.querySelector('button[aria-label*="Sort"]');
+                        if (sortBtn) {
+                            sortBtn.click();
+                            await new Promise(r => setTimeout(r, 1000));
+                            const lowest = Array.from(document.querySelectorAll('div[role="menuitemradio"]')).find(el => el.innerText.includes('Lowest rating'));
+                            if (lowest) {
+                                lowest.click();
+                                await new Promise(r => setTimeout(r, 3000));
+                            }
+                        }
+
+                        const reviewBlocks = document.querySelectorAll('div.jftiEf');
+                        for (const block of reviewBlocks) {
+                            if (bad_reviews.length >= 3) break;
+                            const textEl = block.querySelector('span.wiI7pd');
+                            const text = textEl ? textEl.innerText.trim() : '';
+                            const starEl = block.querySelector('span[aria-label*="star"]');
+                            const starText = starEl ? starEl.getAttribute('aria-label') : '';
+                            const isOneStar = starText.includes('1 star') || starText.includes('2 stars');
+                            const isBadText = /(poor|bad service|terrible|awful|worst|unanswered phones|slow callbacks|booking problems|after hours issues)/i.test(text);
+                            if (text && (isOneStar || isBadText)) {
+                                bad_reviews.push(text.substring(0, 500));
+                            }
+                        }
+                    }
+                } catch(e) {}
+                
                 return {
-                    address: addressBtn ? addressBtn.innerText.replace(/^.*\\n/, '') : '',
+                    address,
                     website: websiteBtn ? websiteBtn.href : '',
-                    phone: phoneBtn ? phoneBtn.innerText.replace(/^.*\\n/, '') : '',
-                    category: categoryBtn ? categoryBtn.innerText : ''
+                    phone,
+                    category,
+                    rating,
+                    review_count,
+                    bad_reviews
                 };
             });
 
             let website = details.website || '';
-            const phone = details.phone || '';
+            const phone = formatPhoneNumber(details.phone);
             const address = details.address || '';
             const category = details.category || '';
+            const rating = details.rating;
+            const review_count = details.review_count || 0;
             
             if (!name) continue;
+
+            if (review_count < 10 || (rating !== null && rating > 4.5)) {
+                log(`Skipping ${name} (Rating: ${rating}, Reviews: ${review_count}) - Requires >=10 reviews and <=4.5 stars.`);
+                continue;
+            }
 
             let email = '';
             let social = { linkedin: '', facebook: '', twitter: '', instagram: '' };
             let tech_stack = [];
             let services_offered = [];
+            let company_description = '';
 
             // Fast deep scrape if website exists
             if (website && !website.includes('google.com')) {
@@ -516,6 +580,8 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                     try {
                         tech_stack = detectTechStackFromHtml(html);
                         services_offered = extractServicesFromHtml($, html);
+                        const metaDesc = $('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '';
+                        if (metaDesc) company_description = metaDesc.trim();
                     } catch (e) {
                         log(`Error during native extraction: ${e.message}`);
                     }
@@ -564,17 +630,20 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                 email, 
                 phone, 
                 website, 
-                summary: '',
+                summary: company_description || '',
+                company_description: company_description || '',
                 role: '',
                 twitter: social.twitter, 
                 facebook: social.facebook, 
                 instagram: social.instagram, 
                 linkedin: social.linkedin, 
                 tiktok: '',
-                location: address,
+                location: formatLocation(address, query),
                 industry: category,
                 tech_stack: tech_stack,
                 services_offered: services_offered,
+                review_count: details.review_count !== undefined ? details.review_count : 0,
+                bad_reviews: details.bad_reviews || [],
                 source: 'Native Maps'
             };
 
@@ -592,10 +661,7 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
         log(`Error in Native Maps Scraper: ${e.message}`);
         return leads;
     } finally {
-        if (browser) await browser.close();
-        if (setup?.profileDir && fs.existsSync(setup.profileDir)) {
-            try { fs.rmSync(setup.profileDir, { recursive: true, force: true }); } catch (e) {}
-        }
+        await safeBrowserClose(browser);
     }
 }
 
@@ -613,7 +679,7 @@ export async function scrapeLinkedIn(query, limit = 20, onLog = null, onResult =
         log(`LinkedIn Scraping Error: ${error.message}`);
         throw error;
     } finally {
-        if (browser) await browser.close();
+        await safeBrowserClose(browser);
         if (setup?.profileDir && fs.existsSync(setup.profileDir)) {
             try { fs.rmSync(setup.profileDir, { recursive: true, force: true }); } catch (e) {}
         }
@@ -635,7 +701,7 @@ export async function scrapeGeneralSearch(query, limit = 20, onLog = null, onRes
         log(`General Scraping Error: ${error.message}`);
         throw error;
     } finally {
-        if (browser) await browser.close();
+        await safeBrowserClose(browser);
         if (setup?.profileDir && fs.existsSync(setup.profileDir)) {
             try { fs.rmSync(setup.profileDir, { recursive: true, force: true }); } catch (e) {}
         }
@@ -1004,67 +1070,74 @@ async function generateAISummary(text, notesContext = '', isDeepResearch = true)
 CRITICAL INSTRUCTIONS:
 1. Act as a detective analyzing the company's digital footprint.
 2. Identify their **niche specialization** — exactly what makes them unique in their market.
-3. Identify **conversion flaws** and UX issues — what's missing or suboptimal on their website.
-4. Analyze **revenue levers** — how they make money and how they could optimize.
-5. Provide **ROI projections** — estimate potential value from automation/optimization.
+3. Identify **Bleeding Business Signals** (Pain Points) — what is broken, missing, or suboptimal on their website, bad reviews, or poor social presence.
+4. Analyze **Growth Signals & Revenue Levers** — how they make money and how they could optimize.
+5. Provide **Tech Stack & Services** — what they use and what they offer.
 6. Pay special attention to the [EXTERNAL_INTEL_SOCIAL] section. Summarize their social media presence, recent reviews, or public perception.
 7. The conversation starter should be 1-2 sentences, curiosity-driven, and reference a specific detail from their website or social media.
 
 RAW DATA:
-${text.substring(0, 12000)}
+${text.substring(0, 75000)}
 
 Format your response EXACTLY as follows (using markdown):
 
-## ⚡ Quick Summary
+## ⚡ Quick Fact
+[1 sentence quick fact about them]
+
+## 🎯 Personalised Detail
+[1 sentence highly personalized detail about their founders or company history]
+
+## 🏢 Company Overview
 [2-3 concise sentences summarizing the company and its key value proposition]
 
-## 🔬 Deep Research
+## 🚨 Bleeding Business Signals (Pain Points)
+- **[Area 1]**: [Description of what is broken or missing]
+- **[Area 2]**: [Description of bad reviews or poor UX]
 
-### 🎯 Niche & Market Analysis
-[Their specific niche, target market, competitive positioning]
+## 📈 Growth Signals & Revenue Levers
+- **[Signal 1]**: [How they can grow]
+- **[Signal 2]**: [Revenue opportunities]
 
-### 🔍 Website Flaws & UX Issues
-[Specific issues found: slow loading, missing CTAs, poor mobile experience, confusing navigation, etc.]
+## 💻 Tech Stack & Services
+- [Service/Tech 1]
+- [Service/Tech 2]
 
-### 💰 Revenue Levers & Growth Opportunities
-[How they make money, opportunities for optimization, cross-sell/upsell potential]
+## 🌐 Reputation & Social
+[Summarize their reviews, ratings, and social media presence]
 
-### 📈 ROI Projections
-[Estimated potential value from automation or optimization efforts]
-
-### 💬 Conversation Starter
+## 💬 Conversation Starter
 > "[Your curiosity-driven conversation starter referencing a specific detail]"`;
 
         try {
-            // AI BYPASSED to save credits and ensure 100% success rate.
-            // Returning a basic native summary instead.
-            return `## ⚡ Quick Summary
-Automated Deep Research has been bypassed to save API credits.
-
-## 🔬 Deep Research
-* Data extracted natively via code parsing. No AI enrichment performed.
-
-### 🎯 Niche & Market Analysis
-Found via code logic.
-
-### 🔍 Website Flaws & UX Issues
-Performance metrics extracted natively.
-
-### 💰 Revenue Levers & Growth Opportunities
-Not evaluated by AI.
-
-### 📈 ROI Projections
-N/A
-
-### 💬 Conversation Starter
-> "I noticed your company while doing some native research in the area."`;
-        } catch (e) {
-            console.error('Summary Generation Fatal Error:', e);
-            return `## ⚡ Quick Summary\nAutomated research encountered an error: ${e.message}\n\n## 🔬 Deep Research\nCould not complete deep research due to an error.`;
+            const aiRes = await fetchAIChatCompletion({
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                model: 'deepseek-v4-flash',
+                max_tokens: 1024
+            });
+            
+            if (aiRes && aiRes.choices && aiRes.choices[0]) {
+                const content = aiRes.choices[0].message.content;
+                // Validate that the deep dive contains required sections
+                const hasBleedingSection = content.includes('Bleeding') || content.includes('Pain');
+                const hasGrowthSection = content.includes('Growth') || content.includes('Revenue');
+                const hasTechSection = content.includes('Tech') || content.includes('Services');
+                
+                if (isDeepResearch && (!hasBleedingSection || !hasGrowthSection || !hasTechSection)) {
+                    log('GENERATE_AI_SUMMARY: Deep dive missing required sections, marking as incomplete.');
+                    return content + '\n\n⚠️ **Research Note**: This report may be incomplete. Critical sections (Bleeding Business Signals, Growth Signals, or Tech Stack) were not fully generated.';
+                }
+                
+                return content;
+            }
+            throw new Error('Invalid AI response format');
+        } catch (outerErr) {
+            console.error('Outer Summary Generation Error:', outerErr);
+            return `## ⚡ Quick Summary\nError: ${outerErr.message}\n\n## 🔬 Deep Research\nFailed.`;
         }
-    } catch (outerErr) {
-        console.error('Outer Summary Generation Error:', outerErr);
-        return `## ⚡ Quick Summary\nError: ${outerErr.message}\n\n## 🔬 Deep Research\nFailed.`;
+    } catch (e) {
+        console.error('Outer Summary Generation Error:', e);
+        return `## ⚡ Quick Summary\nError: ${e.message}\n\n## 🔬 Deep Research\nFailed.`;
     }
 }
 
@@ -1268,7 +1341,7 @@ async function scrapeWebsite(browser, url, log = console.log, notesContext = '',
                     services = extractServicesFromHtml($, htmlContent);
                 } catch (e) { }
 
-                return { emails: validEmails, phone, social, text: rawText, techStack, services };
+                return { emails: validEmails, phone: formatPhoneNumber(phone), social, text: rawText, techStack, services };
             };
 
             // --- SCAN HOME PAGE ---
@@ -1404,10 +1477,26 @@ async function scrapeWebsite(browser, url, log = console.log, notesContext = '',
             
             if (aggregatedText.length > 20 || externalIntel.length > 20) {
                 log('Generating AI Report...');
-                data.summary = await generateAISummary(aggregatedText, notesContext, deepResearch);
+                try {
+                    const res = await generateStructuredResearchFromText(aggregatedText, companyName, url, { company: companyName }, log, notesContext);
+                    data.summary = res.summary;
+                    data.structured = res.structured;
+                } catch (e) {
+                    log(`AI Report generation failed: ${e.message}`);
+                    data.summary = `## ⚡ Quick Summary\nError generating report: ${e.message}\n\n## 🔬 Deep Research\nProcess failed.`;
+                    data.structured = {};
+                }
             } else {
                 log('Data too sparse for normal research. Attempting minimal AI research.');
-                data.summary = await generateAISummary(`Company Name: ${companyName}\nSource: Minimal data found.`, notesContext, deepResearch);
+                try {
+                    const res = await generateStructuredResearchFromText(`Company Name: ${companyName}\nSource: Minimal data found.`, companyName, url, { company: companyName }, log, notesContext);
+                    data.summary = res.summary;
+                    data.structured = res.structured;
+                } catch (e) {
+                    log(`Minimal AI Report generation failed: ${e.message}`);
+                    data.summary = `## ⚡ Quick Summary\nMinimal report error: ${e.message}\n\n## 🔬 Deep Research\nProcess failed.`;
+                    data.structured = {};
+                }
             }
         } else {
             // Bypass AI to save tokens and time
@@ -1428,135 +1517,83 @@ async function scrapeWebsite(browser, url, log = console.log, notesContext = '',
     return data;
 }
 
+// Fetch from Crawl4AI Docker container
+export async function fetchCrawl4AI(url, log) {
+    try {
+        log(`[Crawl4AI] Sending extraction request for ${url}`);
+        const response = await fetch('http://127.0.0.1:11225/crawl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                urls: url,
+                word_count_threshold: 10,
+                extract_blocks: true,
+                screenshot: false
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Crawl4AI HTTP Error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        // The /crawl endpoint usually returns { results: [{ markdown: "..." }] }
+        if (data.results && data.results.length > 0 && data.results[0].markdown) {
+            return data.results[0].markdown;
+        } else if (data.markdown) {
+            return data.markdown;
+        } else if (data.text) {
+             return data.text;
+        }
+        
+        throw new Error('No markdown or text found in Crawl4AI response');
+    } catch (e) {
+        log(`[Crawl4AI] Extraction failed: ${e.message}`);
+        return null;
+    }
+}
+
 // Deep Research Function
 export async function performDeepResearch(company, website, notesContext = '') {
     const log = console.log;
-    log(`Starting Deep Research for ${company} (${website})...`);
+    log(`Starting Deep Research for ${company} (${website}) using Crawl4AI (Docker) & Camoufox...`);
 
-    let puppeteerMod;
-    try {
-        const p = await import('puppeteer');
-        puppeteerMod = p.default || p;
-    } catch (e) {
-        throw new Error('Puppeteer dependency missing for deep research');
-    }
-    const browser = await puppeteerMod.launch({
-        headless: "new",
-        args: LIGHTWEIGHT_CHROME_ARGS
-    });
+    const setup = await setupBrowser(log);
+    const browser = setup.browser;
 
     try {
         let aggregatedData = `Company: ${company}\nWebsite: ${website}\nUser Context: ${notesContext}\n\n`;
 
-        // 1. Scrape Website Deeply (if exists)
+        // 1. Scrape Website Deeply using Crawl4AI, fallback to Camoufox
         if (website && website.startsWith('http')) {
             try {
-                const page = await browser.newPage();
-                await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-                await page.goto(website, { waitUntil: 'domcontentloaded', timeout: 20000 });
-
-                // Get Home Page Text
-                const homeText = await page.evaluate(() => {
-                    const clone = document.body.cloneNode(true);
-                    clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
-                    return clone.innerText.substring(0, 6000);
-                });
-                aggregatedData += `[WEBSITE_HOME]:\n${homeText}\n\n`;
-
-                // Extract JSON-LD structured data (schema.org)
-                try {
-                    const jsonLd = await page.evaluate(() => {
-                        const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-                        return Array.from(scripts).map(s => s.textContent).join('\n');
-                    });
-                    if (jsonLd && jsonLd.trim()) {
-                        aggregatedData += `[STRUCTURED_DATA_JSON_LD]:\n${jsonLd.substring(0, 3000)}\n\n`;
-                    }
-                } catch (e) { /* structured data not critical */ }
-
-                // Find internal links for deeper scraping
-                const links = await page.$$eval('a', as => as.map(a => ({ href: a.href, text: (a.textContent || '').trim().toLowerCase() })));
+                let pageText = null;
                 
-                const findLink = (keywords) => {
-                    return links.find(l => {
-                        if (!l.href || !l.href.startsWith('http')) return false;
-                        const href = l.href.toLowerCase();
-                        const text = l.text;
-                        return keywords.some(k => href.includes(k) || text.includes(k));
+                // Attempt Crawl4AI First
+                pageText = await fetchCrawl4AI(website, log);
+                
+                if (pageText) {
+                    log(`[Crawl4AI] Success! Extracted ${pageText.length} chars.`);
+                    aggregatedData += `[WEBSITE_HOME (Crawl4AI)]:\n${pageText.substring(0, 75000)}\n\n`;
+                } else {
+                    log(`[Crawl4AI] Failed or skipped. Falling back to Camoufox...`);
+                    const page = await browser.newPage();
+                    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+                    log(`[Camoufox] Scraping homepage: ${website}`);
+                    await page.goto(website, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    
+                    pageText = await page.evaluate(() => {
+                        return document.body ? document.body.innerText : '';
                     });
-                };
-
-                // About page
-                const aboutLink = findLink(['about', 'story', 'who-we-are', 'our-story']);
-                if (aboutLink) {
-                    try {
-                        await page.goto(aboutLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
-                        const aboutText = await page.evaluate(() => {
-                            const clone = document.body.cloneNode(true);
-                            clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
-                            return clone.innerText.substring(0, 4000);
-                        });
-                        aggregatedData += `[WEBSITE_ABOUT]:\n${aboutText}\n\n`;
-                    } catch (e) { }
+                    
+                    if (pageText) {
+                        aggregatedData += `[WEBSITE_HOME (Camoufox)]:\n${pageText.substring(0, 75000)}\n\n`;
+                    } else {
+                        aggregatedData += `[WEBSITE_ERROR]: Could not extract text from website.\n`;
+                    }
+                    
+                    await page.close();
                 }
-
-                // Team page
-                const teamLink = findLink(['team', 'people', 'staff', 'our-team', 'meet-the-team', 'leadership']);
-                if (teamLink) {
-                    try {
-                        await page.goto(teamLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
-                        const teamText = await page.evaluate(() => {
-                            const clone = document.body.cloneNode(true);
-                            clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
-                            return clone.innerText.substring(0, 4000);
-                        });
-                        aggregatedData += `[WEBSITE_TEAM]:\n${teamText}\n\n`;
-                    } catch (e) { }
-                }
-
-                // Services / Products page
-                const servicesLink = findLink(['services', 'products', 'what-we-do', 'solutions', 'offerings', 'our-services']);
-                if (servicesLink) {
-                    try {
-                        await page.goto(servicesLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
-                        const servicesText = await page.evaluate(() => {
-                            const clone = document.body.cloneNode(true);
-                            clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
-                            return clone.innerText.substring(0, 4000);
-                        });
-                        aggregatedData += `[WEBSITE_SERVICES]:\n${servicesText}\n\n`;
-                    } catch (e) { }
-                }
-
-                // Portfolio / Case Studies / Projects page
-                const portfolioLink = findLink(['portfolio', 'case-stud', 'projects', 'work', 'testimonials', 'reviews', 'our-work']);
-                if (portfolioLink) {
-                    try {
-                        await page.goto(portfolioLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
-                        const portfolioText = await page.evaluate(() => {
-                            const clone = document.body.cloneNode(true);
-                            clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
-                            return clone.innerText.substring(0, 3000);
-                        });
-                        aggregatedData += `[WEBSITE_PORTFOLIO]:\n${portfolioText}\n\n`;
-                    } catch (e) { }
-                }
-
-                // Blog / News page (first page only)
-                const blogLink = findLink(['blog', 'news', 'insights', 'articles', 'updates']);
-                if (blogLink) {
-                    try {
-                        await page.goto(blogLink.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
-                        const blogText = await page.evaluate(() => {
-                            const clone = document.body.cloneNode(true);
-                            clone.querySelectorAll('script, style, noscript, iframe, svg').forEach(b => b.remove());
-                            return clone.innerText.substring(0, 2000);
-                        });
-                        aggregatedData += `[WEBSITE_BLOG_NEWS]:\n${blogText}\n\n`;
-                    } catch (e) { }
-                }
-
-                await page.close();
             } catch (e) {
                 log(`Website scrape error: ${e.message}`);
                 aggregatedData += `[WEBSITE_ERROR]: Could not access website fully.\n`;
@@ -1675,7 +1712,7 @@ ${aggregatedData}
         log(`Deep Research Error: ${e.message}`);
         return `Failed to perform deep research: ${e.message}`;
     } finally {
-        await browser.close();
+        await safeBrowserClose(browser);
     }
 }
 
@@ -1861,6 +1898,14 @@ export async function scrapeCompaniesHouse(query, limit = 20, onLog = null, onRe
                             sizeEst = 'Over 250 employees';
                         }
 
+                        if (profile.registered_office_address) {
+                            const ro = profile.registered_office_address;
+                            const addrParts = [ro.address_line_1, ro.address_line_2, ro.locality, ro.postal_code, ro.country || 'United Kingdom'].filter(Boolean);
+                            if (addrParts.length > 0) {
+                                item.address = addrParts.join(', ');
+                            }
+                        }
+
                         extraDetails = `\n- Year Founded: ${founded}\n- Accounts Filing Type: ${accountsType}\n- Estimated Revenue: ${revenueEst || 'Unknown'}\n- Estimated Company Size: ${sizeEst || 'Unknown'}`;
                         item.year_founded = founded;
                         item.annual_revenue = revenueEst;
@@ -1868,6 +1913,20 @@ export async function scrapeCompaniesHouse(query, limit = 20, onLog = null, onRe
                     }
                 } catch (e) {
                     log(`Error fetching profile from Companies House: ${e.message}`);
+                }
+            }
+
+            // Ensure address has pin formatting and filter out mismatched UK cities
+            item.address = formatLocation(item.address);
+            const majorCities = ['london', 'manchester', 'sheffield', 'birmingham', 'leeds', 'glasgow', 'edinburgh', 'bristol', 'liverpool', 'newcastle', 'york', 'cardiff', 'belfast', 'nottingham'];
+            const queryLow = query.toLowerCase();
+            const targetCity = majorCities.find(city => queryLow.includes(city));
+            if (targetCity && item.address) {
+                const addrLow = item.address.toLowerCase();
+                const foundWrongCity = majorCities.find(city => city !== targetCity && addrLow.includes(city));
+                if (foundWrongCity && !addrLow.includes(targetCity)) {
+                    log(`[Location Filter] Skipping ${item.company} located in ${foundWrongCity}, query requested ${targetCity}.`);
+                    continue;
                 }
             }
 
@@ -1888,11 +1947,11 @@ export async function scrapeCompaniesHouse(query, limit = 20, onLog = null, onRe
                         website: website,
                         email: webData.email || '',
                         phone: webData.phone || item.phone || '',
-                        location: item.address || '',
+                        location: item.address || formatLocation(query),
                         year_founded: item.year_founded || null,
                         annual_revenue: item.annual_revenue || null,
                         company_size: item.company_size || null,
-                        summary: `## ⚡ Quick Summary\nOfficial UK registered company found on Companies House (Number: ${item.companyNumber || 'N/A'}). Status: Active.\n\n## 🔬 Deep Research\n- Registered Address: ${item.address}\n- Website: ${website}\n- Identified details: ${item.meta}${extraDetails}`
+                        summary: `## ⚡ Quick Summary\nOfficial UK registered company found on Companies House (Number: ${item.companyNumber || 'N/A'}). Status: Active.\n\n## 🔬 Deep Research\n- Registered Address: ${item.address || 'N/A'}\n- Website: ${website}\n- Identified details: ${item.meta}${extraDetails}`
                     };
 
                     leads.push(lead);
@@ -1912,7 +1971,7 @@ export async function scrapeCompaniesHouse(query, limit = 20, onLog = null, onRe
         log(`Companies House Scraping Error: ${error.message}`);
         throw error;
     } finally {
-        if (usedBrowser && browser) await browser.close();
+        if (usedBrowser) await safeBrowserClose(browser);
         if (setup?.profileDir && fs.existsSync(setup.profileDir)) {
             try { fs.rmSync(setup.profileDir, { recursive: true, force: true }); } catch (e) {}
         }
@@ -2013,7 +2072,7 @@ export async function scrapeBingMaps(query, limit = 20, onLog = null, onResult =
         log(`Bing Scraping Error: ${error.message}`);
         throw error;
     } finally {
-        if (browser) await browser.close();
+        await safeBrowserClose(browser);
         if (setup?.profileDir && fs.existsSync(setup.profileDir)) {
             try { fs.rmSync(setup.profileDir, { recursive: true, force: true }); } catch (e) {}
         }
@@ -2214,7 +2273,7 @@ export async function scrapeIndeed(query, location, limit = 20, onLog = null, on
         log(`Indeed Scraping Error: ${error.message}`);
         throw error;
     } finally {
-        if (browser) await browser.close();
+        await safeBrowserClose(browser);
         if (setup?.profileDir && fs.existsSync(setup.profileDir)) {
             try { fs.rmSync(setup.profileDir, { recursive: true, force: true }); } catch (e) {}
         }
@@ -2316,7 +2375,7 @@ export async function scrapeEmployerWebsites(query, location, limit = 20, onLog 
         log(`Employer Website Scraping Error: ${error.message}`);
         throw error;
     } finally {
-        if (browser) await browser.close();
+        await safeBrowserClose(browser);
         if (setup?.profileDir && fs.existsSync(setup.profileDir)) {
             try { fs.rmSync(setup.profileDir, { recursive: true, force: true }); } catch (e) {}
         }

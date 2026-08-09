@@ -107,10 +107,7 @@ const CampaignCard = ({
   return (
     <div 
       onClick={onClick} 
-      className={`relative flex flex-col cursor-pointer transition-all duration-300 hover:-translate-y-1 bg-card border border-border hover:border-border/80 shadow-sm group rounded-none overflow-hidden ${isReview ? 'campaign-card-review-pulse' : ''}`}
-      style={{ 
-        minHeight: '380px'
-      }}
+      className={`relative flex flex-col cursor-pointer transition-all duration-300 hover:-translate-y-1 bg-card border border-border hover:border-border/80 shadow-sm group rounded-2xl overflow-hidden min-h-[190px] md:min-h-[380px] ${isReview ? 'campaign-card-review-pulse' : ''}`}
     >
       {isReview && (
         <style dangerouslySetInnerHTML={{__html: `
@@ -140,18 +137,18 @@ const CampaignCard = ({
       />
       
       {/* Header */}
-      <div className="p-6 pb-4 flex justify-between items-start relative z-10">
-        <div className="flex flex-col gap-1.5 min-w-0 pr-4">
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: isPaused ? '#f59e0b' : activeColor }}>
-            <span className="px-2 py-0.5 rounded-none bg-primary/10 border border-primary/20">{bizLabel}</span>
+      <div className="p-4 md:p-6 pb-2 md:pb-4 flex justify-between items-start relative z-10">
+        <div className="flex flex-col gap-1 min-w-0 pr-4">
+          <div className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: isPaused ? '#f59e0b' : activeColor }}>
+            <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{bizLabel}</span>
             {loc && <span className="text-muted-foreground">{loc}</span>}
           </div>
-          <h3 className="font-black text-2xl tracking-tight text-foreground truncate uppercase">{cleanName}</h3>
+          <h3 className="font-black text-lg md:text-2xl tracking-tight text-foreground truncate uppercase">{cleanName}</h3>
         </div>
         
         {/* Agent Status Badge */}
         <span 
-          className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-none border transition-all duration-300"
+          className="hidden md:flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl border transition-all duration-300"
           style={{ 
             backgroundColor: `rgba(${badgeRgb}, 0.1)`, 
             borderColor: `rgba(${badgeRgb}, 0.3)`,
@@ -173,34 +170,34 @@ const CampaignCard = ({
         </span>
       </div>
 
-      <div className="flex flex-col flex-1 p-6 pt-2 relative z-10">
+      <div className="flex flex-col flex-1 p-4 md:p-6 pt-0 md:pt-2 relative z-10 justify-between">
         {/* Premium Metrics Grid */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="flex flex-col bg-background rounded-none p-4 border border-border transition-all duration-300 group/metric">
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Leads</span>
-            <span className="font-black text-2xl text-foreground">
+        <div className="grid grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-6">
+          <div className="flex flex-col bg-background rounded-xl p-2 md:p-4 border border-border transition-all duration-300 group/metric">
+            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5 md:mb-1">Leads</span>
+            <span className="font-black text-lg md:text-2xl text-foreground">
               <AnimatedNumber value={prospectsVal} />
             </span>
           </div>
-          <div className="flex flex-col bg-background rounded-none p-4 border border-border transition-all duration-300 group/metric">
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Sent</span>
-            <span className="font-black text-2xl text-foreground">
+          <div className="flex flex-col bg-background rounded-xl p-2 md:p-4 border border-border transition-all duration-300 group/metric">
+            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5 md:mb-1">Sent</span>
+            <span className="font-black text-lg md:text-2xl text-foreground">
               <AnimatedNumber value={sentVal} />
             </span>
           </div>
-          <div className="flex flex-col bg-background rounded-none p-4 border border-border transition-all duration-300 group/metric">
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Replies</span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-black text-2xl text-foreground">
+          <div className="flex flex-col bg-background rounded-xl p-2 md:p-4 border border-border transition-all duration-300 group/metric">
+            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5 md:mb-1">Replies</span>
+            <div className="flex items-baseline gap-1 md:gap-2">
+              <span className="font-black text-lg md:text-2xl text-foreground">
                 <AnimatedNumber value={repliesVal} />
               </span>
-              <span className="text-[10px] font-black" style={{ color: activeColor }}>{replyRate || '0.0%'}</span>
+              <span className="text-[8px] md:text-[10px] font-black" style={{ color: activeColor }}>{replyRate || '0.0%'}</span>
             </div>
           </div>
         </div>
 
-        {/* Agent Activity Log */}
-        <div className="flex flex-col gap-3 mt-auto mb-6 bg-background p-4 rounded-none border border-border transition-all">
+        {/* Agent Activity Log - Hidden on Mobile */}
+        <div className="hidden md:flex flex-col gap-3 mt-auto mb-6 bg-background p-4 rounded-xl border border-border transition-all">
           <span className="text-[9px] font-black tracking-[0.2em] text-muted-foreground uppercase flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-none animate-pulse shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeColor, color: activeColor }} />
             Live Agent Log
@@ -225,14 +222,14 @@ const CampaignCard = ({
         </div>
 
         {/* Autonomous Progress Bar */}
-        <div className="flex flex-col gap-2 pt-2">
-          <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+        <div className="flex flex-col gap-1.5 md:gap-2 pt-1 md:pt-2">
+          <div className="flex justify-between items-center text-[8px] md:text-[9px] font-black uppercase tracking-widest text-muted-foreground">
             <span>Routing Progress</span>
             <span style={{ color: activeColor }}>{progressPct}%</span>
           </div>
-          <div className="h-2 w-full bg-secondary rounded-none overflow-hidden border border-border">
+          <div className="h-1.5 md:h-2 w-full bg-secondary rounded-full overflow-hidden border border-border">
             <div 
-              className="h-full rounded-none transition-all duration-1000 ease-out relative overflow-hidden" 
+              className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden" 
               style={{ width: `${progressPct}%`, backgroundColor: activeColor }} 
             >
               <div className="absolute top-0 bottom-0 left-0 right-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full animate-[shimmer_2s_infinite]" />

@@ -214,50 +214,64 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
   const servicesOffered = displayLead.services_offered || [];
   const techStack = displayLead.tech_stack || [];
   const socialPresence = displayLead.social_presence || {};
+  const badReviews = displayLead.bad_reviews || [];
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed md:top-[46px] top-0 bottom-0 left-0 right-0 z-[150] md:h-[calc(100vh-46px)] h-screen bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed top-[72px] md:top-[58px] bottom-0 left-0 right-0 z-[90] h-[calc(100vh-72px)] md:h-[calc(100vh-58px)] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
       {/* Drawer */}
-      <div className={`fixed md:top-[46px] top-0 right-0 z-[150] md:h-[calc(100vh-46px)] h-screen w-full md:max-w-[780px] bg-[#0a0a0a] border-l border-white/10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+      <div className={`fixed top-[72px] md:top-[58px] right-0 z-[90] h-[calc(100vh-72px)] md:h-[calc(100vh-58px)] w-full md:max-w-[780px] bg-[#0a0a0a] border-l border-white/10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'} flex flex-col`} style={{ willChange: 'transform' }}>
         
         {/* HEADER */}
         <div className="shrink-0 p-6 pb-4 border-b border-white/10 bg-[#111]">
           {/* Top row */}
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-4">
-              {/* Company avatar / favicon */}
-              <div className="w-14 h-14 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                {faviconUrl ? (
-                  <img src={faviconUrl} alt="" className="w-8 h-8" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <div className="w-14 h-14 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden shadow-xl">
+                {displayLead.website ? (
+                  <img 
+                    src={`https://www.google.com/s2/favicons?domain=${displayLead.website.startsWith('http') ? displayLead.website : `https://${displayLead.website}`}&sz=64`} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://www.google.com/s2/favicons?domain=example.com&sz=64`; // fallback
+                    }}
+                  />
                 ) : (
-                  <Building2 size={24} className="text-muted-foreground/40" />
+                  <Building2 size={24} className="text-white/20" />
                 )}
               </div>
               <div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tight leading-tight">
-                  {displayLead.company || displayLead.name}
-                </h2>
-                <div className="flex items-center gap-3 mt-1.5">
-                  <StatusPill status={displayLead.research_status} />
-                  {displayLead.industry && (
-                    <span className="text-[10px] font-bold text-white/50">{displayLead.industry}</span>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-xl font-black text-white tracking-tight">{displayLead.company || 'Unknown Company'}</h2>
+                  {displayLead.status === 'bounced' && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-red-500/10 text-red-500 border border-red-500/20">
+                      Bounced
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-3 mt-2 text-xs font-medium text-white/40">
+                  {displayLead.website && (
+                    <a href={`https://${displayLead.website.replace(/https?:\/\//, '')}`} target="_blank" rel="noreferrer" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                      <Globe size={12} /> {displayLead.website.replace(/https?:\/\//, '')}
+                    </a>
                   )}
                 </div>
               </div>
             </div>
-
-            <button onClick={onClose} className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+            
+            <button onClick={onClose} className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
               <X size={20} />
             </button>
           </div>
 
-          {/* Research Quality Score */}
+          {/* Action buttons and Research Quality Score wrapped */}
           <div className="flex items-center gap-4 mb-4 p-3 bg-white/[0.02] border border-white/5 rounded-xl">
             <ScoreBadge score={score} />
             <div>
@@ -326,6 +340,55 @@ export const LeadIntelligenceDrawer: React.FC<LeadIntelligenceDrawerProps> = ({ 
 
           {!isResearching && activeTab === 'overview' && (
             <>
+              {/* Contact Information (Quick Access) */}
+              {(displayLead.email || displayLead.phone) && (
+                 <div className="mb-6 p-4 border border-white/10 bg-white/[0.02] rounded-xl space-y-3">
+                    <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
+                       <Users size={12} /> Direct Contact Info
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {displayLead.email && (
+                        <button onClick={handleCopyLeadEmail} className="flex items-center gap-1.5 text-[11px] font-bold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors border border-white/5">
+                          {copiedLeadEmail ? <Check size={12} className="text-emerald-400" /> : <Mail size={12} className="text-white/40" />}
+                          {displayLead.email}
+                        </button>
+                      )}
+                      {displayLead.phone && (
+                        <button onClick={handleCopyLeadPhone} className="flex items-center gap-1.5 text-[11px] font-bold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors border border-white/5">
+                          {copiedLeadPhone ? <Check size={12} className="text-emerald-400" /> : <Phone size={12} className="text-white/40" />}
+                          {displayLead.phone}
+                        </button>
+                      )}
+                    </div>
+                 </div>
+              )}
+
+              {/* Bad Reviews Section (Moved to Overview for instant visibility) */}
+              {badReviews.length > 0 ? (
+                 <div className="mb-6 p-4 border border-destructive/20 bg-destructive/5 rounded-xl space-y-3 shadow-[0_0_15px_-5px_rgba(239,68,68,0.2)]">
+                    <h4 className="text-[10px] font-black text-destructive uppercase tracking-widest flex items-center gap-2">
+                       <AlertTriangle size={14} /> Example Negative Reviews Found
+                    </h4>
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
+                       {badReviews.map((rev, i) => (
+                          <div key={i} className="text-xs space-y-1 p-3 bg-black/20 rounded-lg border border-destructive/10">
+                             <p className="font-medium text-white/80 italic">"{rev.text}"</p>
+                             <p className="text-[9px] font-black uppercase tracking-widest text-destructive/60">— Source: {rev.source}</p>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              ) : (
+                 <div className="mb-6 p-4 border border-emerald-500/20 bg-emerald-500/5 rounded-xl space-y-2">
+                    <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                       <Check size={14} /> Reputation Scan Clean
+                    </h4>
+                    <p className="text-xs text-white/60 pl-6">
+                      AI deep scan found no significant negative reviews or complaints online.
+                    </p>
+                 </div>
+              )}
+
               {/* Company Description */}
               {displayLead.company_description && (
                 <div className="space-y-2">

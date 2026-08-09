@@ -1,0 +1,19 @@
+{
+  "short_name": "Relay",
+  "name": "Relay Autonomous B2B Engine",
+  "description": "High-performance B2B lead generation, enrichment, and outreach platform.",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/campaigns",
+  "background_color": "#000000",
+  "theme_color": "#0a0a0a",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "productivity", "utilities"]
+}
