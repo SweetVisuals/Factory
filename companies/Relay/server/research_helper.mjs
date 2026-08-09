@@ -62,6 +62,7 @@ export async function researchAndSummarizeLead(lead, log = console.log, campaign
     let websiteContent = '';
     let usedCrawl4AI = false;
     let parsed = {};
+    let scrapedJsonStr = '{}';
 
     if (normalizedWebsite) {
       try {
@@ -78,12 +79,14 @@ export async function researchAndSummarizeLead(lead, log = console.log, campaign
       
       // Deterministic scrape to get basic JSON and socials/Google Maps info
       try {
-        const scrapedJsonStr = await performDeterministicResearch(companyName, normalizedWebsite);
+        scrapedJsonStr = await performDeterministicResearch(companyName, normalizedWebsite);
         parsed = JSON.parse(scrapedJsonStr) || {};
         if (!usedCrawl4AI) {
            websiteContent = `Extracted Text: ${JSON.stringify(parsed.website_data || parsed).substring(0, 10000)}`;
         }
-      } catch(e) {}
+      } catch(e) {
+        log(`[Research Helper] Deterministic scrape error: ${e.message}`);
+      }
     } else {
       log(`[Research Helper] No website URL provided for ${companyName}.`);
     }
@@ -99,8 +102,10 @@ Be harsh, realistic, and direct. Do not sugarcoat or exaggerate any findings. ON
 Output a strict JSON object with the following keys:
 - company_description: A clear, concise 2-3 sentence overview of what the company does.
 - services_offered: Array of strings (max 5 core services).
-- key_people: Array of strings (names and titles if found).
-- pain_points: Array of objects { area: string, description: string, severity: 'high' | 'medium' }. Focus heavily on bad reviews or legacy indicators.
+- key_people: Array of strings (names and titles if found on website).
+- staff_names: Array of strings (names of staff/owners mentioned specifically in positive customer reviews, e.g. "Bob was great").
+- customer_sentiment: String detailing overall customer satisfaction and specifically pointing out any positive staff mentions or recurring negative complaints.
+- pain_points: Array of objects { area: string, description: string, severity: 'high' | 'medium' }. Focus on critical bad reviews or legacy indicators if any exist.
 - growth_signals: Array of objects { type: string, detail: string }. E.g. hiring, expanding.
 - tech_stack: Array of strings.
 - target_market: String (who they sell to).
@@ -144,15 +149,10 @@ ${JSON.stringify(parsed.pain_points || [])}
         company_description: aiParsed.company_description || '',
         services_offered: aiParsed.services_offered || [],
         key_people: aiParsed.key_people || [],
-        pain_points: [
-            ...(aiParsed.pain_points || []),
-            ...(parsed.bad_reviews || []).map(br => ({
-                area: 'External Review Feedback',
-                description: br,
-                severity: 'high'
-            }))
-        ],
+        pain_points: aiParsed.pain_points || [],
         growth_signals: aiParsed.growth_signals || [],
+        staff_names: aiParsed.staff_names || [],
+        customer_sentiment: aiParsed.customer_sentiment || '',
         target_market: aiParsed.target_market || '',
         competitive_advantage: aiParsed.competitive_advantage || '',
         company_size: aiParsed.company_size || '',
@@ -180,14 +180,30 @@ ${JSON.stringify(parsed.pain_points || [])}
         summaryFormatted += `## 🏢 Company Overview\n${sanitized.company_description}\n\n`;
     }
     
+    if (sanitized.staff_names && sanitized.staff_names.length > 0) {
+        summaryFormatted += `## 👥 Staff & Owner Names (from Reviews)\n- ${sanitized.staff_names.join('\n- ')}\n\n`;
+    }
+
+    if (sanitized.customer_sentiment) {
+        summaryFormatted += `## 🗣️ Customer Sentiment\n${sanitized.customer_sentiment}\n\n`;
+    }
+
     if (sanitized.pain_points && sanitized.pain_points.length > 0) {
-        summaryFormatted += `## 🚨 Bleeding Business Signals (Pain Points & Reviews)\n`;
+        summaryFormatted += `## 🚨 Business Signals & Pain Points\n`;
         sanitized.pain_points.forEach(p => {
             summaryFormatted += `- **${p.area}**: ${p.description}\n`;
         });
         summaryFormatted += `\n`;
     }
     
+    if (sanitized.growth_signals && sanitized.growth_signals.length > 0) {
+        summaryFormatted += `## 🚀 Growth Signals\n`;
+        sanitized.growth_signals.forEach(g => {
+            summaryFormatted += `- **${g.type}**: ${g.detail}\n`;
+        });
+        summaryFormatted += `\n`;
+    }
+
     if (sanitized.tech_stack && sanitized.tech_stack.length > 0) {
         summaryFormatted += `## 💻 Tech Stack\n- ${sanitized.tech_stack.join('\n- ')}\n\n`;
     }
@@ -203,6 +219,16 @@ ${JSON.stringify(parsed.pain_points || [])}
         summaryFormatted += `\n`;
     }
     
+    if (parsed.bad_reviews && parsed.bad_reviews.length > 0) {
+        summaryFormatted += `## 🗣️ Review Highlights\n`;
+        parsed.bad_reviews.forEach(r => {
+            const text = r.text || r;
+            const source = r.source || 'Google';
+            summaryFormatted += `- **${source}**: ${text}\n`;
+        });
+        summaryFormatted += `\n`;
+    }
+
     if (sanitized.recent_news && sanitized.recent_news.length > 0) {
         summaryFormatted += `## 📰 Recent News\n`;
         sanitized.recent_news.forEach(n => {

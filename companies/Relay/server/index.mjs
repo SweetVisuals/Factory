@@ -669,7 +669,7 @@ You MUST use these exact placeholders whenever referring to dynamic data. DO NOT
 ${placeholderListStr}
 
 ABSOLUTE RULES (violation = failure):
-1. GREETING: Always "Hi [LEAD FIRST NAME]," — NEVER full name, NEVER last name.
+1. GREETING: Always "Hi [LEAD FIRST NAME]" or "Hi there," — NEVER full name, NEVER last name.
 2. NEVER mention the lead's job title, role, or position anywhere.
 3. BANNED PHRASES & WORDS — never use any of these under any circumstances:
    "bid", "sounds interesting", "I thought it was interesting", "I found it interesting",
@@ -925,7 +925,7 @@ ABSOLUTE RULES (violation = failure):
    - For TRADES / BLUE COLLAR (e.g. Contractors, Labourers, Builders, Roofers, Plumbers): Use an extremely casual, plain, direct, and "matey" tone. Write like a local subcontractor or supplier, not a software company. Keep it short, simple, a bit rougher, and direct.
    - For PROPERTY MANAGEMENT / LETTING AGENTS / REAL ESTATE: Use a polite, professional, and compliant B2B tone. Speak directly to compliance, landlord pressures, tenant management, and saving time.
    - For B2B / CORPORATE (e.g. SaaS, Agencies, Consultants): Use a clean, crisp, structured B2B tone focused on ROI, operations, and booking.
-2. GREETING: Always "Hi {{first_name}}," — NEVER full name, NEVER last name.
+2. GREETING: Always "Hi {{first_name}}" or "Hi there," — NEVER full name, NEVER last name.
 3. NEVER mention the lead's job title, role, or position anywhere.
 4. BANNED PHRASES — never use any of these under any circumstances:
    "sounds interesting", "I thought it was interesting", "I found it interesting",
@@ -1136,7 +1136,7 @@ app.get('/api/campaigns/:id/preview-email', async (req, res) => {
       const company = campaign.company_name || 'Our Company';
       
       const templateSubject = firstTemplate ? firstTemplate.subject : 'Introduction';
-      const templateContent = firstTemplate ? firstTemplate.content : 'Hi [LEAD FIRST NAME], just wanted to connect.';
+      const templateContent = firstTemplate ? firstTemplate.content : 'Hi [LEAD FIRST NAME], I was researching [LEAD COMPANY] and noticed your recent work. We specialize in helping companies like yours improve operations. Would you be open to a brief chat?';
 
       const systemPrompt = `You are a professional B2B Cold Outreach Marketer.
 REWRITE this email template for a specific lead. 
@@ -1150,7 +1150,7 @@ Instructions for tone & length:
 Instructions for personalization:
 1. Replace [[notes]] with a specific, brief observation from the Research Notes. 
 2. CRITICAL ANTI-HALLUCINATION RULE: NEVER invent or assume facts, industries, or concepts that are NOT explicitly mentioned in the Research Notes.
-3. GREETING: If first name is provided, start with "Hi ${leadFirstName},". If NO first name is provided, start with "Hi ${lead.company || 'there'},". NEVER guess a name.
+3. GREETING: If first name is provided, start with "Hi ${leadFirstName},". If NO first name is provided, start with "Hi there," or "Hi team,". NEVER guess a name.
 4. Replace {{company}} with "${lead.company || ''}".
 5. CRITICAL: Replace <company> or [MY COMPANY] with our company name: "${company}". Do NOT confuse our company with the lead's company.
 6. CRITICAL: NEVER mention the lead's job title, role, or position.
@@ -1183,7 +1183,7 @@ Template Body: ${templateContent}`;
         console.error(`Error generating direct preview for lead ${lead.id}:`, err.message);
         // Fallback simple interpolation
         let content = templateContent
-          .replace(/\[LEAD FIRST NAME\]/g, leadFirstName)
+          .replace(/\[LEAD FIRST NAME\]/g, leadFirstName || 'there')
           .replace(/\[LEAD COMPANY\]/g, lead.company || '')
           .replace(/\[MY COMPANY\]/g, company)
           .replace(/\[PERSONALISED DETAIL\]/g, lead.personalised_detail || '');
@@ -1222,7 +1222,15 @@ app.post('/api/generate-lead-emails', async (req, res) => {
     for (let i = 0; i < leads.length; i += BATCH_SIZE) {
       const batch = leads.slice(i, i + BATCH_SIZE);
       const batchPromises = batch.map(async (lead) => {
-        const leadFirstName = lead.name ? lead.name.split(' ')[0] : '';
+        const businessKeywords = ['ltd', 'limited', 'llc', 'inc', 'agency', 'digital', 'marketing', 'consulting', 'solutions', 'services', 'group', 'partners', 'associates', 'studio', 'entertainment', 'warehouse', 'management', 'technologies', 'designs', 'property', 'properties', 'lettings', 'letting', 'estate', 'agents', 'agent', 'agency', 'co.uk', 'real estate', 'clinic', 'dental', 'medical', 'events', 'design', 'homes', 'co', 'and', '&'];
+        let leadFirstName = '';
+        if (lead.name) {
+          const firstPart = lead.name.split(' ')[0];
+          const isLikelyCompany = lead.name.length > 30 || businessKeywords.some(kw => new RegExp(`\\b${kw}\\b`, 'i').test(lead.name)) || lead.name.includes('&');
+          if (!isLikelyCompany && firstPart.length > 2) {
+            leadFirstName = firstPart;
+          }
+        }
         const systemPrompt = `You are a professional B2B Cold Outreach Marketer.
 REWRITE this email template for a specific lead. 
 
@@ -1238,7 +1246,7 @@ Instructions for tone & length:
 Instructions for personalization:
 1. Replace [[notes]] with a specific, brief observation from the Research Notes. 
 2. CRITICAL ANTI-HALLUCINATION RULE: NEVER invent or assume facts, industries, or concepts (e.g., "trucks", "real estate", "e-commerce") that are NOT explicitly mentioned in the Research Notes. Completely rewrite examples that do not fit the notes.
-3. GREETING: Start with "Hi ${leadFirstName}," — NEVER use full names or last names.
+3. GREETING: Start with "Hi ${leadFirstName || 'there'}," — NEVER use full names or last names.
 4. Replace {{first_name}} with "${leadFirstName}" and {{company}} with "${lead.company || ''}".
 5. CRITICAL: Replace <company> with our company name: "${company}". Do NOT confuse our company with the lead's company.
 6. CRITICAL: NEVER mention the lead's job title, role, or position. Remove any such references.
@@ -1256,7 +1264,7 @@ Research Notes: "${lead.summary || 'General interest'}"
 Template Subject: ${templateSubject}
 Template Body: ${templateContent}`;
 
-        const userPrompt = `Personalise the email for ${leadFirstName} at ${lead.company || 'their company'}. You are sending this from our company, ${company}.
+        const userPrompt = `Personalise the email for ${leadFirstName || 'the team'} at ${lead.company || 'their company'}. You are sending this from our company, ${company}.
 Ensure NO full names, NO job titles, NO added sign-offs. 
 Make the email strictly SHORT, natural, non-technical, and conversational. NEVER sell or pitch directly. Your goal is to enquire about their struggles/hurdles and secure a calendar booking.
 The subject line MUST be hyper-personalized using the Research Notes about their website or goals.
@@ -1472,7 +1480,7 @@ INSTRUCTIONS:
 1. Read the thread carefully to understand context.
 2. Address their specific points directly. Match the MrMedic tone above.
 3. Suggest a clear, low-friction next step.
-4. GREETING: Start with "Hi ${leadFirstName},"
+4. GREETING: Start with "Hi ${leadFirstName || 'there'},"
 5. SIGN-OFF: End with:
 Best,
 ${senderName || 'Clara'}
@@ -1521,7 +1529,7 @@ INSTRUCTIONS:
 1. Read the thread carefully to understand context.
 2. Address their specific points directly. Match the strict tone rules above.
 3. Suggest a clear, low-friction next step.
-4. GREETING: Start with "Hi ${leadFirstName},"
+4. GREETING: Start with "Hi ${leadFirstName || 'there'},"
 5. SIGN-OFF: End with:
 Best,
 ${senderName || 'Me'}
@@ -1535,7 +1543,7 @@ Instructions:
 2. Draft a concise, friendly, and human response. Address their specific points directly.
 3. Suggest a clear, low-friction next step (e.g. "Worth a quick chat later this week?" or "Can I send over some details?").
 4. Keep the tone warm, professional, and peer-to-peer. NO hard selling.
-5. GREETING: Start with "Hi ${leadFirstName},"
+5. GREETING: Start with "Hi ${leadFirstName || 'there'},"
 6. SIGN-OFF: You MUST include a sign-off at the very end formatted EXACTLY like this:
 Kind regards,
 ${senderName || 'Me'}
@@ -2305,8 +2313,8 @@ app.post('/api/scrape-leads', async (req, res) => {
     }
 
     // Global Concurrency Limiter: Prevent Hetzner Node OOM crashes
-    // Allow up to 2 concurrent campaigns to be scraped at any given time.
-    if (activeScrapes.size >= 2) {
+    // CONCURRENCY LIMIT: Process max 4 simultaneous scrape requests globally to prevent Camoufox from crashing the node (OOM).
+    if (activeScrapes.size >= 4) {
       console.log(`[Scraper API] Server busy: ${activeScrapes.size} active scrapes running. Rejecting new request.`);
       return res.status(429).json({ success: false, message: 'Server is currently at maximum scraping capacity. Please try again later.' });
     }
@@ -2462,7 +2470,10 @@ app.post('/api/scrape-leads', async (req, res) => {
           
           if (res.structured) {
             structuredData = res.structured;
-            // Removed duplicate delete logic (already done globally)
+            delete structuredData.personalised_detail;
+            delete structuredData.quick_fact;
+            delete structuredData.customer_sentiment;
+            delete structuredData.complaints;
           }
         } catch (err) {
           log(`[Filter] Dropped ${lead.company || 'lead'}: AI Deep Research failed (${err.message}).`);

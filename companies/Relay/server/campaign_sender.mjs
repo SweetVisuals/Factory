@@ -368,7 +368,7 @@ async function main() {
     log(`❌ SMTP failed: ${err.message}. Retrying in 60s...`);
     await sleep(60000);
     try { await transporter.verify(); log('✅ SMTP verified on retry'); }
-    catch (e) { log(`❌ SMTP still failing: ${e.message}. Exiting.`); process.exit(1); }
+    catch (e) { log(`❌ SMTP still failing: ${e.message}. Retrying again next loop.`); }
   }
 
   // Run continuously
@@ -414,5 +414,4 @@ async function main() {
   }
 }
 
-main().catch(err => { log(`💀 FATAL: ${err.message}`); console.error(err); process.exit(1); });
-
+main().catch(err => { log(`🚨 FATAL: ${err.message}`); console.error(err); });

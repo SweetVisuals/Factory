@@ -47,11 +47,31 @@ async function runReputationScheduler() {
                 const parsed = JSON.parse(jsonStr);
                 
                 // Manually map the raw scraper output directly to the database to bypass AI completely
+                const googleRating = parsed.google_data?.rating ? parseFloat(parsed.google_data.rating) : null;
+                const reviewCount = parsed.google_data?.reviews ? parseInt(parsed.google_data.reviews.replace(/,/g, ''), 10) : 0;
+                const badReviews = parsed.bad_reviews || [];
+                
+                // Build a basic summary from scraped data
+                let summary = '';
+                if (googleRating) {
+                    summary += `## 🌐 Reputation & Social\n- **Rating**: ${googleRating} Stars (${reviewCount} reviews)\n\n`;
+                }
+                if (badReviews.length > 0) {
+                    summary += `## 🚨 Review Highlights\n`;
+                    badReviews.forEach(r => {
+                        const text = r.text || r;
+                        const source = r.source || 'Google';
+                        summary += `- **${source}**: ${text}\n`;
+                    });
+                    summary += '\n';
+                }
+
                 const updateData = {
                     research_status: 'completed',
                     researched_at: new Date().toISOString(),
-                    review_count: parsed.google_data?.reviews ? parseInt(parsed.google_data.reviews.replace(/,/g, ''), 10) : 0,
-                    bad_reviews: parsed.bad_reviews || []
+                    review_count: reviewCount,
+                    bad_reviews: badReviews,
+                    summary: summary || null
                 };
 
                 const { error: updateError } = await supabase

@@ -48,6 +48,14 @@ const FILES_TO_UPLOAD = [
     remote: '/root/Factory/companies/Relay/server/scraper_scheduler_cron.mjs'
   },
   {
+    local: path.resolve(__dirname, 'server/scraper.mjs'),
+    remote: '/root/Factory/companies/Relay/server/scraper.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/scraper_tools.mjs'),
+    remote: '/root/Factory/companies/Relay/server/scraper_tools.mjs'
+  },
+  {
     local: path.resolve(__dirname, 'server/process_campaign_node.mjs'),
     remote: '/root/Factory/companies/Relay/server/process_campaign_node.mjs'
   },
@@ -58,6 +66,22 @@ const FILES_TO_UPLOAD = [
   {
     local: path.resolve(__dirname, 'server/sync_emails_cron.mjs'),
     remote: '/root/Factory/companies/Relay/server/sync_emails_cron.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/scraper_tools.mjs'),
+    remote: '/root/Factory/companies/Relay/server/scraper_tools.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/reputation_cron.mjs'),
+    remote: '/root/Factory/companies/Relay/server/reputation_cron.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/rate_limiter.mjs'),
+    remote: '/root/Factory/companies/Relay/server/rate_limiter.mjs'
+  },
+  {
+    local: path.resolve(__dirname, 'server/emailer_cron.mjs'),
+    remote: '/root/Factory/companies/Relay/server/emailer_cron.mjs'
   }
 ];
 

@@ -218,7 +218,7 @@ export async function runProcessCampaign() {
             *,
             campaigns!scheduled_emails_campaign_id_fkey!inner (
                 id, name, status, company_name, contact_number, primary_email, business_id, niche, objective, email_tone_id,
-                businesses!inner (
+                businesses (
                     id, name, status, signature_template, overview_md
                 )
             ),
@@ -226,8 +226,7 @@ export async function runProcessCampaign() {
         `,
       )
       .eq("status", "scheduled")
-      .in("campaigns.status", ["in_progress", "email_only", "active"])
-      .eq("campaigns.businesses.status", "active");
+      .in("campaigns.status", ["in_progress", "email_only", "active"]);
     if (x) throw (console.error("Database query error:", x), x);
     if (!q || q.length === 0)
       return JSON.stringify({ message: "No active schedules" });
@@ -663,17 +662,25 @@ export async function runProcessCampaign() {
             const industry = e.campaigns?.niche || 'your industry';
             const detail = t.summary ? t.summary.substring(0, 100) : 'your recent initiatives';
 
-            S = fallbackBody.replace(/\[LEAD FIRST NAME\]/gi, leadFirstName)
-                            .replace(/\[LEAD COMPANY\]/gi, leadCompany)
+            S = fallbackBody.replace(/\[LEAD FIRST NAME\]|\[FIRST NAME\]|{{first_name}}|{first_name}/gi, leadFirstName)
+                            .replace(/\[LEAD COMPANY\]|\[COMPANY\]|{{company}}|{company}/gi, leadCompany)
                             .replace(/\[MY COMPANY\]/gi, myCompany)
-                            .replace(/\[INDUSTRY\]/gi, industry)
+                            .replace(/\[INDUSTRY\]|{{industry}}|{industry}/gi, industry)
                             .replace(/\[PERSONALISED DETAIL\]/gi, detail);
 
-            E = fallbackSubject.replace(/\[LEAD FIRST NAME\]/gi, leadFirstName)
-                               .replace(/\[LEAD COMPANY\]/gi, leadCompany)
+            E = fallbackSubject.replace(/\[LEAD FIRST NAME\]|\[FIRST NAME\]|{{first_name}}|{first_name}/gi, leadFirstName)
+                               .replace(/\[LEAD COMPANY\]|\[COMPANY\]|{{company}}|{company}/gi, leadCompany)
                                .replace(/\[MY COMPANY\]/gi, myCompany)
-                               .replace(/\[INDUSTRY\]/gi, industry)
+                               .replace(/\[INDUSTRY\]|{{industry}}|{industry}/gi, industry)
                                .replace(/\[PERSONALISED DETAIL\]/gi, detail);
+
+            // Append basic signature so it's visible on the review page
+            const senderName = a?.name || e.campaigns?.businesses?.name || 'Sender';
+            const senderCompany = a?.company || e.campaigns?.businesses?.name || '';
+            const fallbackSignOff = e.templates?.sign_off || 'Best,';
+            if (!S.includes(fallbackSignOff) && !S.includes('{ender}')) {
+                S = `${S}\n\n${fallbackSignOff}\n${senderName}\n${senderCompany}`.trimEnd();
+            }
 
             console.log(`[Email Engine] Replaced templates for ${t.email} (rule-based strict replace)`);
             await n
@@ -765,6 +772,15 @@ CRITICAL RULES:
                   if (bodyMatch && bodyMatch[1]) { S = bodyMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'); }
                   else { S = d.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "").trim(); }
                 }
+
+                // Append basic signature so it's visible on the review page
+                const senderName = a?.name || e.campaigns?.businesses?.name || 'Sender';
+                const senderCompany = a?.company || e.campaigns?.businesses?.name || '';
+                const fallbackSignOff = e.templates?.sign_off || 'Best,';
+                if (!S.includes(fallbackSignOff) && !S.includes('{ender}')) {
+                    S = `${S}\n\n${fallbackSignOff}\n${senderName}\n${senderCompany}`.trimEnd();
+                }
+
                 await n.from("leads").update({ personalized_email: S, personalized_subject: E }).eq("id", t.id);
                 // ═══ RATE LIMITER: Record AI call success ═══
                 const _usage = c.usage || {};
@@ -800,6 +816,15 @@ CRITICAL RULES:
               });
               S = engineResult.body;
               E = engineResult.subject;
+
+              // Append basic signature so it's visible on the review page
+              const senderName = a?.name || e.campaigns?.businesses?.name || 'Sender';
+              const senderCompany = a?.company || e.campaigns?.businesses?.name || '';
+              const fallbackSignOff = e.templates?.sign_off || 'Best,';
+              if (!S.includes(fallbackSignOff) && !S.includes('{ender}')) {
+                  S = `${S}\n\n${fallbackSignOff}\n${senderName}\n${senderCompany}`.trimEnd();
+              }
+
               console.log(`[Email Engine Fallback] Generated for ${t.email}`);
               await n
                 .from("leads")

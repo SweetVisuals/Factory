@@ -156,21 +156,26 @@ export function extractComplaintReviews(html) {
     if (!html) return [];
     
     const $ = cheerio.load(html);
-    const complaints = [];
+    const reviews = [];
     
     // Look at search result snippets (div.g or .VwiC3b or .aCOpRe)
     $('div.g').each((i, el) => {
         const title = $(el).find('h3').text().trim();
         const snippet = $(el).find('.VwiC3b, .aCOpRe, .lyLwlc, span').text().trim();
         
-        // Filter out very short or empty snippets
+        // Capture any snippet that's long enough and mentions reviews/ratings/experience
         if (snippet && snippet.length > 30) {
-            // Check if it contains review-like keywords (stars, rating, terrible, avoid, etc.)
             const lower = snippet.toLowerCase();
-            if (lower.includes('star') || lower.includes('review') || lower.includes('terrible') || lower.includes('worst') || lower.includes('avoid') || lower.includes('bad')) {
-                 complaints.push({
+            if (lower.includes('star') || lower.includes('review') || lower.includes('rating') || 
+                lower.includes('trustpilot') || lower.includes('tripadvisor') ||
+                lower.includes('yelp') || lower.includes('experience') || lower.includes('customer') ||
+                lower.includes('recommend') || lower.includes('terrible') || lower.includes('worst') ||
+                lower.includes('avoid') || lower.includes('bad') || lower.includes('excellent') ||
+                lower.includes('great') || lower.includes('fantastic') || lower.includes('friendly') ||
+                lower.includes('helpful') || lower.includes('poor') || lower.includes('awful')) {
+                 reviews.push({
                      source: title || 'Review Site',
-                     text: snippet
+                     text: snippet.substring(0, 500)
                  });
             }
         }
@@ -179,14 +184,14 @@ export function extractComplaintReviews(html) {
     // Deduplicate by text
     const unique = [];
     const seen = new Set();
-    for (const c of complaints) {
+    for (const c of reviews) {
         if (!seen.has(c.text)) {
             seen.add(c.text);
             unique.push(c);
         }
     }
     
-    return unique.slice(0, 5); // Return top 5 worst snippets
+    return unique.slice(0, 8); // Return top 8 review snippets (positive and negative)
 }
 
 /**
@@ -245,6 +250,13 @@ export async function performDeterministicResearch(company, website, notesContex
             const page = await browser.newPage();
             const liQuery = `${company} CEO founder owner director team linkedin`;
             await page.goto(`https://www.google.com/search?q=${encodeURIComponent(liQuery)}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+            try {
+                const consentBtn = await page.$('form[action*="consent"] button, button[aria-label*="Alle akzeptieren" i], button[aria-label*="Accept all" i]');
+                if (consentBtn) {
+                    await consentBtn.click();
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            } catch(e) {}
             const html = await page.content();
             finalData.linkedin_links = extractLinkedInData(html).slice(0, 5);
             await page.close();
@@ -257,6 +269,13 @@ export async function performDeterministicResearch(company, website, notesContex
             const page = await browser.newPage();
             const newsQuery = `"${company}" news recent`;
             await page.goto(`https://www.google.com/search?q=${encodeURIComponent(newsQuery)}&tbm=nws`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+            try {
+                const consentBtn = await page.$('form[action*="consent"] button, button[aria-label*="Alle akzeptieren" i], button[aria-label*="Accept all" i]');
+                if (consentBtn) {
+                    await consentBtn.click();
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            } catch(e) {}
             const snippets = await page.evaluate(() => {
                 return Array.from(document.querySelectorAll('div.SoaBEf, div.WlydOe, article')).map(el => el.innerText).slice(0, 3);
             });
@@ -266,18 +285,27 @@ export async function performDeterministicResearch(company, website, notesContex
             log(`[Deterministic Scraper] News tool error: ${e.message}`);
         }
 
-        // 5. Complaint/Bad Reviews Tool
+        // 5. Reviews Tool (positive + negative)
         log(`[Deterministic Scraper] Calling tool: extractComplaintReviews`);
         try {
             const page = await browser.newPage();
-            // We search for the company name plus words that trigger review snippets
-            const complaintQuery = `"${company}" (reviews OR complaints OR "1 star" OR terrible OR avoid)`;
-            await page.goto(`https://www.google.com/search?q=${encodeURIComponent(complaintQuery)}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+            // Search for any reviews about this company (positive and negative)
+            const reviewQuery = `"${company}" reviews`;
+            await page.goto(`https://www.google.com/search?q=${encodeURIComponent(reviewQuery)}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+            
+            try {
+                const consentBtn = await page.$('form[action*="consent"] button, button[aria-label*="Alle akzeptieren" i], button[aria-label*="Accept all" i]');
+                if (consentBtn) {
+                    await consentBtn.click();
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            } catch(e) {}
+            
             const html = await page.content();
             finalData.bad_reviews = extractComplaintReviews(html);
             await page.close();
         } catch (e) {
-            log(`[Deterministic Scraper] Complaint tool error: ${e.message}`);
+            log(`[Deterministic Scraper] Review tool error: ${e.message}`);
         }
 
         return JSON.stringify(finalData, null, 2);

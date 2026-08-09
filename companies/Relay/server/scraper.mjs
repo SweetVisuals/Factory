@@ -356,7 +356,7 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
         await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
 
         try {
-            const consentBtn = await page.$('form[action*="consent"] button');
+            const consentBtn = await page.$('form[action*="consent"] button, button[aria-label*="Alle akzeptieren" i], button[aria-label*="Accept all" i]');
             if (consentBtn) {
                 await consentBtn.click();
                 await new Promise(r => setTimeout(r, 5000));
@@ -403,13 +403,33 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
 
         const places = await page.evaluate(() => {
             const results = [];
-            const links = Array.from(document.querySelectorAll('a.hfpxzc'));
-            for (const a of links) {
-                const title = a.getAttribute('aria-label') || '';
+            const items = document.querySelectorAll('div[role="feed"] > div > div');
+            items.forEach((item) => {
+                const titleEl = item.querySelector('div.fontHeadlineSmall');
+                if (!titleEl) return;
+                const title = titleEl.innerText;
+                
+                let url = '';
+                const link = item.querySelector('a');
+                if (link) url = link.href;
+
                 if (title) {
-                    results.push({ title, url: a.href });
+                    let feedRating = null;
+                    let feedReviews = 0;
+                    
+                    const ratingSpan = item.querySelector('span[role="img"][aria-label]');
+                    if (ratingSpan) {
+                        const ariaLabel = ratingSpan.getAttribute('aria-label');
+                        const match = ariaLabel.match(/([0-9.,]+)\s*(?:stars?|Sterne?)/i);
+                        if (match) feedRating = parseFloat(match[1].replace(',', '.'));
+                        
+                        const rMatch = ariaLabel.match(/([0-9,.]+)\s*(?:reviews?|Rezensionen?)/i);
+                        if (rMatch) feedReviews = parseInt(rMatch[1].replace(/[,.]/g, ''), 10);
+                    }
+                    
+                    results.push({ title, url, feedRating, feedReviews });
                 }
-            }
+            });
             return results;
         });
 
@@ -469,18 +489,27 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                 let rating = null;
                 let bad_reviews = [];
                 try {
-                    const reviewCountBtn = document.querySelector('button[jsaction*="pane.rating.moreReviews"]') || document.querySelector('button[aria-label*="reviews"]');
-                    if (reviewCountBtn) {
-                        const text = reviewCountBtn.innerText || reviewCountBtn.getAttribute('aria-label') || '';
-                        const match = text.match(/([\d,]+)\s+reviews/i);
-                        if (match) review_count = parseInt(match[1].replace(/,/g, ''), 10);
+                    const reviewEls = Array.from(document.querySelectorAll('[aria-label*="reviews" i], [aria-label*="Rezensionen" i], button[jsaction*="pane.rating.moreReviews"]'));
+                    for (const el of reviewEls) {
+                        const text = el.innerText || el.getAttribute('aria-label') || '';
+                        const match = text.match(/([\d,.]+)\s*(?:reviews?|Rezensionen?)/i);
+                        if (match) {
+                            review_count = parseInt(match[1].replace(/,/g, ''), 10);
+                            break;
+                        }
                     }
                     
-                    const ratingBtn = document.querySelector('span[aria-label*="stars"]') || document.querySelector('span.ceNzKf') || document.querySelector('div.F7nice span');
-                    if (ratingBtn) {
-                        const text = ratingBtn.getAttribute('aria-label') || ratingBtn.innerText || '';
-                        const match = text.match(/([\d\.]+)\s*stars?/i) || text.match(/^([\d\.]+)/);
-                        if (match) rating = parseFloat(match[1]);
+                    const ratingEls = Array.from(document.querySelectorAll('[aria-label*="stars" i], [aria-label*="star" i], [aria-label*="Sterne" i], span.ceNzKf, div.F7nice span'));
+                    for (const el of ratingEls) {
+                        const text = el.getAttribute('aria-label') || el.innerText || '';
+                        const match = text.match(/([\d\.,]+)\s*(?:stars?|Sterne?)/i) || text.match(/^([\d\.,]+)/);
+                        if (match) {
+                            const parsed = parseFloat(match[1]);
+                            if (parsed > 0 && parsed <= 5) {
+                                rating = parsed;
+                                break;
+                            }
+                        }
                     }
                     
                     const reviewsTab = Array.from(document.querySelectorAll('button')).find(el => el.innerText.includes('Reviews') && el.getAttribute('data-item-id') === 'review') || document.querySelector('button[data-item-id="review"]');
@@ -492,24 +521,20 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
                         if (sortBtn) {
                             sortBtn.click();
                             await new Promise(r => setTimeout(r, 1000));
-                            const lowest = Array.from(document.querySelectorAll('div[role="menuitemradio"]')).find(el => el.innerText.includes('Lowest rating'));
-                            if (lowest) {
-                                lowest.click();
+                            const newest = Array.from(document.querySelectorAll('div[role="menuitemradio"]')).find(el => el.innerText.includes('Newest') || el.innerText.includes('Neueste') || el.innerText.includes('Most relevant') || el.innerText.includes('Relevanteste'));
+                            if (newest) {
+                                newest.click();
                                 await new Promise(r => setTimeout(r, 3000));
                             }
                         }
 
                         const reviewBlocks = document.querySelectorAll('div.jftiEf');
                         for (const block of reviewBlocks) {
-                            if (bad_reviews.length >= 3) break;
+                            if (bad_reviews.length >= 5) break;
                             const textEl = block.querySelector('span.wiI7pd');
                             const text = textEl ? textEl.innerText.trim() : '';
-                            const starEl = block.querySelector('span[aria-label*="star"]');
-                            const starText = starEl ? starEl.getAttribute('aria-label') : '';
-                            const isOneStar = starText.includes('1 star') || starText.includes('2 stars');
-                            const isBadText = /(poor|bad service|terrible|awful|worst|unanswered phones|slow callbacks|booking problems|after hours issues)/i.test(text);
-                            if (text && (isOneStar || isBadText)) {
-                                bad_reviews.push(text.substring(0, 500));
+                            if (text && text.length > 20) {
+                                bad_reviews.push({ text: text.substring(0, 500), source: "Google Maps" });
                             }
                         }
                     }
@@ -530,15 +555,12 @@ export async function scrapeGoogleMaps(query, limit = 50, onLog = null, onResult
             const phone = formatPhoneNumber(details.phone);
             const address = details.address || '';
             const category = details.category || '';
-            const rating = details.rating;
-            const review_count = details.review_count || 0;
+            const rating = details.rating || place.feedRating;
+            const review_count = details.review_count || place.feedReviews || 0;
             
             if (!name) continue;
 
-            if (review_count < 10 || (rating !== null && rating > 4.5)) {
-                log(`Skipping ${name} (Rating: ${rating}, Reviews: ${review_count}) - Requires >=10 reviews and <=4.5 stars.`);
-                continue;
-            }
+            // Removed strict rating/review count filtering to capture all leads
 
             let email = '';
             let social = { linkedin: '', facebook: '', twitter: '', instagram: '' };
@@ -1233,7 +1255,7 @@ async function scrapeWebsite(browser, url, log = console.log, notesContext = '',
                         const buttons = Array.from(document.querySelectorAll('button, a'));
                         const acceptBtn = buttons.find(b => {
                             const t = b.innerText.toLowerCase();
-                            return (t.includes('accept') || t.includes('agree') || t.includes('allow all') || t === 'ok')
+                            return (t.includes('accept') || t.includes('agree') || t.includes('allow all') || t === 'ok' || t.includes('akzeptieren') || t.includes('zustimmen'))
                                 && !t.includes('show') && !t.includes('manage');
                         });
                         if (acceptBtn) {
@@ -1636,8 +1658,8 @@ export async function performDeepResearch(company, website, notesContext = '') {
                                      document.querySelector('.hqzQac');
                     
                     const bodyText = document.body.innerText.substring(0, 2000);
-                    const ratingMatch = bodyText.match(/(\d+\.?\d*)\s*(?:out of 5|stars?|★)/i);
-                    const reviewMatch = bodyText.match(/(\d[\d,]*)\s*(?:reviews?|Google reviews?)/i);
+                    const ratingMatch = bodyText.match(/(\d+[,.]?\d*)\s*(?:out of 5|stars?|Sterne?|★)/i);
+                    const reviewMatch = bodyText.match(/(\d[\d,.]*)\s*(?:reviews?|Rezensionen?|Google reviews?|Google Rezensionen?)/i);
                     
                     return {
                         rating: ratingEl?.textContent || (ratingMatch ? ratingMatch[1] : null),
